@@ -40,3 +40,6 @@ Desktop.ini
 
 # Optional local overrides
 *.local
+
+# Vercel
+.vercel
