@@ -2,11 +2,12 @@ import questions from "./questions";
 
 export default {
   courseId: "company-history",
-  title: "Company History — Assessment",
+  title: "History of Accessible Publishers Limited — Assessment",
   description:
-    "Ten questions on Accessible Publishers Limited origins, growth, and values.",
+    "Test your understanding of our origins, scale, VICAP values, publishing services, Smart Edu Hub, awards, clients, and leadership.",
   totalQuestions: questions.length,
   pointsPerQuestion: 1,
-  passMark: 7,
+  passMark: 12,
+  timeLimitMinutes: 4,
   questions,
 };

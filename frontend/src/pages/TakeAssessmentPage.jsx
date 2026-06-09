@@ -2,13 +2,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
+import AssessmentStartWarningModal from "../components/AssessmentStartWarningModal";
 import assessments, { getAssessmentByCourseId } from "../assessments";
 import { stripCorrectAnswers } from "../assessments/utils";
 import courses, { getCourseById } from "../courses";
 import { useAssessmentAccess } from "../hooks/useAssessmentAccess";
 import { submitAssessment } from "../services/api";
 
-const ASSESSMENT_TIME_SECONDS = 5 * 60;
+const getAssessmentTimeSeconds = (assessment) => {
+  if (assessment?.timeLimitMinutes) {
+    return assessment.timeLimitMinutes * 60;
+  }
+  return 5 * 60; // default 5 minutes
+};
 
 const formatTime = (totalSeconds) => {
   const minutes = Math.floor(totalSeconds / 60);
@@ -33,9 +39,14 @@ const TakeAssessmentPage = () => {
   const assessment = getAssessmentByCourseId(assessments, courseId);
   const [answers, setAnswers] = useState({});
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [secondsLeft, setSecondsLeft] = useState(ASSESSMENT_TIME_SECONDS);
+  const initialTime = assessment
+    ? getAssessmentTimeSeconds(assessment)
+    : 5 * 60;
+  const [secondsLeft, setSecondsLeft] = useState(initialTime);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showWarning, setShowWarning] = useState(true);
+  const [timerStarted, setTimerStarted] = useState(false);
   const hasSubmittedRef = useRef(false);
 
   const hasAssessment = Boolean(course && assessment);
@@ -84,7 +95,7 @@ const TakeAssessmentPage = () => {
   );
 
   useEffect(() => {
-    if (!hasAssessment || isLocked || !isReady) {
+    if (!hasAssessment || isLocked || !isReady || !timerStarted) {
       return undefined;
     }
 
@@ -93,15 +104,15 @@ const TakeAssessmentPage = () => {
     }, 1000);
 
     return () => clearInterval(timerId);
-  }, [hasAssessment, isLocked, isReady]);
+  }, [hasAssessment, isLocked, isReady, timerStarted]);
 
   useEffect(() => {
-    if (!hasAssessment || !isReady || isLocked || secondsLeft > 0) {
+    if (!hasAssessment || !isReady || isLocked || !timerStarted || secondsLeft > 0) {
       return;
     }
 
     submitAnswers({ timedOut: true });
-  }, [hasAssessment, isLocked, isReady, secondsLeft, submitAnswers]);
+  }, [hasAssessment, isLocked, isReady, timerStarted, secondsLeft, submitAnswers]);
 
   if (!hasAssessment) {
     return <Navigate to="/courses" replace />;
@@ -164,6 +175,15 @@ const TakeAssessmentPage = () => {
 
   const timerUrgent = secondsLeft <= 60;
 
+  const handleStartTest = () => {
+    setShowWarning(false);
+    setTimerStarted(true);
+  };
+
+  const handleCancelStart = () => {
+    navigate(`/courses/${courseId}`);
+  };
+
   return (
     <main className="min-h-screen bg-slate-50">
       <Navbar />
@@ -180,7 +200,7 @@ const TakeAssessmentPage = () => {
               <p className="mt-3 text-slate-600">{assessment.description}</p>
               <p className="mt-4 text-sm text-slate-500">
                 {questions.length} questions · 1 point each · pass mark:{" "}
-                {assessment.passMark}/{questions.length} · 5 minute time limit
+                {assessment.passMark}/{questions.length} · {assessment.timeLimitMinutes || 5} minute time limit
               </p>
             </div>
             <div
@@ -303,6 +323,14 @@ const TakeAssessmentPage = () => {
           </div>
         </form>
       </section>
+
+      <AssessmentStartWarningModal
+        isOpen={showWarning}
+        onConfirm={handleStartTest}
+        onCancel={handleCancelStart}
+        assessmentTitle={assessment.title}
+        timeLimitMinutes={assessment.timeLimitMinutes || 5}
+      />
     </main>
   );
 };

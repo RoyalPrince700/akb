@@ -26,6 +26,10 @@ const BackToCourses = () => (
 const ChapterReaderPage = () => {
   const { courseId, chapterId } = useParams();
   const { user, isAuthenticated } = useAuth();
+  const rawFirstName = user?.name?.split(" ")[0] || "Staff";
+  const firstName =
+    rawFirstName.charAt(0).toUpperCase() +
+    rawFirstName.slice(1).toLowerCase();
   const course = getCourseById(courses, courseId);
   const chapter = getChapterById(course, chapterId);
   const chapters = getSortedChapters(course);
@@ -121,6 +125,7 @@ const ChapterReaderPage = () => {
           clearLastCompletion();
         }}
         courseId={courseId}
+        firstName={firstName}
         nextChapter={next}
         gemsAwarded={lastCompletion?.gemsAwarded}
         gemsEarned={lastCompletion?.gemsEarned ?? 10}

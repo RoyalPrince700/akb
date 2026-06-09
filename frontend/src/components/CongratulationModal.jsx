@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 
 const CongratulationModal = ({
   courseId,
+  firstName,
   gemsAwarded,
   gemsEarned,
   isOpen,
@@ -41,7 +42,7 @@ const CongratulationModal = ({
         <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-blue-100">
           <Award className="h-10 w-10 text-blue-600" />
         </div>
-        <h2 className="mb-2 text-3xl font-bold text-slate-950">Awesome Job! 🎉</h2>
+        <h2 className="mb-2 text-3xl font-bold text-slate-950">Awesome Job, {firstName || "Staff"}! 🎉</h2>
         <p className="mb-4 leading-relaxed text-slate-600">
           You've successfully completed this chapter. Your progress has been saved
           {nextChapter ? ", and the next chapter is now unlocked!" : "!"}

@@ -233,7 +233,7 @@ const SignupPage = () => {
                 value={formData.position}
                 onChange={handleChange}
                 className="mt-2 w-full rounded-2xl border border-slate-300 px-4 py-3 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-                placeholder="MD, Marketer, Editor"
+                placeholder="Marketer, Editor, Hr"
                 required
               />
             </div>

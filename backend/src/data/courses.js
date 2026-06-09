@@ -20,4 +20,11 @@ module.exports = [
     chapterCount: 4,
     source: "frontend",
   },
+  {
+    id: "human-resource-management",
+    title: "Human Resource Management",
+    category: "Professional Development",
+    chapterCount: 10,
+    source: "frontend",
+  },
 ];
