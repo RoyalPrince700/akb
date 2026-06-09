@@ -33,3 +33,11 @@ export const panelSegmentPath = (role, segment) => {
 
   return segment ? `${base}/${segment}` : base;
 };
+
+export const getResultsPath = (role) => {
+  if (role === "staff") {
+    return "/dashboard/results";
+  }
+
+  return panelSegmentPath(role, "results");
+};

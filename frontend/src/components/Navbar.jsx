@@ -4,6 +4,7 @@ import { Link, NavLink } from "react-router-dom";
 
 import accessibleLogo from "../assets/accessiblelogo.png";
 import { useAuth } from "../context/AuthContext";
+import { getResultsPath } from "../utils/rolePaths";
 
 const navLinkClass = ({ isActive }) =>
   `rounded-full px-4 py-2 text-sm font-semibold transition ${
@@ -95,6 +96,13 @@ const NavLinks = ({ children, mobile = false, onNavigate }) => {
       </NavLink>
       {!loading && isAuthenticated && user ? (
         <>
+          <NavLink
+            to={getResultsPath(user.role)}
+            className={linkClass}
+            onClick={onNavigate}
+          >
+            Results
+          </NavLink>
           <Link
             to="/leaderboard"
             onClick={onNavigate}
