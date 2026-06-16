@@ -144,10 +144,31 @@ const updateStaff = asyncHandler(async (req, res) => {
     throw new Error("User not found");
   }
 
-  const { name, email, department, position, password, role } = req.body;
+  const { name, email, staffId, department, position, password, role } =
+    req.body;
 
   if (name !== undefined) {
     staffMember.name = name.trim();
+  }
+  if (staffId !== undefined) {
+    const normalizedStaffId = staffId.trim().toUpperCase();
+
+    if (!normalizedStaffId) {
+      res.status(400);
+      throw new Error("Staff ID is required");
+    }
+
+    const existingUser = await User.findOne({
+      staffId: normalizedStaffId,
+      _id: { $ne: staffMember._id },
+    });
+
+    if (existingUser) {
+      res.status(409);
+      throw new Error("A user with this staff ID already exists");
+    }
+
+    staffMember.staffId = normalizedStaffId;
   }
   if (email !== undefined) {
     const normalizedEmail = email.trim().toLowerCase();

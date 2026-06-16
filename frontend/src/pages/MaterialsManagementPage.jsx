@@ -98,7 +98,7 @@ const MaterialsManagementPage = () => {
   return (
     <PanelLayout title="Learning Materials">
       {!isAdmin && (
-        <p className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <p className="mb-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
           You have read-only access. Administrators can add, edit, and remove
           uploaded materials.
         </p>
@@ -110,7 +110,7 @@ const MaterialsManagementPage = () => {
         </p>
       )}
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-blue-900/5">
         <h2 className="text-xl font-bold text-slate-950">Built-in courses</h2>
         <p className="mt-1 text-sm text-slate-600">
           Chapter content is managed in the frontend course folders. Staff access
@@ -137,7 +137,7 @@ const MaterialsManagementPage = () => {
         </ul>
       </div>
 
-      <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-blue-900/5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-xl font-bold text-slate-950">Uploaded materials</h2>
@@ -149,7 +149,7 @@ const MaterialsManagementPage = () => {
             <button
               type="button"
               onClick={openCreateModal}
-              className="rounded-full bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+              className="inline-flex items-center justify-center rounded-full bg-blue-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-800"
             >
               Add material
             </button>
@@ -160,7 +160,7 @@ const MaterialsManagementPage = () => {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-blue-600"
+            className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
           >
             <option value="">All statuses</option>
             <option value="published">Published</option>
@@ -237,14 +237,14 @@ const MaterialsManagementPage = () => {
                           <button
                             type="button"
                             onClick={() => openEditModal(item)}
-                            className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                            className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
                           >
                             Edit
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDelete(item)}
-                            className="rounded-full border border-red-200 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
+                            className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-50"
                           >
                             Delete
                           </button>

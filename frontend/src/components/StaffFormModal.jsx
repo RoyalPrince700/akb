@@ -44,7 +44,10 @@ const StaffFormModal = ({
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "staffId" ? value.trim().toUpperCase() : value,
+    }));
   };
 
   const handleSubmit = (event) => {
@@ -53,8 +56,8 @@ const StaffFormModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4">
-      <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/50 px-4 py-6">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-blue-900/10">
         <h2 className="text-xl font-bold text-slate-950">
           {isEdit ? "Edit Staff Member" : "Create Staff Account"}
         </h2>
@@ -70,7 +73,7 @@ const StaffFormModal = ({
               required
               value={formData.name}
               onChange={handleChange}
-              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none focus:border-blue-600"
+              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
             />
           </div>
 
@@ -85,29 +88,32 @@ const StaffFormModal = ({
               required
               value={formData.email}
               onChange={handleChange}
-              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none focus:border-blue-600"
+              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
               placeholder="staff@example.com"
             />
           </div>
 
-          {!isEdit && (
-            <div>
-              <label
-                htmlFor="staffId"
-                className="text-sm font-medium text-slate-700"
-              >
-                Staff ID
-              </label>
-              <input
-                id="staffId"
-                name="staffId"
-                required
-                value={formData.staffId}
-                onChange={handleChange}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 uppercase text-slate-950 outline-none focus:border-blue-600"
-              />
-            </div>
-          )}
+          <div>
+            <label
+              htmlFor="staffId"
+              className="text-sm font-medium text-slate-700"
+            >
+              Staff ID
+            </label>
+            <input
+              id="staffId"
+              name="staffId"
+              required
+              value={formData.staffId}
+              onChange={handleChange}
+              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 uppercase text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+            />
+            {isEdit && (
+              <p className="mt-1 text-xs text-slate-500">
+                Update this if the staff member entered the wrong ID during signup.
+              </p>
+            )}
+          </div>
 
           <div>
             <label
@@ -122,7 +128,7 @@ const StaffFormModal = ({
               required
               value={formData.department}
               onChange={handleChange}
-              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none focus:border-blue-600"
+              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
             />
           </div>
 
@@ -139,7 +145,7 @@ const StaffFormModal = ({
               required
               value={formData.position}
               onChange={handleChange}
-              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none focus:border-blue-600"
+              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
             />
           </div>
 
@@ -153,7 +159,7 @@ const StaffFormModal = ({
               value={formData.role}
               onChange={handleChange}
               disabled={isSelf}
-              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none focus:border-blue-600 disabled:bg-slate-100"
+              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
             >
               <option value="staff">Staff</option>
               <option value="hr">HR</option>
@@ -181,7 +187,7 @@ const StaffFormModal = ({
               minLength={6}
               value={formData.password}
               onChange={handleChange}
-              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none focus:border-blue-600"
+              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
             />
           </div>
 
@@ -189,14 +195,14 @@ const StaffFormModal = ({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="rounded-full bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-60"
+              className="inline-flex items-center justify-center rounded-full bg-blue-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:opacity-60"
             >
               {saving ? "Saving..." : isEdit ? "Save changes" : "Create staff"}
             </button>

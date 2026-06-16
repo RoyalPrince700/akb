@@ -18,9 +18,9 @@ const sidebarLinkClass =
     `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
       isActive
         ? accent === "admin"
-          ? "bg-amber-700 text-white"
+          ? "bg-blue-700 text-white shadow-sm shadow-blue-900/10 hover:bg-blue-800"
           : "bg-violet-700 text-white"
-        : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+        : "text-slate-600 hover:bg-blue-50 hover:text-blue-800"
     }`;
 
 const PanelSidebar = ({ accent, onNavigate, className = "" }) => {
@@ -68,7 +68,7 @@ const PanelSidebar = ({ accent, onNavigate, className = "" }) => {
         <div>
           <p
             className={`text-xs font-bold uppercase tracking-wider ${
-              isAdmin ? "text-amber-700" : "text-violet-700"
+              isAdmin ? "text-blue-700" : "text-violet-700"
             }`}
           >
             {panelLabel}
@@ -79,7 +79,7 @@ const PanelSidebar = ({ accent, onNavigate, className = "" }) => {
           <button
             type="button"
             onClick={onNavigate}
-            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 lg:hidden"
+            className="rounded-full border border-slate-200 bg-white p-1.5 text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 lg:hidden"
             aria-label="Close menu"
           >
             <X className="h-5 w-5" />
@@ -106,7 +106,7 @@ const PanelSidebar = ({ accent, onNavigate, className = "" }) => {
         <Link
           to="/"
           onClick={onNavigate}
-          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-950"
+          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-blue-50 hover:text-blue-800"
         >
           <Globe className="h-5 w-5 shrink-0" aria-hidden />
           Back to website

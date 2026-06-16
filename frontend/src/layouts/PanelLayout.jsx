@@ -10,6 +10,10 @@ const PanelLayout = ({ children, title }) => {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const accent = user?.role === "admin" ? "admin" : "hr";
+  const panelBackground =
+    accent === "admin"
+      ? "bg-gradient-to-br from-blue-50 via-white to-slate-50"
+      : "bg-slate-50";
 
   const handleLogout = () => {
     logout();
@@ -19,7 +23,7 @@ const PanelLayout = ({ children, title }) => {
   const closeMobile = () => setMobileOpen(false);
 
   return (
-    <div className="min-h-screen bg-slate-50 lg:flex">
+    <div className={`min-h-screen ${panelBackground} lg:flex`}>
       {mobileOpen && (
         <button
           type="button"
@@ -38,13 +42,13 @@ const PanelLayout = ({ children, title }) => {
       </div>
 
       <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
+        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
           <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-3">
               <button
                 type="button"
                 onClick={() => setMobileOpen(true)}
-                className="rounded-lg border border-slate-200 p-2 text-slate-700 hover:bg-slate-50 lg:hidden"
+                className="rounded-full border border-slate-300 bg-white p-2 text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 lg:hidden"
                 aria-label="Open menu"
               >
                 <Menu className="h-5 w-5" />
@@ -54,10 +58,10 @@ const PanelLayout = ({ children, title }) => {
               </h1>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 items-center gap-4">
               <Link
                 to="/"
-                className="hidden items-center gap-2 rounded-full border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:inline-flex"
+                className="hidden items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900 sm:inline-flex"
               >
                 <Home className="h-4 w-4" aria-hidden />
                 Site home
@@ -65,7 +69,7 @@ const PanelLayout = ({ children, title }) => {
               <button
                 type="button"
                 onClick={handleLogout}
-                className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 sm:px-4"
+                className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"
               >
                 <LogOut className="h-4 w-4" aria-hidden />
                 <span className="hidden sm:inline">Logout</span>

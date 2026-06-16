@@ -58,43 +58,43 @@ const HrDashboard = () => {
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
         <Link
           to={staffPath}
-          className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-violet-300"
+          className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
         >
-          <p className="text-sm font-medium text-slate-500">Staff directory</p>
-          <h2 className="mt-3 text-3xl font-bold text-slate-950">{staffCount}</h2>
-          <p className="mt-2 text-sm text-slate-600">View all staff records</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Staff directory</p>
+          <h2 className="mt-4 text-5xl font-medium tracking-tight text-slate-900">{staffCount}</h2>
+          <p className="mt-2 text-xs text-slate-400">View all staff records</p>
         </Link>
         <Link
           to={materialsPath}
-          className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-violet-300"
+          className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
         >
-          <p className="text-sm font-medium text-slate-500">Learning content</p>
-          <h2 className="mt-3 text-3xl font-bold text-slate-950">
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Learning content</p>
+          <h2 className="mt-4 text-5xl font-medium tracking-tight text-slate-900">
             {courses.length + materialsCount}
           </h2>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-xs text-slate-400">
             {courses.length} courses plus uploaded resources
           </p>
         </Link>
         <Link
           to={resultsPath}
-          className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-violet-300"
+          className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
         >
-          <p className="text-sm font-medium text-slate-500">Assessment results</p>
-          <h2 className="mt-3 text-3xl font-bold text-slate-950">
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Assessment results</p>
+          <h2 className="mt-4 text-5xl font-medium tracking-tight text-slate-900">
             {resultsCount}
           </h2>
-          <p className="mt-2 text-sm text-slate-600">Review staff test scores</p>
+          <p className="mt-2 text-xs text-slate-400">Review staff test scores</p>
         </Link>
         <Link
           to={completionsPath}
-          className="rounded-3xl border border-emerald-200 bg-emerald-50/80 p-6 shadow-sm transition hover:border-emerald-300"
+          className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
         >
-          <p className="text-sm font-medium text-emerald-800">Course completions</p>
-          <h2 className="mt-3 text-3xl font-bold text-emerald-950">
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Course completions</p>
+          <h2 className="mt-4 text-5xl font-medium tracking-tight text-slate-900">
             {courseCompletions}
           </h2>
-          <p className="mt-2 text-sm text-emerald-900">
+          <p className="mt-2 text-xs text-slate-400">
             {staffWithCompletions} staff finished at least one course
           </p>
         </Link>

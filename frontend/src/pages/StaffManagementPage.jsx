@@ -85,6 +85,7 @@ const StaffManagementPage = () => {
         const payload = {
           name: formData.name,
           email: formData.email,
+          staffId: formData.staffId,
           department: formData.department,
           position: formData.position,
           role: formData.role,
@@ -144,7 +145,7 @@ const StaffManagementPage = () => {
   return (
     <PanelLayout title="Staff Management">
       {!isAdmin && (
-        <p className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <p className="mb-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
           You have read-only access. Only administrators can create, edit,
           activate, deactivate, or delete staff accounts.
         </p>
@@ -156,7 +157,7 @@ const StaffManagementPage = () => {
         </p>
       )}
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-blue-900/5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-xl font-bold text-slate-950">
@@ -170,7 +171,7 @@ const StaffManagementPage = () => {
             <button
               type="button"
               onClick={openCreateModal}
-              className="rounded-full bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+              className="inline-flex items-center justify-center rounded-full bg-blue-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-800"
             >
               Add user
             </button>
@@ -186,14 +187,14 @@ const StaffManagementPage = () => {
             placeholder="Search name, ID, department..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-blue-600 sm:col-span-2"
+            className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 sm:col-span-2"
           />
           <input
             type="text"
             placeholder="Filter by department"
             value={department}
             onChange={(e) => setDepartment(e.target.value)}
-            className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-blue-600"
+            className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
           />
           {isAdmin && (
             <select
@@ -202,7 +203,7 @@ const StaffManagementPage = () => {
                 setRoleFilter(e.target.value);
                 setPage(1);
               }}
-              className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-blue-600"
+              className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
             >
               <option value="">All roles</option>
               <option value="staff">Staff</option>
@@ -216,7 +217,7 @@ const StaffManagementPage = () => {
               setStatusFilter(e.target.value);
               setPage(1);
             }}
-            className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-blue-600"
+            className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
           >
             <option value="">All statuses</option>
             <option value="true">Active</option>
@@ -224,7 +225,7 @@ const StaffManagementPage = () => {
           </select>
           <button
             type="submit"
-            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 lg:col-span-5 lg:w-fit"
+            className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 lg:col-span-5 lg:w-fit"
           >
             Apply filters
           </button>
@@ -274,9 +275,9 @@ const StaffManagementPage = () => {
                       <span
                         className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${
                           member.role === "admin"
-                            ? "bg-amber-100 text-amber-900"
+                            ? "bg-blue-100 text-blue-900"
                             : member.role === "hr"
-                              ? "bg-violet-100 text-violet-900"
+                              ? "bg-indigo-100 text-indigo-900"
                               : "bg-blue-100 text-blue-900"
                         }`}
                       >
@@ -300,7 +301,7 @@ const StaffManagementPage = () => {
                           <button
                             type="button"
                             onClick={() => openEditModal(member)}
-                            className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                            className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
                           >
                             Edit
                           </button>
@@ -308,7 +309,7 @@ const StaffManagementPage = () => {
                             type="button"
                             onClick={() => handleToggleStatus(member)}
                             disabled={member._id === user?._id}
-                            className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                            className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                           >
                             {member.isActive !== false
                               ? "Deactivate"
@@ -318,7 +319,7 @@ const StaffManagementPage = () => {
                             type="button"
                             onClick={() => handleDelete(member)}
                             disabled={member._id === user?._id}
-                            className="rounded-full border border-red-200 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                            className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
                           >
                             Delete
                           </button>
@@ -338,7 +339,7 @@ const StaffManagementPage = () => {
               type="button"
               disabled={page <= 1}
               onClick={() => setPage((p) => p - 1)}
-              className="rounded-full border border-slate-300 px-3 py-1.5 text-sm font-semibold disabled:opacity-40"
+              className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 disabled:opacity-40"
             >
               Previous
             </button>
@@ -349,7 +350,7 @@ const StaffManagementPage = () => {
               type="button"
               disabled={page >= pagination.pages}
               onClick={() => setPage((p) => p + 1)}
-              className="rounded-full border border-slate-300 px-3 py-1.5 text-sm font-semibold disabled:opacity-40"
+              className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 disabled:opacity-40"
             >
               Next
             </button>

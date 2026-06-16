@@ -64,7 +64,7 @@ const MaterialFormModal = ({ material, isOpen, onClose, onSubmit, saving }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4">
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 shadow-xl">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-blue-900/10">
         <h2 className="text-xl font-bold text-slate-950">
           {isEdit ? "Edit Material" : "Add Material"}
         </h2>
@@ -80,7 +80,7 @@ const MaterialFormModal = ({ material, isOpen, onClose, onSubmit, saving }) => {
               required
               value={formData.title}
               onChange={handleChange}
-              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none focus:border-blue-600"
+              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
             />
           </div>
 
@@ -97,7 +97,7 @@ const MaterialFormModal = ({ material, isOpen, onClose, onSubmit, saving }) => {
               rows={3}
               value={formData.description}
               onChange={handleChange}
-              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none focus:border-blue-600"
+              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
             />
           </div>
 
@@ -114,7 +114,7 @@ const MaterialFormModal = ({ material, isOpen, onClose, onSubmit, saving }) => {
                 name="category"
                 value={formData.category}
                 onChange={handleChange}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none focus:border-blue-600"
+                className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
               />
             </div>
             <div>
@@ -130,7 +130,7 @@ const MaterialFormModal = ({ material, isOpen, onClose, onSubmit, saving }) => {
                 placeholder="ai-for-staff"
                 value={formData.courseSlug}
                 onChange={handleChange}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none focus:border-blue-600"
+                className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
               />
             </div>
           </div>
@@ -148,7 +148,7 @@ const MaterialFormModal = ({ material, isOpen, onClose, onSubmit, saving }) => {
                 name="audience"
                 value={formData.audience}
                 onChange={handleChange}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none focus:border-blue-600"
+                className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
               >
                 <option value="staff">Staff</option>
                 <option value="hr">HR</option>
@@ -167,7 +167,7 @@ const MaterialFormModal = ({ material, isOpen, onClose, onSubmit, saving }) => {
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none focus:border-blue-600"
+                className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
               >
                 <option value="draft">Draft</option>
                 <option value="published">Published</option>
@@ -186,7 +186,7 @@ const MaterialFormModal = ({ material, isOpen, onClose, onSubmit, saving }) => {
               placeholder="https://..."
               value={formData.fileUrl}
               onChange={handleChange}
-              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none focus:border-blue-600"
+              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
             />
           </div>
 
@@ -194,14 +194,14 @@ const MaterialFormModal = ({ material, isOpen, onClose, onSubmit, saving }) => {
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="rounded-full bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-60"
+              className="inline-flex items-center justify-center rounded-full bg-blue-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:opacity-60"
             >
               {saving ? "Saving..." : isEdit ? "Save changes" : "Add material"}
             </button>

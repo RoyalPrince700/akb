@@ -6,8 +6,8 @@ import PanelLayout from "../layouts/PanelLayout";
 import { getStaffCourseCompletions } from "../services/api";
 
 const roleBadgeClass = (role) => {
-  if (role === "admin") return "bg-amber-100 text-amber-900";
-  if (role === "hr") return "bg-violet-100 text-violet-900";
+  if (role === "admin") return "bg-blue-100 text-blue-900";
+  if (role === "hr") return "bg-indigo-100 text-indigo-900";
   return "bg-blue-100 text-blue-900";
 };
 
@@ -79,16 +79,16 @@ const StaffCourseCompletionsPage = () => {
 
       {summary && (
         <div className="mb-6 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">
+          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-lg shadow-blue-900/5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
               Total completions
             </p>
-            <p className="mt-1 text-2xl font-bold text-emerald-950">
+            <p className="mt-1 text-2xl font-bold text-slate-950">
               {summary.totalCompletions}
             </p>
           </div>
-          <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-blue-800">
+          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-lg shadow-blue-900/5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
               Users with completions
             </p>
             <p className="mt-1 text-2xl font-bold text-blue-950">
@@ -99,8 +99,8 @@ const StaffCourseCompletionsPage = () => {
               </span>
             </p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+          <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-lg shadow-blue-900/5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
               Available courses
             </p>
             <p className="mt-1 text-2xl font-bold text-slate-950">{totalCourses}</p>
@@ -108,7 +108,7 @@ const StaffCourseCompletionsPage = () => {
         </div>
       )}
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-blue-900/5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -117,14 +117,14 @@ const StaffCourseCompletionsPage = () => {
               placeholder="Search name, staff ID, department..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 py-2.5 pl-10 pr-4 text-sm outline-none focus:border-blue-600"
+              className="w-full rounded-xl border border-slate-300 py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
             />
           </div>
           {isAdmin && (
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-blue-600 sm:w-40"
+              className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 sm:w-40"
             >
               <option value="">All roles</option>
               <option value="staff">Staff</option>
@@ -203,7 +203,7 @@ const StaffCourseCompletionsPage = () => {
                             type="button"
                             onClick={() => toggleExpanded(String(entry.id))}
                             disabled={!hasCourses}
-                            className="inline-flex items-center gap-1 rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                            className="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                           >
                             {isExpanded ? (
                               <>

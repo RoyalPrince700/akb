@@ -64,61 +64,61 @@ const AdminDashboard = () => {
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-5">
         <Link
           to={staffPath}
-          className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-amber-300"
+          className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
         >
-          <p className="text-sm font-medium text-slate-500">Staff accounts</p>
-          <h2 className="mt-3 text-3xl font-bold text-slate-950">{staffCount}</h2>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Staff accounts</p>
+          <h2 className="mt-4 text-5xl font-medium tracking-tight text-slate-900">{staffCount}</h2>
+          <p className="mt-2 text-xs text-slate-400">
             Create, edit, activate, and deactivate
           </p>
         </Link>
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium text-slate-500">Built-in courses</p>
-          <h2 className="mt-3 text-3xl font-bold text-slate-950">
+        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Built-in courses</p>
+          <h2 className="mt-4 text-5xl font-medium tracking-tight text-slate-900">
             {courses.length}
           </h2>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-xs text-slate-400">
             AI, finance, and company history
           </p>
         </div>
         <Link
           to={materialsPath}
-          className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-amber-300"
+          className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
         >
-          <p className="text-sm font-medium text-slate-500">Uploaded materials</p>
-          <h2 className="mt-3 text-3xl font-bold text-slate-950">
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Uploaded materials</p>
+          <h2 className="mt-4 text-5xl font-medium tracking-tight text-slate-900">
             {materialsCount}
           </h2>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-xs text-slate-400">
             {publishedCount} published in database
           </p>
         </Link>
         <Link
           to={resultsPath}
-          className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-amber-300"
+          className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
         >
-          <p className="text-sm font-medium text-slate-500">Assessment results</p>
-          <h2 className="mt-3 text-3xl font-bold text-slate-950">
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Assessment results</p>
+          <h2 className="mt-4 text-5xl font-medium tracking-tight text-slate-900">
             {resultsCount}
           </h2>
-          <p className="mt-2 text-sm text-slate-600">Staff submissions on record</p>
+          <p className="mt-2 text-xs text-slate-400">Staff submissions on record</p>
         </Link>
         <Link
           to={completionsPath}
-          className="rounded-3xl border border-emerald-200 bg-emerald-50/80 p-6 shadow-sm transition hover:border-emerald-300"
+          className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
         >
-          <p className="text-sm font-medium text-emerald-800">Course completions</p>
-          <h2 className="mt-3 text-3xl font-bold text-emerald-950">
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Course completions</p>
+          <h2 className="mt-4 text-5xl font-medium tracking-tight text-slate-900">
             {courseCompletions}
           </h2>
-          <p className="mt-2 text-sm text-emerald-900">
+          <p className="mt-2 text-xs text-slate-400">
             {staffWithCompletions} users finished at least one course
           </p>
         </Link>
       </div>
 
       <div className="mt-6 grid gap-5 lg:grid-cols-2">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-blue-900/5">
           <h2 className="text-xl font-bold text-slate-950">Administrator tasks</h2>
           <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
             <li>
@@ -160,9 +160,9 @@ const AdminDashboard = () => {
             </li>
           </ul>
         </div>
-        <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6">
-          <h2 className="text-xl font-bold text-amber-950">Platform status</h2>
-          <p className="mt-3 text-sm leading-6 text-amber-900">
+        <div className="rounded-3xl bg-linear-to-br from-blue-700 to-indigo-800 p-6 shadow-lg shadow-blue-900/10">
+          <h2 className="text-xl font-bold text-white">Platform status</h2>
+          <p className="mt-3 text-sm leading-6 text-blue-100">
             Core courses and assessments are live. Cloudinary file uploads can be
             connected later; for now you can add materials with title, description,
             and optional external file URLs.

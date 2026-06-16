@@ -5,8 +5,8 @@ export default [
     type: "multiple_choice",
     question: "Accessible Publishers Limited was founded in:",
     options: [
-      "November 1996",
       "January 2010",
+      "November 1996",
       "March 1985",
       "July 2005",
     ],
@@ -27,9 +27,9 @@ export default [
     type: "multiple_choice",
     question: "Which of these best describes our core business?",
     options: [
-      "Publishing, printing, and procurement of quality educational materials",
       "Only selling imported textbooks",
       "Managing school cafeterias nationwide",
+      "Publishing, printing, and procurement of quality educational materials",
       "Designing government websites only",
     ],
     correctAnswer:
@@ -40,7 +40,7 @@ export default [
     id: "q4",
     type: "true_false",
     question: "Accessible Publishers has published over 4,000 book titles.",
-    options: ["True", "False"],
+    options: ["False", "True"],
     correctAnswer: "True",
     difficulty: "easy",
   },
@@ -50,9 +50,9 @@ export default [
     question: "Our titles are distributed to more than:",
     options: [
       "500 schools only",
-      "50,000 schools and booksellers",
       "10 authors worldwide",
       "No external customers",
+      "50,000 schools and booksellers",
     ],
     correctAnswer: "50,000 schools and booksellers",
     difficulty: "easy",
@@ -86,8 +86,8 @@ export default [
     type: "multiple_choice",
     question: "Our vision includes becoming Africa's most:",
     options: [
-      "Innovative publishing company",
       "Distant logistics-only firm",
+      "Innovative publishing company",
       "Single-format printer",
       "Unregulated bookseller",
     ],
@@ -99,7 +99,7 @@ export default [
     type: "true_false",
     question:
       "We are members of the Nigerian Publishers Association and the African Publishers Network.",
-    options: ["True", "False"],
+    options: ["False", "True"],
     correctAnswer: "True",
     difficulty: "medium",
   },
@@ -108,7 +108,7 @@ export default [
     type: "multiple_choice",
     question:
       "Which certification formally recognises that quality is a documented system at Accessible Publishers?",
-    options: ["ISO 9001", "NERDC only", "Frankfurt Book Fair", "SPHRi™"],
+    options: ["NERDC only", "Frankfurt Book Fair", "ISO 9001", "SPHRi™"],
     correctAnswer: "ISO 9001",
     difficulty: "medium",
   },
@@ -127,10 +127,10 @@ export default [
     question:
       "Which of these is handled by our security and commercial printing division?",
     options: [
-      "Examination papers and ballot papers",
       "Only social media graphics",
       "School playground equipment",
       "Student cafeteria menus only",
+      "Examination papers and ballot papers",
     ],
     correctAnswer: "Examination papers and ballot papers",
     difficulty: "medium",
@@ -166,8 +166,8 @@ export default [
     type: "multiple_choice",
     question: "Smart Edu Hub is best described as:",
     options: [
-      "An integrated school and learning management platform powered by AI-enabled support",
       "A warehouse inventory spreadsheet",
+      "An integrated school and learning management platform powered by AI-enabled support",
       "A staff payroll-only application",
       "A single-format e-book reader with no school tools",
     ],
@@ -180,7 +180,7 @@ export default [
     type: "true_false",
     question:
       "We work with UBEC and SUBEB boards in states such as Oyo, Ogun, Ondo, Niger, Ekiti, Adamawa, and Borno.",
-    options: ["True", "False"],
+    options: ["False", "True"],
     correctAnswer: "True",
     difficulty: "hard",
   },
@@ -189,9 +189,9 @@ export default [
     type: "multiple_choice",
     question: "Who is the MD/CEO of Accessible Publishers Limited?",
     options: [
-      "Gbadega Adedapo",
       "Taiwo Akanni",
       "Fola Vincent",
+      "Gbadega Adedapo",
       "Yusuf Moruf Adesina",
     ],
     correctAnswer: "Gbadega Adedapo",
@@ -203,10 +203,10 @@ export default [
     question:
       "Which VICAP value most directly protects trust when handling sensitive examination or security materials?",
     options: [
-      "Accountability and integrity",
       "Professionalism and ethics only, with no link to security work",
       "Value addition to customers only",
       "Collaboration and teamwork only",
+      "Accountability and integrity",
     ],
     correctAnswer: "Accountability and integrity",
     difficulty: "hard",

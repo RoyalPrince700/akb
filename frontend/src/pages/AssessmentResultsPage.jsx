@@ -41,7 +41,7 @@ const AssessmentResultsPage = () => {
         </p>
       )}
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-blue-900/5">
         {loading ? (
           <p className="py-8 text-center text-sm text-slate-600">
             Loading results...
@@ -86,7 +86,7 @@ const AssessmentResultsPage = () => {
                         className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                           result.passed
                             ? "bg-emerald-100 text-emerald-800"
-                            : "bg-amber-100 text-amber-800"
+                            : "bg-slate-200 text-slate-700"
                         }`}
                       >
                         {result.passed ? "Passed" : "Not passed"}

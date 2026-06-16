@@ -22,7 +22,7 @@ const AssessmentResultPage = () => {
       <Navbar>
         <Link
           to={`/courses/${courseId}`}
-          className="text-sm font-semibold text-blue-700 hover:text-blue-800"
+          className="rounded-full px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-blue-50 hover:text-blue-800"
         >
           ← Back to course
         </Link>
