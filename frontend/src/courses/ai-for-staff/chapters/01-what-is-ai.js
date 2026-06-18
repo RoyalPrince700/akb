@@ -8,7 +8,7 @@ export default {
     {
       type: "paragraph",
       icon: "Sparkles",
-      text: "Welcome to the future of publishing! Artificial intelligence (AI) refers to computer systems that can perform tasks that usually require human judgment—such as understanding language, summarizing documents, suggesting next steps, or recognizing patterns in data.",
+      text: "Welcome to the future of publishing! Artificial intelligence (AI) refers to computer systems that can perform tasks that usually require human judgment, such as understanding language, summarizing documents, suggesting next steps, or recognizing patterns in data.",
     },
     {
       type: "paragraph",

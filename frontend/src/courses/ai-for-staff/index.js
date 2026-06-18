@@ -10,7 +10,7 @@ export default {
   shortDescription:
     "Learn how staff can use AI safely and productively in publishing, sales, and office workflows.",
   description:
-    "A practical guide for Accessible Publishers staff on responsible AI use—from everyday tasks to protecting company and customer information.",
+    "A practical guide for Accessible Publishers staff on responsible AI use, from everyday tasks to protecting company and customer information.",
   category: "Professional Development",
   audience: "staff",
   order: 1,

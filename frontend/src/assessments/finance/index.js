@@ -4,7 +4,7 @@ export default {
   courseId: "finance",
   title: "Finance Essentials — Assessment",
   description:
-    "Ten questions on workplace finance literacy, expenses, and integrity.",
+    "Ten questions on workplace finance literacy, budgeting, procurement, controls, reporting, and integrity.",
   totalQuestions: questions.length,
   pointsPerQuestion: 1,
   passMark: 7,

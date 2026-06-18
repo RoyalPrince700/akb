@@ -20,6 +20,13 @@ module.exports = {
     "clients-and-partners",
     "leadership-team",
   ],
+  "customer-service": [
+    "foundations",
+    "knowing-our-customers",
+    "communication-standards",
+    "handling-complaints",
+    "service-recovery-and-improvement",
+  ],
   "human-resource-management": [
     "introduction-to-hrm",
     "historical-perspectives",

@@ -1,5 +1,6 @@
 import { Link, Navigate, useLocation, useParams } from "react-router-dom";
 
+import assessments, { getAssessmentByCourseId } from "../assessments";
 import Navbar from "../components/Navbar";
 import courses, { getCourseById } from "../courses";
 
@@ -7,6 +8,7 @@ const AssessmentResultPage = () => {
   const { courseId } = useParams();
   const location = useLocation();
   const course = getCourseById(courses, courseId);
+  const assessment = getAssessmentByCourseId(assessments, courseId);
   const result = location.state?.result;
 
   if (!course) {
@@ -16,6 +18,20 @@ const AssessmentResultPage = () => {
   if (!result) {
     return <Navigate to={`/courses/${courseId}/assessment`} replace />;
   }
+
+  const reviewedAnswers =
+    result.answers?.map((answer, index) => {
+      const question = assessment?.questions?.find(
+        (item) => item.id === answer.questionId
+      );
+
+      return {
+        ...answer,
+        questionNumber: index + 1,
+        questionText: question?.question || `Question ${index + 1}`,
+        correctAnswer: question?.correctAnswer || "Not available",
+      };
+    }) || [];
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -48,26 +64,48 @@ const AssessmentResultPage = () => {
             {result.percentage}%)
           </p>
           <p className="mt-2 text-sm text-slate-600">
-            {result.assessmentTitle} · 1 point per correct answer
+            {result.assessmentTitle}
           </p>
         </div>
 
         <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="font-bold text-slate-950">Question breakdown</h2>
+          <h2 className="font-bold text-slate-950">Questions and correct answers</h2>
           <ul className="mt-4 space-y-2">
-            {result.answers?.map((answer, index) => (
+            {reviewedAnswers.map((answer) => (
               <li
                 key={answer.questionId}
-                className="flex items-center justify-between rounded-xl border border-slate-100 px-4 py-2 text-sm"
+                className="rounded-2xl border border-slate-100 px-4 py-4 text-sm"
               >
-                <span>Question {index + 1}</span>
-                <span
-                  className={`font-semibold ${
-                    answer.isCorrect ? "text-emerald-700" : "text-red-700"
-                  }`}
-                >
-                  {answer.isCorrect ? "+1 point" : "0 points"}
-                </span>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <p className="font-semibold text-slate-950">
+                    Question {answer.questionNumber}: {answer.questionText}
+                  </p>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                      answer.isCorrect
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-red-100 text-red-700"
+                    }`}
+                  >
+                    {answer.isCorrect ? "Correct" : "Incorrect"}
+                  </span>
+                </div>
+                <p className="mt-3 text-slate-600">
+                  Your answer:{" "}
+                  <span
+                    className={`font-medium ${
+                      answer.isCorrect ? "text-emerald-700" : "text-red-700"
+                    }`}
+                  >
+                    {answer.selectedAnswer || "No answer selected"}
+                  </span>
+                </p>
+                <p className="mt-2 text-slate-600">
+                  Correct answer:{" "}
+                  <span className="font-medium text-slate-900">
+                    {answer.correctAnswer}
+                  </span>
+                </p>
               </li>
             ))}
           </ul>

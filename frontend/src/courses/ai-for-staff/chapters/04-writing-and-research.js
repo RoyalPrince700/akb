@@ -21,8 +21,8 @@ export default {
       items: [
         "Use AI to brainstorm section headings or learning objectives, then validate against curriculum guides.",
         "Compare AI suggestions with subject specialists before classroom use.",
-        "Never skip plagiarism and rights checks for quoted material—we are an award-winning publisher, after all!",
-        "Maintain version control—save your final human-approved document as the official copy.",
+        "Never skip plagiarism and rights checks for quoted material. We are an award-winning publisher, after all!",
+        "Maintain version control. Save your final human-approved document as the official copy.",
       ],
     },
     {
@@ -49,7 +49,7 @@ export default {
     {
       type: "paragraph",
       icon: "MailCheck",
-      text: "For schools and booksellers, accuracy matters more than speed. Confirm titles, ISBNs, pricing, delivery timelines, and contact details manually. Accessible Publishers is known for quality and accessible formats—our messages should reflect that care.",
+      text: "For schools and booksellers, accuracy matters more than speed. Confirm titles, ISBNs, pricing, delivery timelines, and contact details manually. Accessible Publishers is known for quality and accessible formats. Our messages should reflect that care.",
     },
     {
       type: "paragraph",

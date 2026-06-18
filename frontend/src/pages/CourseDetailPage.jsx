@@ -168,8 +168,9 @@ const CourseDetailPage = () => {
           <div className="mt-8 rounded-3xl border border-violet-200 bg-violet-50/50 p-6">
             <h2 className="text-lg font-bold text-slate-950">Course assessment</h2>
             <p className="mt-2 text-sm text-slate-600">
-              {assessment.description} Score: 1 point per correct answer (10
-              total). Pass mark: {assessment.passMark}/10.
+              {assessment.description} Score: 1 point per correct answer (
+              {assessment.totalQuestions} total). Pass mark: {assessment.passMark}/
+              {assessment.totalQuestions}.
             </p>
             {isStaff && isReady && !courseCompleted && (
               <p className="mt-3 text-sm font-medium text-amber-800">

@@ -24,11 +24,11 @@ export default {
     },
     {
       type: "heading",
-      text: "Born in Ibadan, built for Nigeria and beyond",
+      text: "Born in Ibadan, built for Nigeria",
     },
     {
       type: "paragraph",
-      text: "From our very first titles, we committed ourselves to serving the 36 states of Nigeria and reaching schools, booksellers, and institutions abroad. We are proud members of the Nigerian Publishers Association and the African Publishers Network, and regular participants at the Frankfurt International Book Fair. This makes us Africa's voice in the global publishing conversation.",
+      text: "From our very first titles, we committed ourselves to serving the 36 states of Nigeria. We are proud members of the Nigerian Publishers Association and the African Publishers Network, and regular participants at the Frankfurt International Book Fair. This makes us Africa's voice in the global publishing ecosystem.",
     },
     {
       type: "paragraph",

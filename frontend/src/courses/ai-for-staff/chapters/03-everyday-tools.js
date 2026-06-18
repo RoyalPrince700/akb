@@ -8,7 +8,7 @@ export default {
     {
       type: "paragraph",
       icon: "MousePointer2",
-      text: "Staff across editorial, sales, marketing, production, and administration can benefit from AI when tasks are repetitive, language-heavy, or research-oriented. The key is matching the tool to the job—not using AI for every single email!",
+      text: "Staff across editorial, sales, marketing, production, and administration can benefit from AI when tasks are repetitive, language-heavy, or research-oriented. The key is matching the tool to the job, not using AI for every single email!",
     },
     {
       type: "heading",
@@ -40,7 +40,7 @@ export default {
     {
       type: "paragraph",
       icon: "MessageSquare",
-      text: "Strong prompts include role, audience, format, length, and constraints. \n\nExample: “You are helping an editorial assistant at Accessible Publishers Limited. Draft a 120-word email to a primary school principal inviting them to review our new Primary 4 Mathematics catalogue. Tone: professional and warm, embodying our VICAP core values. Do not invent prices.”",
+      text: "Strong prompts include role, audience, format, length, and constraints. \n\nExample: \"You are helping an editorial assistant at Accessible Publishers Limited. Draft a 120-word email to a primary school principal inviting them to review our new Primary 4 Mathematics catalogue. Tone: professional and warm, embodying our VICAP core values. Do not invent prices.\"",
     },
     {
       type: "heading",

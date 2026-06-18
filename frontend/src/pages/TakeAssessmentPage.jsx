@@ -63,7 +63,19 @@ const TakeAssessmentPage = () => {
         return;
       }
 
+      if (!timedOut && currentIndex < questions.length - 1) {
+        if (!answers[currentQuestion?.id]) {
+          setError("Please answer this question before continuing.");
+          return;
+        }
+
+        setCurrentIndex((prev) => Math.min(questions.length - 1, prev + 1));
+        setError("");
+        return;
+      }
+
       const unanswered = questions.filter((q) => !answers[q.id]);
+
       if (!timedOut && unanswered.length > 0) {
         const proceed = window.confirm(
           `You have ${unanswered.length} unanswered question${
@@ -91,7 +103,7 @@ const TakeAssessmentPage = () => {
         setSubmitting(false);
       }
     },
-    [answers, courseId, navigate, questions, submitting]
+    [answers, courseId, currentIndex, currentQuestion?.id, navigate, questions, submitting]
   );
 
   useEffect(() => {
@@ -156,20 +168,25 @@ const TakeAssessmentPage = () => {
 
   const handleSelect = (questionId, value) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
-  };
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    submitAnswers();
-  };
-
-  const goToPrevious = () => {
-    setCurrentIndex((prev) => Math.max(0, prev - 1));
     setError("");
   };
 
   const goToNext = () => {
+    if (!answers[currentQuestion?.id]) {
+      setError("Please answer this question before continuing.");
+      return;
+    }
+
     setCurrentIndex((prev) => Math.min(questions.length - 1, prev + 1));
+    setError("");
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+  };
+
+  const goToPrevious = () => {
+    setCurrentIndex((prev) => Math.max(0, prev - 1));
     setError("");
   };
 
@@ -312,7 +329,8 @@ const TakeAssessmentPage = () => {
                 </button>
               ) : (
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={submitAnswers}
                   disabled={submitting || secondsLeft === 0}
                   className="rounded-full bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-60"
                 >

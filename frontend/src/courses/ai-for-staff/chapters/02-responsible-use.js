@@ -23,7 +23,7 @@ export default {
         "Always review AI output for accuracy, bias, and tone before sharing internally or externally.",
         "Disclose AI assistance when required by your team (for example, in marketing drafts for our latest audio books).",
         "Do not present AI-generated text as original expert analysis without verification.",
-        "Escalate uncertain cases—especially legal, HR, or financial topics—to the appropriate department.",
+        "Escalate uncertain cases, especially legal, HR, or financial topics, to the appropriate department.",
       ],
     },
     {
@@ -65,7 +65,7 @@ export default {
     {
       type: "paragraph",
       icon: "CheckCircle",
-      text: "When output feels wrong, treat the tool as a draft generator only—rewrite, fact-check against trusted sources, and involve a subject-matter colleague before publication. Remember, our 99.1% satisfaction rate depends on our high standards!",
+      text: "When output feels wrong, treat the tool as a draft generator only. Rewrite, fact-check against trusted sources, and involve a subject-matter colleague before publication. Remember, our 99.1% satisfaction rate depends on our high standards!",
     },
   ],
 };

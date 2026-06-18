@@ -1,5 +1,8 @@
 import aiForStaff from "./ai-for-staff";
 import companyHistory from "./company-history";
+import conflictResolution from "./conflict-resolution";
+import criticalThinking from "./critical-thinking";
+import customerService from "./customer-service";
 import finance from "./finance";
 import humanResourceManagement from "./human-resource-management";
 import {
@@ -13,6 +16,9 @@ import {
 const courseRegistry = [
   aiForStaff,
   companyHistory,
+  conflictResolution,
+  criticalThinking,
+  customerService,
   finance,
   humanResourceManagement,
 ];
