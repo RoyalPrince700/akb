@@ -135,7 +135,7 @@ const SignupPage = () => {
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 pb-10 pt-8 lg:px-8">
         <section className="mx-auto w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
           <h1 className="text-3xl font-bold text-slate-950">
-            Create AKB account
+            Create AKH account
           </h1>
           <p className="mt-3 text-sm leading-6 text-slate-600">
             Register a staff account for Accessible Knowledge Base. You can sign

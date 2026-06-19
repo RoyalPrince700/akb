@@ -10,6 +10,8 @@ import TakeAssessmentPage from "./pages/TakeAssessmentPage";
 import StaffResultsPage from "./pages/StaffResultsPage";
 import CourseDetailPage from "./pages/CourseDetailPage";
 import CoursesPage from "./pages/CoursesPage";
+import FeaturesPage from "./pages/FeaturesPage";
+import HowItWorksPage from "./pages/HowItWorksPage";
 import HrDashboard from "./pages/HrDashboard";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
@@ -30,6 +32,8 @@ const App = () => {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/courses" element={<CoursesPage />} />
+      <Route path="/features" element={<FeaturesPage />} />
+      <Route path="/how-it-works" element={<HowItWorksPage />} />
       <Route path="/assessments" element={<AssessmentsPage />} />
       <Route
         path="/leaderboard"

@@ -3,22 +3,23 @@ import { platformFeatures } from "./landingContent";
 
 const FeaturesSection = () => {
   return (
-    <section id="features" className="scroll-mt-24 border-y border-slate-200 bg-white py-16 lg:py-20">
+    <section id="features" className="relative scroll-mt-24 overflow-hidden border-y border-slate-200/70 bg-white py-20 lg:py-24">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-linear-to-br from-blue-100/40 via-white to-white" />
       <div className="mx-auto max-w-6xl px-6 lg:px-8">
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-blue-700">
+        <div className="relative mx-auto max-w-2xl text-center">
+          <p className="inline-flex rounded-full bg-slate-100/80 px-3 py-1.5 text-xs font-medium leading-none text-slate-500">
             Platform capabilities
           </p>
-          <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
+          <h2 className="mt-6 text-4xl font-bold leading-[1.05] tracking-[-0.045em] text-slate-950 sm:text-5xl">
             Everything your team needs to learn and grow
           </h2>
-          <p className="mt-4 text-lg leading-8 text-slate-600">
-            From onboarding materials to assessments and HR reporting—AKB keeps
+          <p className="mt-6 text-base leading-8 text-slate-600 sm:text-lg">
+            From onboarding materials to assessments and HR reporting—AKH keeps
             company knowledge in one trusted place.
           </p>
         </div>
 
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="relative mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {platformFeatures.map((feature) => (
             <FeatureCard
               key={feature.title}

@@ -11,6 +11,27 @@ import {
 } from "../services/api";
 import { panelSegmentPath } from "../utils/rolePaths";
 
+const OverviewCard = ({ label, value, description, to }) => {
+  const content = (
+    <>
+      <p className="text-sm font-medium text-slate-500">{label}</p>
+      <h2 className="mt-5 text-5xl font-bold tracking-tighter text-slate-950">
+        {value}
+      </h2>
+      <p className="mt-3 text-sm leading-5 text-slate-500">{description}</p>
+    </>
+  );
+
+  const className =
+    "rounded-[28px] border border-slate-200/70 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:border-slate-300/80 hover:shadow-[0_8px_20px_rgba(15,23,42,0.08),0_28px_70px_rgba(15,23,42,0.12)]";
+
+  return (
+    <Link to={to} className={className}>
+      {content}
+    </Link>
+  );
+};
+
 const HrDashboard = () => {
   const [staffCount, setStaffCount] = useState(0);
   const [resultsCount, setResultsCount] = useState(0);
@@ -56,53 +77,37 @@ const HrDashboard = () => {
   return (
     <PanelLayout title="HR Panel">
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
-        <Link
+        <OverviewCard
+          label="Staff directory"
+          value={staffCount}
+          description="View all staff records"
           to={staffPath}
-          className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-        >
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Staff directory</p>
-          <h2 className="mt-4 text-5xl font-medium tracking-tight text-slate-900">{staffCount}</h2>
-          <p className="mt-2 text-xs text-slate-400">View all staff records</p>
-        </Link>
-        <Link
+        />
+        <OverviewCard
+          label="Learning content"
+          value={courses.length + materialsCount}
+          description={`${courses.length} courses plus uploaded resources`}
           to={materialsPath}
-          className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-        >
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Learning content</p>
-          <h2 className="mt-4 text-5xl font-medium tracking-tight text-slate-900">
-            {courses.length + materialsCount}
-          </h2>
-          <p className="mt-2 text-xs text-slate-400">
-            {courses.length} courses plus uploaded resources
-          </p>
-        </Link>
-        <Link
+        />
+        <OverviewCard
+          label="Assessment results"
+          value={resultsCount}
+          description="Review staff test scores"
           to={resultsPath}
-          className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-        >
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Assessment results</p>
-          <h2 className="mt-4 text-5xl font-medium tracking-tight text-slate-900">
-            {resultsCount}
-          </h2>
-          <p className="mt-2 text-xs text-slate-400">Review staff test scores</p>
-        </Link>
-        <Link
+        />
+        <OverviewCard
+          label="Course completions"
+          value={courseCompletions}
+          description={`${staffWithCompletions} staff finished at least one course`}
           to={completionsPath}
-          className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-        >
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Course completions</p>
-          <h2 className="mt-4 text-5xl font-medium tracking-tight text-slate-900">
-            {courseCompletions}
-          </h2>
-          <p className="mt-2 text-xs text-slate-400">
-            {staffWithCompletions} staff finished at least one course
-          </p>
-        </Link>
+        />
       </div>
 
-      <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-bold text-slate-950">HR access</h2>
-        <ul className="mt-3 max-w-3xl list-inside list-disc space-y-2 leading-7 text-slate-600">
+      <div className="mt-6 rounded-[28px] border border-slate-200/70 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)]">
+        <h2 className="text-xl font-bold tracking-tight text-slate-950">
+          HR access
+        </h2>
+        <ul className="mt-5 max-w-3xl list-inside list-disc space-y-2 leading-7 text-slate-600">
           <li>
             Browse the staff directory and filter by department or status.
           </li>

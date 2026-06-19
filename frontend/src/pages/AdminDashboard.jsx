@@ -11,6 +11,29 @@ import {
 } from "../services/api";
 import { panelSegmentPath } from "../utils/rolePaths";
 
+const OverviewCard = ({ label, value, description, to }) => {
+  const content = (
+    <>
+      <p className="text-sm font-medium text-slate-500">{label}</p>
+      <h2 className="mt-5 text-5xl font-bold tracking-tighter text-slate-950">
+        {value}
+      </h2>
+      <p className="mt-3 text-sm leading-5 text-slate-500">{description}</p>
+    </>
+  );
+
+  const className =
+    "rounded-[28px] border border-slate-200/70 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:border-slate-300/80 hover:shadow-[0_8px_20px_rgba(15,23,42,0.08),0_28px_70px_rgba(15,23,42,0.12)]";
+
+  return to ? (
+    <Link to={to} className={className}>
+      {content}
+    </Link>
+  ) : (
+    <div className={className}>{content}</div>
+  );
+};
+
 const AdminDashboard = () => {
   const [staffCount, setStaffCount] = useState(0);
   const [resultsCount, setResultsCount] = useState(0);
@@ -62,65 +85,43 @@ const AdminDashboard = () => {
   return (
     <PanelLayout title="Admin Panel">
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-5">
-        <Link
+        <OverviewCard
+          label="Staff accounts"
+          value={staffCount}
+          description="Create, edit, activate, and deactivate"
           to={staffPath}
-          className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-        >
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Staff accounts</p>
-          <h2 className="mt-4 text-5xl font-medium tracking-tight text-slate-900">{staffCount}</h2>
-          <p className="mt-2 text-xs text-slate-400">
-            Create, edit, activate, and deactivate
-          </p>
-        </Link>
-        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Built-in courses</p>
-          <h2 className="mt-4 text-5xl font-medium tracking-tight text-slate-900">
-            {courses.length}
-          </h2>
-          <p className="mt-2 text-xs text-slate-400">
-            AI, finance, and company history
-          </p>
-        </div>
-        <Link
+        />
+        <OverviewCard
+          label="Built-in courses"
+          value={courses.length}
+          description="AI, finance, and company history"
+        />
+        <OverviewCard
+          label="Uploaded materials"
+          value={materialsCount}
+          description={`${publishedCount} published in database`}
           to={materialsPath}
-          className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-        >
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Uploaded materials</p>
-          <h2 className="mt-4 text-5xl font-medium tracking-tight text-slate-900">
-            {materialsCount}
-          </h2>
-          <p className="mt-2 text-xs text-slate-400">
-            {publishedCount} published in database
-          </p>
-        </Link>
-        <Link
+        />
+        <OverviewCard
+          label="Assessment results"
+          value={resultsCount}
+          description="Staff submissions on record"
           to={resultsPath}
-          className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-        >
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Assessment results</p>
-          <h2 className="mt-4 text-5xl font-medium tracking-tight text-slate-900">
-            {resultsCount}
-          </h2>
-          <p className="mt-2 text-xs text-slate-400">Staff submissions on record</p>
-        </Link>
-        <Link
+        />
+        <OverviewCard
+          label="Course completions"
+          value={courseCompletions}
+          description={`${staffWithCompletions} users finished at least one course`}
           to={completionsPath}
-          className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-        >
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Course completions</p>
-          <h2 className="mt-4 text-5xl font-medium tracking-tight text-slate-900">
-            {courseCompletions}
-          </h2>
-          <p className="mt-2 text-xs text-slate-400">
-            {staffWithCompletions} users finished at least one course
-          </p>
-        </Link>
+        />
       </div>
 
       <div className="mt-6 grid gap-5 lg:grid-cols-2">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-blue-900/5">
-          <h2 className="text-xl font-bold text-slate-950">Administrator tasks</h2>
-          <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
+        <div className="rounded-[28px] border border-slate-200/70 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)]">
+          <h2 className="text-xl font-bold tracking-tight text-slate-950">
+            Administrator tasks
+          </h2>
+          <ul className="mt-5 space-y-3 text-sm leading-6 text-slate-600">
             <li>
               <Link to={staffPath} className="font-semibold text-blue-700 hover:underline">
                 Staff management
@@ -160,9 +161,14 @@ const AdminDashboard = () => {
             </li>
           </ul>
         </div>
-        <div className="rounded-3xl bg-linear-to-br from-blue-700 to-indigo-800 p-6 shadow-lg shadow-blue-900/10">
-          <h2 className="text-xl font-bold text-white">Platform status</h2>
-          <p className="mt-3 text-sm leading-6 text-blue-100">
+        <div className="rounded-[28px] border border-slate-200/70 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)]">
+          <p className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium leading-none text-blue-700">
+            Live
+          </p>
+          <h2 className="mt-5 text-xl font-bold tracking-tight text-slate-950">
+            Platform status
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-slate-600">
             Core courses and assessments are live. Cloudinary file uploads can be
             connected later; for now you can add materials with title, description,
             and optional external file URLs.

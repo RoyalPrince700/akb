@@ -5,8 +5,8 @@ import accessibleLogo from "../assets/accessiblelogo.png";
 const footerLinks = [
   { label: "Home", to: "/" },
   { label: "Courses", to: "/courses" },
-  { label: "Features", to: "/#features" },
-  { label: "How it works", to: "/#how-it-works" },
+  { label: "Features", to: "/features" },
+  { label: "How it works", to: "/how-it-works" },
   { label: "Staff login", to: "/login" },
   { label: "Sign up", to: "/signup" },
 ];

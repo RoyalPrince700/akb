@@ -18,9 +18,9 @@ const sidebarLinkClass =
     `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
       isActive
         ? accent === "admin"
-          ? "bg-blue-700 text-white shadow-sm shadow-blue-900/10 hover:bg-blue-800"
-          : "bg-violet-700 text-white"
-        : "text-slate-600 hover:bg-blue-50 hover:text-blue-800"
+          ? "bg-slate-950 text-white shadow-[0_1px_2px_rgba(15,23,42,0.08),0_8px_18px_rgba(15,23,42,0.1)]"
+          : "bg-violet-700 text-white shadow-[0_1px_2px_rgba(76,29,149,0.12),0_8px_18px_rgba(76,29,149,0.14)]"
+        : "text-slate-600 hover:bg-slate-100/80 hover:text-slate-950"
     }`;
 
 const PanelSidebar = ({ accent, onNavigate, className = "" }) => {
@@ -62,24 +62,26 @@ const PanelSidebar = ({ accent, onNavigate, className = "" }) => {
 
   return (
     <aside
-      className={`flex h-full w-64 shrink-0 flex-col border-r border-slate-200 bg-white ${className}`}
+      className={`flex h-full w-64 shrink-0 flex-col border-r border-slate-200/70 bg-white ${className}`}
     >
-      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-4">
+      <div className="flex items-center justify-between border-b border-slate-200/70 px-4 py-5">
         <div>
           <p
-            className={`text-xs font-bold uppercase tracking-wider ${
+            className={`text-xs font-medium ${
               isAdmin ? "text-blue-700" : "text-violet-700"
             }`}
           >
             {panelLabel}
           </p>
-          <p className="mt-0.5 text-sm font-semibold text-slate-950">AKB</p>
+          <p className="mt-1 text-lg font-bold tracking-[-0.035em] text-slate-950">
+            AKH
+          </p>
         </div>
         {onNavigate && (
           <button
             type="button"
             onClick={onNavigate}
-            className="rounded-full border border-slate-200 bg-white p-1.5 text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 lg:hidden"
+            className="rounded-xl border border-slate-200 bg-white p-1.5 text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 lg:hidden"
             aria-label="Close menu"
           >
             <X className="h-5 w-5" />
@@ -106,7 +108,7 @@ const PanelSidebar = ({ accent, onNavigate, className = "" }) => {
         <Link
           to="/"
           onClick={onNavigate}
-          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-blue-50 hover:text-blue-800"
+          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100/80 hover:text-slate-950"
         >
           <Globe className="h-5 w-5 shrink-0" aria-hidden />
           Back to website

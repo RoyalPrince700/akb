@@ -11,7 +11,7 @@ const rankIcon = (rank) => {
   if (rank === 2) return <Medal className="h-5 w-5 text-slate-400" />;
   if (rank === 3) return <Medal className="h-5 w-5 text-amber-700" />;
   return (
-    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-sm font-bold text-slate-600">
+    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 text-sm font-bold text-slate-600">
       {rank}
     </span>
   );
@@ -43,15 +43,22 @@ const LeaderboardPage = () => {
     <main className="min-h-screen bg-slate-50">
       <Navbar />
 
-      <section className="mx-auto max-w-3xl px-6 pb-12 pt-8 lg:px-8">
-        <div className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-8 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100">
-              <Gem className="h-7 w-7 text-amber-600" />
+      <section className="mx-auto max-w-3xl px-6 pb-12 pt-10 lg:px-8">
+        <div className="relative overflow-hidden rounded-[32px] border border-amber-200/80 bg-white p-8 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)]">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-linear-to-br from-amber-100/70 via-white to-white" />
+          <div className="relative">
+          <div className="flex items-start gap-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-100 bg-amber-50 text-amber-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+              <Gem className="h-[18px] w-[18px] stroke-[1.8]" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-slate-950">Gems Leaderboard</h1>
-              <p className="mt-1 text-slate-600">
+              <p className="inline-flex rounded-full bg-slate-100/80 px-3 py-1.5 text-xs font-medium leading-none text-slate-500">
+                Team rankings
+              </p>
+              <h1 className="mt-5 text-4xl font-bold leading-[1.05] tracking-[-0.045em] text-slate-950 sm:text-5xl">
+                Gems Leaderboard
+              </h1>
+              <p className="mt-5 text-base leading-8 text-slate-600">
                 Staff earn 10 gems for each course they complete. Rankings update as
                 teammates finish courses.
               </p>
@@ -59,15 +66,18 @@ const LeaderboardPage = () => {
           </div>
 
           {user && (
-            <p className="mt-4 inline-flex items-center gap-2 rounded-full bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-900">
+            <p className="mt-10 inline-flex items-center gap-2 rounded-xl border border-amber-100 bg-amber-50 px-3.5 py-2 text-sm font-semibold text-amber-800 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
               <Gem className="h-4 w-4" />
               Your gems: {user.gems ?? 0}
             </p>
           )}
+          </div>
         </div>
 
         {loading && (
-          <p className="mt-8 text-center text-slate-500">Loading rankings…</p>
+          <div className="mt-8 rounded-[28px] border border-slate-200/70 bg-white p-8 text-center shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)]">
+            <p className="text-sm text-slate-500">Loading rankings…</p>
+          </div>
         )}
 
         {error && (
@@ -79,7 +89,7 @@ const LeaderboardPage = () => {
         {!loading && !error && (
           <ol className="mt-8 space-y-3">
             {leaderboard.length === 0 ? (
-              <li className="rounded-2xl border border-slate-200 bg-white px-5 py-8 text-center text-slate-500">
+              <li className="rounded-[28px] border border-slate-200/70 bg-white px-5 py-8 text-center text-slate-500 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)]">
                 No rankings yet. Complete a course to earn gems!
               </li>
             ) : (
@@ -88,10 +98,10 @@ const LeaderboardPage = () => {
                 return (
                   <li
                     key={entry.id}
-                    className={`flex items-center gap-4 rounded-2xl border bg-white px-5 py-4 shadow-sm ${
+                    className={`flex items-center gap-4 rounded-2xl border bg-white px-5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition ${
                       isCurrentUser
-                        ? "border-amber-300 ring-2 ring-amber-200"
-                        : "border-slate-200"
+                        ? "border-amber-300 ring-2 ring-amber-100"
+                        : "border-slate-200/70 hover:border-slate-300"
                     }`}
                   >
                     <div className="flex w-10 shrink-0 justify-center">
@@ -101,7 +111,7 @@ const LeaderboardPage = () => {
                       <p className="font-semibold text-slate-950">
                         {entry.name}
                         {isCurrentUser && (
-                          <span className="ml-2 text-xs font-bold uppercase text-amber-700">
+                          <span className="ml-2 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
                             You
                           </span>
                         )}
@@ -110,7 +120,7 @@ const LeaderboardPage = () => {
                         {entry.department} · {entry.position}
                       </p>
                     </div>
-                    <div className="flex shrink-0 items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 font-bold text-amber-900">
+                    <div className="flex shrink-0 items-center gap-1.5 rounded-xl border border-amber-100 bg-amber-50 px-3 py-1.5 font-bold text-amber-800">
                       <Gem className="h-4 w-4 text-amber-600" />
                       {entry.gems}
                     </div>

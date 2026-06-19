@@ -39,9 +39,9 @@ const roleLabel = (role) => {
 };
 
 const roleBadgeClass = (role) => {
-  if (role === "admin") return "bg-amber-100 text-amber-900";
-  if (role === "hr") return "bg-violet-100 text-violet-900";
-  return "bg-blue-100 text-blue-900";
+  if (role === "admin") return "bg-amber-50 text-amber-700";
+  if (role === "hr") return "bg-violet-50 text-violet-700";
+  return "bg-blue-50 text-blue-700";
 };
 
 const ACHIEVEMENTS = [
@@ -99,17 +99,17 @@ const StatCard = ({ label, value, subtext, icon: Icon, accent = "blue" }) => {
   };
 
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="rounded-[28px] border border-slate-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-slate-500">{label}</p>
-          <p className="mt-2 text-3xl font-bold text-slate-950">{value}</p>
-          {subtext && <p className="mt-1 text-sm text-slate-600">{subtext}</p>}
+          <p className="mt-4 text-3xl font-bold tracking-tighter text-slate-950">{value}</p>
+          {subtext && <p className="mt-2 text-sm leading-5 text-slate-500">{subtext}</p>}
         </div>
         <div
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border ${accentClasses[accent]}`}
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] ${accentClasses[accent]}`}
         >
-          <Icon className="h-5 w-5" />
+          <Icon className="h-[18px] w-[18px] stroke-[1.8]" />
         </div>
       </div>
     </div>
@@ -278,52 +278,53 @@ const ProfilePage = () => {
     <main className="min-h-screen bg-slate-50">
       <Navbar />
 
-      <section className="mx-auto max-w-4xl px-6 pb-12 pt-8 lg:px-8">
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="bg-linear-to-br from-slate-950 via-slate-900 to-blue-950 px-6 py-8 text-white sm:px-8">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-              <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-blue-600 text-3xl font-bold">
+      <section className="mx-auto max-w-4xl px-6 pb-12 pt-10 lg:px-8">
+        <div className="overflow-hidden rounded-[32px] border border-slate-200/70 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)]">
+          <div className="relative overflow-hidden px-6 py-8 sm:px-8">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-linear-to-br from-blue-100/60 via-white to-white" />
+            <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center">
+              <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50 text-2xl font-bold text-blue-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
                 {getFirstInitial(user?.name)}
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-bold sm:text-3xl">{user?.name}</h1>
+                  <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">{user?.name}</h1>
                   <span
-                    className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide ${roleBadgeClass(user?.role)}`}
+                    className={`rounded-full px-3 py-1 text-xs font-medium ${roleBadgeClass(user?.role)}`}
                   >
                     {roleLabel(user?.role)}
                   </span>
                 </div>
-                <p className="mt-1 text-slate-300">
+                <p className="mt-3 text-slate-600">
                   {user?.position} · {user?.department}
                 </p>
-                <p className="mt-1 text-sm text-slate-400">
+                <p className="mt-1 text-sm text-slate-500">
                   Staff ID: {user?.staffId} · {user?.email}
                 </p>
               </div>
-              <div className="inline-flex items-center gap-2 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3">
-                <Gem className="h-5 w-5 text-amber-300" />
+              <div className="inline-flex items-center gap-3 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-amber-700 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+                <Gem className="h-5 w-5" />
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-amber-200">
+                  <p className="text-xs font-medium text-amber-700">
                     Gems
                   </p>
-                  <p className="text-xl font-bold text-white">{stats.gems}</p>
+                  <p className="text-xl font-bold tracking-tight text-slate-950">{stats.gems}</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="border-b border-slate-200 px-4 sm:px-6">
-            <div className="flex gap-1 overflow-x-auto">
+          <div className="border-b border-slate-200/70 px-4 py-3 sm:px-6">
+            <div className="flex gap-2 overflow-x-auto">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`inline-flex shrink-0 items-center gap-2 border-b-2 px-4 py-4 text-sm font-semibold transition ${
+                  className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-xl px-3.5 text-sm font-semibold transition ${
                     activeTab === tab.id
-                      ? "border-blue-700 text-blue-700"
-                      : "border-transparent text-slate-500 hover:text-slate-800"
+                      ? "bg-slate-950 text-white shadow-[0_1px_2px_rgba(15,23,42,0.08),0_8px_18px_rgba(15,23,42,0.1)]"
+                      : "text-slate-500 hover:bg-slate-100/80 hover:text-slate-950"
                   }`}
                 >
                   <tab.icon className="h-4 w-4" />
@@ -378,16 +379,16 @@ const ProfilePage = () => {
                 </div>
 
                 <div>
-                  <h2 className="text-lg font-bold text-slate-950">Course progress</h2>
+                  <h2 className="text-xl font-bold tracking-tight text-slate-950">Course progress</h2>
                   <p className="mt-1 text-sm text-slate-600">
                     Track your reading progress across each learning path.
                   </p>
 
                   <ul className="mt-4 space-y-3">
                     {(summary?.courseProgress ?? []).length === 0 ? (
-                      <li className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-6 text-center text-sm text-slate-600">
+                      <li className="rounded-2xl border border-slate-200/70 bg-white px-5 py-6 text-center text-sm text-slate-600 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
                         No course progress yet.{" "}
-                        <Link to="/courses" className="font-semibold text-blue-700">
+                        <Link to="/courses" className="font-semibold text-blue-700 hover:text-blue-800">
                           Start learning
                         </Link>
                       </li>
@@ -402,7 +403,7 @@ const ProfilePage = () => {
                         return (
                           <li
                             key={course.courseId}
-                            className="rounded-2xl border border-slate-200 bg-slate-50 p-5"
+                            className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
                           >
                             <div className="flex flex-wrap items-start justify-between gap-3">
                               <div>
@@ -423,13 +424,13 @@ const ProfilePage = () => {
                                 )}
                                 <Link
                                   to={`/courses/${course.courseId}`}
-                                  className="text-sm font-semibold text-blue-700 hover:text-blue-800"
+                                  className="text-sm font-semibold text-slate-500 transition hover:text-blue-700"
                                 >
                                   Continue →
                                 </Link>
                               </div>
                             </div>
-                            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
+                            <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-200/80">
                               <div
                                 className="h-full rounded-full bg-linear-to-r from-blue-600 to-cyan-500 transition-all"
                                 style={{ width: `${percentage}%` }}
@@ -446,21 +447,21 @@ const ProfilePage = () => {
                   {dashboardPath !== "/" && (
                     <Link
                       to={dashboardPath}
-                      className="rounded-full bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-800"
+                      className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(15,23,42,0.08),0_8px_18px_rgba(15,23,42,0.1)] transition hover:bg-blue-600"
                     >
                       Go to dashboard
                     </Link>
                   )}
                   <Link
                     to="/leaderboard"
-                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                    className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200/80 bg-white px-4 text-sm font-semibold text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:border-slate-300 hover:bg-white"
                   >
                     View leaderboard
                   </Link>
                   {user?.role === "staff" && (
                     <Link
                       to="/dashboard/results"
-                      className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                      className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200/80 bg-white px-4 text-sm font-semibold text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:border-slate-300 hover:bg-white"
                     >
                       My assessment results
                     </Link>
@@ -471,7 +472,7 @@ const ProfilePage = () => {
 
             {!loading && activeTab === "achievements" && (
               <div>
-                <h2 className="text-lg font-bold text-slate-950">Your achievements</h2>
+                <h2 className="text-xl font-bold tracking-tight text-slate-950">Your achievements</h2>
                 <p className="mt-1 text-sm text-slate-600">
                   Earn badges by completing chapters, courses, and assessments.
                 </p>
@@ -486,21 +487,21 @@ const ProfilePage = () => {
                         key={achievement.id}
                         className={`flex items-start gap-4 rounded-2xl border p-5 transition ${
                           earned
-                            ? "border-amber-200 bg-amber-50"
-                            : "border-slate-200 bg-slate-50 opacity-75"
+                            ? "border-amber-200/80 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
+                            : "border-slate-200/70 bg-white opacity-70"
                         }`}
                       >
                         <div
-                          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
+                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] ${
                             earned
-                              ? "bg-amber-100 text-amber-700"
-                              : "bg-slate-200 text-slate-400"
+                              ? "border-amber-100 bg-amber-50 text-amber-700"
+                              : "border-slate-200 bg-slate-50 text-slate-400"
                           }`}
                         >
                           {earned ? (
-                            <Icon className="h-6 w-6" />
+                            <Icon className="h-[18px] w-[18px] stroke-[1.8]" />
                           ) : (
-                            <Lock className="h-5 w-5" />
+                            <Lock className="h-[18px] w-[18px] stroke-[1.8]" />
                           )}
                         </div>
                         <div>
@@ -511,7 +512,7 @@ const ProfilePage = () => {
                             {achievement.description}
                           </p>
                           <p
-                            className={`mt-2 text-xs font-bold uppercase tracking-wide ${
+                            className={`mt-3 inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
                               earned ? "text-emerald-700" : "text-slate-400"
                             }`}
                           >
@@ -529,7 +530,7 @@ const ProfilePage = () => {
               <div className="space-y-8">
                 <form onSubmit={handleProfileSubmit} className="space-y-4">
                   <div>
-                    <h2 className="text-lg font-bold text-slate-950">Account details</h2>
+                    <h2 className="text-xl font-bold tracking-tight text-slate-950">Account details</h2>
                     <p className="mt-1 text-sm text-slate-600">
                       Update your personal information. Staff ID cannot be changed.
                     </p>
@@ -555,7 +556,7 @@ const ProfilePage = () => {
                         value={profileForm.name}
                         onChange={handleProfileChange}
                         required
-                        className="mt-1.5 w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        className="mt-1.5 w-full rounded-xl border border-slate-200/80 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                       />
                     </label>
                     <label className="block">
@@ -566,7 +567,7 @@ const ProfilePage = () => {
                         value={profileForm.email}
                         onChange={handleProfileChange}
                         required
-                        className="mt-1.5 w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        className="mt-1.5 w-full rounded-xl border border-slate-200/80 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                       />
                     </label>
                     <label className="block">
@@ -577,7 +578,7 @@ const ProfilePage = () => {
                         value={profileForm.department}
                         onChange={handleProfileChange}
                         required
-                        className="mt-1.5 w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        className="mt-1.5 w-full rounded-xl border border-slate-200/80 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                       />
                     </label>
                     <label className="block">
@@ -588,7 +589,7 @@ const ProfilePage = () => {
                         value={profileForm.position}
                         onChange={handleProfileChange}
                         required
-                        className="mt-1.5 w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        className="mt-1.5 w-full rounded-xl border border-slate-200/80 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                       />
                     </label>
                     <label className="block sm:col-span-2">
@@ -597,7 +598,7 @@ const ProfilePage = () => {
                         type="text"
                         value={user?.staffId ?? ""}
                         disabled
-                        className="mt-1.5 w-full rounded-2xl border border-slate-200 bg-slate-100 px-4 py-2.5 text-sm text-slate-500"
+                        className="mt-1.5 w-full rounded-xl border border-slate-200/80 bg-slate-100 px-4 py-2.5 text-sm text-slate-500"
                       />
                     </label>
                   </div>
@@ -605,7 +606,7 @@ const ProfilePage = () => {
                   <button
                     type="submit"
                     disabled={profileSaving}
-                    className="rounded-full bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:opacity-60"
+                    className="h-10 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(15,23,42,0.08),0_8px_18px_rgba(15,23,42,0.1)] transition hover:bg-blue-600 disabled:opacity-60"
                   >
                     {profileSaving ? "Saving…" : "Save changes"}
                   </button>
@@ -616,7 +617,7 @@ const ProfilePage = () => {
                   className="space-y-4 border-t border-slate-200 pt-8"
                 >
                   <div>
-                    <h2 className="flex items-center gap-2 text-lg font-bold text-slate-950">
+                    <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight text-slate-950">
                       <Shield className="h-5 w-5 text-slate-600" />
                       Change password
                     </h2>
@@ -647,7 +648,7 @@ const ProfilePage = () => {
                         value={passwordForm.currentPassword}
                         onChange={handlePasswordChange}
                         required
-                        className="mt-1.5 w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        className="mt-1.5 w-full rounded-xl border border-slate-200/80 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                       />
                     </label>
                     <label className="block">
@@ -660,7 +661,7 @@ const ProfilePage = () => {
                         value={passwordForm.newPassword}
                         onChange={handlePasswordChange}
                         required
-                        className="mt-1.5 w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        className="mt-1.5 w-full rounded-xl border border-slate-200/80 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                       />
                     </label>
                     <label className="block">
@@ -673,7 +674,7 @@ const ProfilePage = () => {
                         value={passwordForm.confirmPassword}
                         onChange={handlePasswordChange}
                         required
-                        className="mt-1.5 w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        className="mt-1.5 w-full rounded-xl border border-slate-200/80 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                       />
                     </label>
                   </div>
@@ -681,21 +682,21 @@ const ProfilePage = () => {
                   <button
                     type="submit"
                     disabled={passwordSaving}
-                    className="rounded-full bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+                    className="h-10 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(15,23,42,0.08),0_8px_18px_rgba(15,23,42,0.1)] transition hover:bg-blue-600 disabled:opacity-60"
                   >
                     {passwordSaving ? "Updating…" : "Update password"}
                   </button>
                 </form>
 
                 <div className="border-t border-slate-200 pt-8">
-                  <h2 className="text-lg font-bold text-slate-950">Session</h2>
+                  <h2 className="text-xl font-bold tracking-tight text-slate-950">Session</h2>
                   <p className="mt-1 text-sm text-slate-600">
                     Sign out of your account on this device.
                   </p>
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="mt-4 inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100"
+                    className="mt-4 inline-flex h-10 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-700 transition hover:bg-red-100"
                   >
                     <LogOut className="h-4 w-4" />
                     Log out

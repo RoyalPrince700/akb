@@ -26,7 +26,7 @@ const StaffResultsPage = () => {
 
   return (
     <DashboardLayout title="My Assessment Results">
-      <p className="mb-4 text-sm text-slate-600">
+      <p className="mb-6 text-sm leading-6 text-slate-600">
         Each submission is scored out of 10 (1 point per correct answer). Pass
         mark is 7/10.
       </p>
@@ -37,7 +37,7 @@ const StaffResultsPage = () => {
         </p>
       )}
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-[32px] border border-slate-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)]">
         {loading ? (
           <p className="py-8 text-center text-sm text-slate-600">Loading...</p>
         ) : results.length === 0 ? (
@@ -47,9 +47,9 @@ const StaffResultsPage = () => {
             </p>
             <Link
               to="/courses"
-              className="mt-3 inline-block text-sm font-semibold text-blue-700 hover:text-blue-800"
+              className="mt-4 inline-flex h-9 items-center justify-center rounded-xl bg-slate-950 px-3.5 text-[13px] font-semibold text-white shadow-[0_1px_2px_rgba(15,23,42,0.08),0_8px_18px_rgba(15,23,42,0.1)] transition hover:bg-violet-700"
             >
-              Browse courses and take an assessment →
+              Browse courses
             </Link>
           </div>
         ) : (
@@ -80,8 +80,8 @@ const StaffResultsPage = () => {
                     <span
                       className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                         result.passed
-                          ? "bg-emerald-100 text-emerald-800"
-                          : "bg-amber-100 text-amber-800"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-amber-50 text-amber-700"
                       }`}
                     >
                       {result.passed ? "Passed" : "Not passed"}

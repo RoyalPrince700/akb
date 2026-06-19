@@ -25,7 +25,9 @@ const AssessmentCourseAction = ({
 
   if (isStaff && !isReady) {
     return (
-      <p className="mt-4 text-sm text-slate-500">Checking course progress…</p>
+      <p className="mt-10 text-[13px] font-medium text-slate-500">
+        Checking course progress…
+      </p>
     );
   }
 
@@ -33,7 +35,7 @@ const AssessmentCourseAction = ({
     return (
       <Link
         to={`/courses/${assessment.courseId}/assessment`}
-        className="mt-4 inline-flex w-fit rounded-full bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+        className="mt-10 inline-flex h-9 w-fit items-center justify-center rounded-xl bg-slate-950 px-3.5 text-[13px] font-semibold text-white shadow-[0_1px_2px_rgba(15,23,42,0.08),0_8px_18px_rgba(15,23,42,0.1)] transition hover:bg-violet-700"
       >
         Take assessment
       </Link>
@@ -51,17 +53,17 @@ const AssessmentCourseAction = ({
           onClose={() => setModalOpen(false)}
         />
 
-        <div className="mt-4 space-y-2">
+        <div className="mt-10 space-y-3">
           <button
             type="button"
             onClick={() => setModalOpen(true)}
-            className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
+            className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200/80 bg-white/80 px-3.5 text-[13px] font-semibold text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:border-slate-300 hover:bg-white"
           >
-            <Lock className="h-4 w-4" />
+            <Lock className="h-3.5 w-3.5" />
             Locked assessment
           </button>
 
-          <p className="text-sm font-medium text-slate-600">
+          <p className="text-[13px] font-medium text-slate-500">
             Complete the course to unlock
           </p>
         </div>
@@ -73,7 +75,7 @@ const AssessmentCourseAction = ({
     return (
       <Link
         to={`/courses/${assessment.courseId}/assessment`}
-        className="mt-4 inline-flex w-fit rounded-full bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+        className="mt-10 inline-flex h-9 w-fit items-center justify-center rounded-xl bg-slate-950 px-3.5 text-[13px] font-semibold text-white shadow-[0_1px_2px_rgba(15,23,42,0.08),0_8px_18px_rgba(15,23,42,0.1)] transition hover:bg-violet-700"
       >
         Take assessment
       </Link>
@@ -88,7 +90,7 @@ const AssessmentCourseAction = ({
           pathname: `/courses/${assessment.courseId}/assessment`,
         },
       }}
-      className="mt-4 inline-flex w-fit rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+      className="mt-10 inline-flex h-9 w-fit items-center justify-center rounded-xl border border-slate-200/80 bg-white/80 px-3.5 text-[13px] font-semibold text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:border-slate-300 hover:bg-white"
     >
       Sign in to take
     </Link>

@@ -21,6 +21,54 @@ export const platformFeatures = [
   },
 ];
 
+export const learningHighlights = [
+  "Courses on AI, finance, and Accessible Publishers history",
+  "Chapter-by-chapter reading for signed-in staff",
+  "Assessments with scores and progress tracking",
+  "HR tools for staff records and learning results",
+];
+
+export const roleFeatures = [
+  {
+    role: "Staff",
+    description:
+      "Browse courses, read chapters at your pace, take assessments, and review your scores from your dashboard.",
+  },
+  {
+    role: "HR",
+    description:
+      "Review staff records, track assessment results, and monitor course completions from the HR panel.",
+  },
+  {
+    role: "Admin",
+    description:
+      "Manage learning materials, staff accounts, and organisation-wide reporting from the admin panel.",
+  },
+];
+
+export const gettingStartedTips = [
+  {
+    title: "Preview without signing in",
+    description:
+      "Anyone can browse courses and explore learning paths before creating an account.",
+  },
+  {
+    title: "Use your staff credentials",
+    description:
+      "Sign in with your Accessible Publishers staff details to unlock full chapter content and assessments.",
+  },
+  {
+    title: "Pick up where you left off",
+    description:
+      "Return to your dashboard anytime to continue lessons and track progress across courses.",
+  },
+  {
+    title: "Ask HR when you need access",
+    description:
+      "New staff can register online or contact HR for help getting set up on the platform.",
+  },
+];
+
 export const howItWorksSteps = [
   {
     step: "01",

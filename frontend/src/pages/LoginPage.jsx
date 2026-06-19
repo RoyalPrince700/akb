@@ -54,7 +54,7 @@ const LoginPage = () => {
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 pb-10 pt-8 lg:px-8">
         <section className="mx-auto w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
         <h1 className="mt-5 text-3xl font-bold text-slate-950">
-          Sign in to AKB
+          Sign in to AKH
         </h1>
         <p className="mt-3 text-sm leading-6 text-slate-600">
           Use your staff ID and password to access company learning materials,

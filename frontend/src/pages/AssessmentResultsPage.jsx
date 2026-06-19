@@ -30,7 +30,7 @@ const AssessmentResultsPage = () => {
 
   return (
     <PanelLayout title="Assessment Results">
-      <p className="mb-4 text-sm text-slate-600">
+      <p className="mb-6 text-sm leading-6 text-slate-600">
         All staff assessment submissions. Each test has 10 questions scored at 1
         point per correct answer (pass mark: 7/10).
       </p>
@@ -41,7 +41,7 @@ const AssessmentResultsPage = () => {
         </p>
       )}
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-blue-900/5">
+      <div className="rounded-[32px] border border-slate-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)]">
         {loading ? (
           <p className="py-8 text-center text-sm text-slate-600">
             Loading results...
@@ -85,8 +85,8 @@ const AssessmentResultsPage = () => {
                       <span
                         className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                           result.passed
-                            ? "bg-emerald-100 text-emerald-800"
-                            : "bg-slate-200 text-slate-700"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-slate-100 text-slate-700"
                         }`}
                       >
                         {result.passed ? "Passed" : "Not passed"}

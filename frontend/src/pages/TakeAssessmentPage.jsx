@@ -25,7 +25,7 @@ const formatTime = (totalSeconds) => {
 const BackToAssessments = () => (
   <Link
     to="/assessments"
-    className="mb-6 inline-flex text-sm font-semibold text-blue-700 hover:text-blue-800"
+    className="mb-6 inline-flex text-sm font-semibold text-slate-500 transition hover:text-violet-700"
   >
     ← Back to assessments
   </Link>
@@ -134,9 +134,11 @@ const TakeAssessmentPage = () => {
     return (
       <main className="min-h-screen bg-slate-50">
         <Navbar />
-        <section className="mx-auto max-w-3xl px-6 pb-12 pt-8 lg:px-8">
+        <section className="mx-auto max-w-3xl px-6 pb-12 pt-10 lg:px-8">
           <BackToAssessments />
-          <p className="text-slate-600">Loading assessment…</p>
+          <div className="rounded-[28px] border border-slate-200/70 bg-white p-8 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)]">
+            <p className="text-slate-600">Loading assessment…</p>
+          </div>
         </section>
       </main>
     );
@@ -146,20 +148,26 @@ const TakeAssessmentPage = () => {
     return (
       <main className="min-h-screen bg-slate-50">
         <Navbar />
-        <section className="mx-auto max-w-3xl px-6 pb-12 pt-8 lg:px-8">
+        <section className="mx-auto max-w-3xl px-6 pb-12 pt-10 lg:px-8">
           <BackToAssessments />
-          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-8 shadow-sm">
-            <h1 className="text-2xl font-bold text-slate-950">Assessment locked</h1>
+          <div className="relative overflow-hidden rounded-[32px] border border-amber-200/80 bg-white p-8 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)]">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-linear-to-br from-amber-100/70 via-white to-white" />
+            <div className="relative">
+            <p className="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium leading-none text-amber-700">
+              Locked
+            </p>
+            <h1 className="mt-5 text-3xl font-bold tracking-tight text-slate-950">Assessment locked</h1>
             <p className="mt-3 text-slate-700">
               Complete every chapter in {course.title} before taking this
               assessment.
             </p>
             <Link
               to={`/courses/${courseId}`}
-              className="mt-6 inline-flex rounded-full bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-800"
+              className="mt-8 inline-flex h-9 items-center justify-center rounded-xl bg-slate-950 px-3.5 text-[13px] font-semibold text-white shadow-[0_1px_2px_rgba(15,23,42,0.08),0_8px_18px_rgba(15,23,42,0.1)] transition hover:bg-amber-600"
             >
               Continue course
             </Link>
+            </div>
           </div>
         </section>
       </main>
@@ -205,29 +213,35 @@ const TakeAssessmentPage = () => {
     <main className="min-h-screen bg-slate-50">
       <Navbar />
 
-      <section className="mx-auto max-w-3xl px-6 pb-12 pt-8 lg:px-8">
+      <section className="mx-auto max-w-3xl px-6 pb-12 pt-10 lg:px-8">
         <BackToAssessments />
-        <header className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+        <header className="relative overflow-hidden rounded-[32px] border border-slate-200/70 bg-white p-8 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)]">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-linear-to-br from-violet-100/60 via-white to-white" />
+          <div className="relative">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-blue-700">{course.title}</p>
-              <h1 className="mt-2 text-3xl font-bold text-slate-950">
+              <p className="inline-flex rounded-full bg-slate-100/80 px-3 py-1.5 text-xs font-medium leading-none text-slate-500">
+                {course.title}
+              </p>
+              <h1 className="mt-6 text-4xl font-bold leading-[1.05] tracking-[-0.045em] text-slate-950">
                 {assessment.title}
               </h1>
-              <p className="mt-3 text-slate-600">{assessment.description}</p>
-              <p className="mt-4 text-sm text-slate-500">
-                {questions.length} questions · 1 point each · pass mark:{" "}
-                {assessment.passMark}/{questions.length} · {assessment.timeLimitMinutes || 5} minute time limit
+              <p className="mt-5 text-base leading-8 text-slate-600">
+                {assessment.description}
+              </p>
+              <p className="mt-8 text-[13px] font-medium leading-5 text-slate-500">
+                {questions.length} questions • 1 point each • pass mark{" "}
+                {assessment.passMark}/{questions.length} • {assessment.timeLimitMinutes || 5} minute limit
               </p>
             </div>
             <div
-              className={`rounded-2xl border px-4 py-3 text-center ${
+              className={`rounded-2xl border px-4 py-3 text-center shadow-[0_1px_2px_rgba(15,23,42,0.04)] ${
                 timerUrgent
                   ? "border-red-300 bg-red-50"
-                  : "border-slate-200 bg-slate-50"
+                  : "border-slate-200/80 bg-white/80"
               }`}
             >
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              <p className="text-xs font-medium text-slate-500">
                 Time left
               </p>
               <p
@@ -239,7 +253,7 @@ const TakeAssessmentPage = () => {
               </p>
             </div>
           </div>
-          <div className="mt-6">
+          <div className="mt-10">
             <div className="flex items-center justify-between text-sm text-slate-600">
               <span>
                 Question {currentIndex + 1} of {questions.length}
@@ -248,14 +262,15 @@ const TakeAssessmentPage = () => {
                 {Object.keys(answers).length} answered
               </span>
             </div>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200/80">
               <div
-                className="h-full rounded-full bg-blue-600 transition-all duration-300"
+                className="h-full rounded-full bg-linear-to-r from-violet-600 to-blue-500 transition-all duration-300"
                 style={{
                   width: `${((currentIndex + 1) / questions.length) * 100}%`,
                 }}
               />
             </div>
+          </div>
           </div>
         </header>
 
@@ -273,21 +288,21 @@ const TakeAssessmentPage = () => {
 
         <form onSubmit={handleSubmit} className="mt-8">
           {currentQuestion && (
-            <fieldset className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <fieldset className="rounded-[32px] border border-slate-200/70 bg-white p-8 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)]">
               <legend className="sr-only">
                 Question {currentIndex + 1} of {questions.length}
               </legend>
-              <p className="text-base font-semibold text-slate-950">
+              <p className="text-lg font-semibold leading-7 tracking-tight text-slate-950">
                 {currentIndex + 1}. {currentQuestion.question}
               </p>
-              <div className="mt-4 space-y-2">
+              <div className="mt-8 space-y-3">
                 {currentQuestion.options.map((option) => (
                   <label
                     key={option}
-                    className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 transition ${
+                    className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3.5 transition ${
                       answers[currentQuestion.id] === option
-                        ? "border-blue-600 bg-blue-50"
-                        : "border-slate-200 hover:border-slate-300"
+                        ? "border-violet-300 bg-violet-50 text-slate-950"
+                        : "border-slate-200/80 bg-white hover:border-slate-300 hover:bg-slate-50"
                     }`}
                   >
                     <input
@@ -298,7 +313,7 @@ const TakeAssessmentPage = () => {
                       onChange={() =>
                         handleSelect(currentQuestion.id, option)
                       }
-                      className="h-4 w-4 text-blue-700"
+                      className="h-4 w-4 text-violet-700"
                     />
                     <span className="text-sm text-slate-800">{option}</span>
                   </label>
@@ -307,12 +322,12 @@ const TakeAssessmentPage = () => {
             </fieldset>
           )}
 
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
             <button
               type="button"
               onClick={goToPrevious}
               disabled={isFirstQuestion || submitting}
-              className="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="h-10 rounded-xl border border-slate-200/80 bg-white px-4 text-sm font-semibold text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:border-slate-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
             >
               Previous
             </button>
@@ -323,7 +338,7 @@ const TakeAssessmentPage = () => {
                   type="button"
                   onClick={goToNext}
                   disabled={submitting}
-                  className="rounded-full bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-60"
+                  className="h-10 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(15,23,42,0.08),0_8px_18px_rgba(15,23,42,0.1)] transition hover:bg-violet-700 disabled:opacity-60"
                 >
                   Next
                 </button>
@@ -332,7 +347,7 @@ const TakeAssessmentPage = () => {
                   type="button"
                   onClick={submitAnswers}
                   disabled={submitting || secondsLeft === 0}
-                  className="rounded-full bg-blue-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-60"
+                  className="h-10 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(15,23,42,0.08),0_8px_18px_rgba(15,23,42,0.1)] transition hover:bg-violet-700 disabled:opacity-60"
                 >
                   {submitting ? "Submitting..." : "Submit assessment"}
                 </button>
