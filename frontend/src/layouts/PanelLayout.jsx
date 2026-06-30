@@ -10,7 +10,9 @@ const PanelLayout = ({ children, title }) => {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const accent = user?.role === "admin" ? "admin" : "hr";
+  const accent =
+    user?.role === "admin" ? "admin" : user?.role === "hr" ? "hr" : "csr";
+  const showFooter = user?.role === "hr";
 
   const handleLogout = () => {
     logout();
@@ -20,7 +22,7 @@ const PanelLayout = ({ children, title }) => {
   const closeMobile = () => setMobileOpen(false);
 
   return (
-    <div className="min-h-screen bg-slate-50 lg:flex">
+    <div className="min-h-screen bg-slate-50">
       {mobileOpen && (
         <button
           type="button"
@@ -31,14 +33,14 @@ const PanelLayout = ({ children, title }) => {
       )}
 
       <div
-        className={`fixed inset-y-0 left-0 z-50 transform transition-transform duration-200 lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-200 lg:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <PanelSidebar accent={accent} onNavigate={closeMobile} />
       </div>
 
-      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+      <div className="flex min-h-screen min-w-0 flex-col lg:ml-64">
         <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/90 backdrop-blur-xl">
           <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
             <div className="flex min-w-0 items-center gap-3">
@@ -81,7 +83,7 @@ const PanelLayout = ({ children, title }) => {
         </header>
 
         <main className="flex-1 px-4 py-8 sm:px-6 lg:px-8 lg:py-10">{children}</main>
-        <Footer />
+        {showFooter && <Footer />}
       </div>
     </div>
   );

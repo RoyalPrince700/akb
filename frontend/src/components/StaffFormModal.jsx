@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 
+import { crmRoleOptions } from "../constants/crm";
+
 const emptyForm = {
   name: "",
   email: "",
@@ -17,6 +19,8 @@ const StaffFormModal = ({
   onSubmit,
   saving,
   currentUserId,
+  defaultRole = "staff",
+  roleOptions = crmRoleOptions,
 }) => {
   const [formData, setFormData] = useState(emptyForm);
   const isEdit = Boolean(staff);
@@ -34,9 +38,12 @@ const StaffFormModal = ({
         role: staff.role || "staff",
       });
     } else {
-      setFormData(emptyForm);
+      setFormData({
+        ...emptyForm,
+        role: defaultRole,
+      });
     }
-  }, [staff, isOpen]);
+  }, [defaultRole, staff, isOpen]);
 
   if (!isOpen) {
     return null;
@@ -161,14 +168,16 @@ const StaffFormModal = ({
               disabled={isSelf}
               className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-100"
             >
-              <option value="staff">Staff</option>
-              <option value="hr">HR</option>
-              <option value="admin">Admin</option>
+              {roleOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
             <p className="mt-1 text-xs text-slate-500">
               {isSelf
                 ? "You cannot change your own role."
-                : "HR and admin users can access the management panel. Staff use the learning dashboard only."}
+                : "HR, admin, CSR, and CSR Admin users can access role-specific dashboards. Staff use the learning dashboard only."}
             </p>
           </div>
 

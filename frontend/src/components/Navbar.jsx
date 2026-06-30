@@ -3,8 +3,9 @@ import { Gem, Menu, X } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 
 import accessibleLogo from "../assets/accessiblelogo.png";
+import { formatRoleLabel } from "../constants/crm";
 import { useAuth } from "../context/AuthContext";
-import { getDashboardPath, getResultsPath } from "../utils/rolePaths";
+import { getDashboardPath } from "../utils/rolePaths";
 
 const navLinkClass = ({ isActive }) =>
   `relative flex flex-col items-center justify-center py-1 text-sm transition-colors before:content-[attr(data-text)] before:font-bold before:h-0 before:invisible before:overflow-hidden ${
@@ -61,6 +62,58 @@ const mobileHrBadgeClass = ({ isActive }) =>
       : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
   }`;
 
+const csrBadgeClass = ({ isActive }) =>
+  `inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-widest transition ${
+    isActive
+      ? "border-emerald-300 bg-emerald-100 text-emerald-900"
+      : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100"
+  }`;
+
+const mobileCsrBadgeClass = ({ isActive }) =>
+  `flex w-full items-center rounded-xl border px-4 py-3 text-xs font-bold uppercase tracking-widest transition ${
+    isActive
+      ? "border-emerald-300 bg-emerald-100 text-emerald-900"
+      : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100"
+  }`;
+
+const csrAdminBadgeClass = ({ isActive }) =>
+  `inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-widest transition ${
+    isActive
+      ? "border-violet-300 bg-violet-100 text-violet-900"
+      : "border-violet-200 bg-violet-50 text-violet-700 hover:border-violet-300 hover:bg-violet-100"
+  }`;
+
+const mobileCsrAdminBadgeClass = ({ isActive }) =>
+  `flex w-full items-center rounded-xl border px-4 py-3 text-xs font-bold uppercase tracking-widest transition ${
+    isActive
+      ? "border-violet-300 bg-violet-100 text-violet-900"
+      : "border-violet-200 bg-violet-50 text-violet-700 hover:border-violet-300 hover:bg-violet-100"
+  }`;
+
+const getRoleBadgeClass = (role, mobile = false) => {
+  if (role === "csrAdmin") {
+    return mobile ? mobileCsrAdminBadgeClass : csrAdminBadgeClass;
+  }
+
+  return mobile ? mobileCsrBadgeClass : csrBadgeClass;
+};
+
+const RoleBadge = ({ role }) => {
+  const isCsrAdmin = role === "csrAdmin";
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest ${
+        isCsrAdmin
+          ? "border-violet-200 bg-violet-50 text-violet-700"
+          : "border-emerald-200 bg-emerald-50 text-emerald-700"
+      }`}
+    >
+      {formatRoleLabel(role)}
+    </span>
+  );
+};
+
 const authLinkClass =
   (variant, mobile = false) =>
   ({ isActive }) => {
@@ -85,6 +138,9 @@ const NavLinks = ({ children, mobile = false, onNavigate }) => {
   const linkClass = mobile ? mobileNavLinkClass : navLinkClass;
   const adminClass = mobile ? mobileAdminBadgeClass : adminBadgeClass;
   const hrClass = mobile ? mobileHrBadgeClass : hrBadgeClass;
+  const isCsrRole = user?.role === "csr" || user?.role === "csrAdmin";
+  const csrPanelClass = getRoleBadgeClass(user?.role, mobile);
+  const isLearningRole = ["staff", "hr", "admin"].includes(user?.role);
 
   const handleChildNavClick = (event) => {
     if (mobile && onNavigate && event.target.closest("a")) {
@@ -108,7 +164,7 @@ const NavLinks = ({ children, mobile = false, onNavigate }) => {
       )}
       {!loading && isAuthenticated && user && (
         <NavLink
-          to="/dashboard"
+          to={getDashboardPath(user.role)}
           end
           className={linkClass}
           onClick={onNavigate}
@@ -123,7 +179,7 @@ const NavLinks = ({ children, mobile = false, onNavigate }) => {
       <NavLink to="/assessments" className={linkClass} onClick={onNavigate} data-text="Assessments">
         Assessments
       </NavLink>
-      {!loading && isAuthenticated && user && (
+      {!loading && isAuthenticated && user && isLearningRole && (
         <NavLink
           to="/dashboard/results"
           className={linkClass}
@@ -138,25 +194,34 @@ const NavLinks = ({ children, mobile = false, onNavigate }) => {
 
   const accountLinks = !loading && isAuthenticated && user ? (
     <>
-      <Link
-        to="/leaderboard"
-        onClick={onNavigate}
-        className={
-          mobile
-            ? "inline-flex w-full items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
-            : "inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 transition hover:text-slate-900"
-        }
-        title="Your gems"
-      >
-        <Gem className="h-4 w-4 text-blue-600" aria-hidden="true" />
-        <span>
-          {user.gems ?? 0}
-          {mobile ? " gems" : ""}
-        </span>
-      </Link>
-      <NavLink to="/leaderboard" className={linkClass} onClick={onNavigate} data-text="Leaderboard">
-        Leaderboard
-      </NavLink>
+      {isLearningRole && (
+        <>
+          <Link
+            to="/leaderboard"
+            onClick={onNavigate}
+            className={
+              mobile
+                ? "inline-flex w-full items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
+                : "inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 transition hover:text-slate-900"
+            }
+            title="Your gems"
+          >
+            <Gem className="h-4 w-4 text-blue-600" aria-hidden="true" />
+            <span>
+              {user.gems ?? 0}
+              {mobile ? " gems" : ""}
+            </span>
+          </Link>
+          <NavLink
+            to="/leaderboard"
+            className={linkClass}
+            onClick={onNavigate}
+            data-text="Leaderboard"
+          >
+            Leaderboard
+          </NavLink>
+        </>
+      )}
       {user.role === "admin" && (
         <NavLink to="/admin" className={adminClass} onClick={onNavigate}>
           Admin
@@ -167,6 +232,11 @@ const NavLinks = ({ children, mobile = false, onNavigate }) => {
           HR
         </NavLink>
       )}
+      {(user.role === "csr" || user.role === "csrAdmin") && (
+        <NavLink to="/csr" className={csrPanelClass} onClick={onNavigate}>
+          {formatRoleLabel(user.role)}
+        </NavLink>
+      )}
       <Link
         to="/profile"
         onClick={onNavigate}
@@ -174,9 +244,21 @@ const NavLinks = ({ children, mobile = false, onNavigate }) => {
         className={
           mobile
             ? "inline-flex w-full items-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 transition hover:border-slate-400 hover:bg-slate-50"
-            : "inline-flex items-center gap-2 transition hover:opacity-80"
+            : "inline-flex items-center gap-2.5 transition hover:opacity-80"
         }
       >
+        {!mobile && isCsrRole && (
+          <div className="hidden items-center gap-2 sm:flex">
+            <span className="text-sm font-semibold text-slate-700">{firstName}</span>
+            <RoleBadge role={user.role} />
+          </div>
+        )}
+        {mobile && isCsrRole && (
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <span className="truncate text-sm font-semibold text-slate-900">{user.name}</span>
+            <RoleBadge role={user.role} />
+          </div>
+        )}
         <span
           className={
             mobile

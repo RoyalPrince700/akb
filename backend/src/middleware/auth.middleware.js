@@ -38,9 +38,18 @@ const authorizeAdmin = authorize("admin");
 
 const authorizeHrOrAdmin = authorize("hr", "admin");
 
+const authorizeCsr = authorize("csr", "csrAdmin");
+
+const authorizeCsrOrAdmin = authorize("csr", "csrAdmin", "admin");
+
+const authorizeCsrAdmin = authorize("csrAdmin", "admin");
+
 module.exports = {
   authorize,
   authorizeAdmin,
+  authorizeCsrAdmin,
+  authorizeCsr,
+  authorizeCsrOrAdmin,
   authorizeHrOrAdmin,
   protect,
 };

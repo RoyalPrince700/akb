@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import StaffFormModal from "../components/StaffFormModal";
+import { crmRoleOptions, formatRoleLabel } from "../constants/crm";
 import { useAuth } from "../context/AuthContext";
 import PanelLayout from "../layouts/PanelLayout";
 import {
@@ -14,6 +15,11 @@ import {
 const StaffManagementPage = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
+  const isCsrAdmin = user?.role === "csrAdmin";
+  const canManageUsers = isAdmin || isCsrAdmin;
+  const roleOptions = isCsrAdmin
+    ? crmRoleOptions.filter((option) => ["csr", "csrAdmin"].includes(option.value))
+    : crmRoleOptions;
 
   const [staff, setStaff] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
@@ -38,7 +44,7 @@ const StaffManagementPage = () => {
       if (search.trim()) params.search = search.trim();
       if (department.trim()) params.department = department.trim();
       if (statusFilter !== "") params.isActive = statusFilter;
-      if (isAdmin && roleFilter) params.role = roleFilter;
+      if (canManageUsers && roleFilter) params.role = roleFilter;
 
       const data = await listStaff(params);
       setStaff(data.staff);
@@ -49,7 +55,7 @@ const StaffManagementPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [department, isAdmin, page, roleFilter, search, statusFilter]);
+  }, [canManageUsers, department, page, roleFilter, search, statusFilter]);
 
   useEffect(() => {
     fetchStaff();
@@ -144,7 +150,7 @@ const StaffManagementPage = () => {
 
   return (
     <PanelLayout title="Staff Management">
-      {!isAdmin && (
+      {!canManageUsers && (
         <p className="mb-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
           You have read-only access. Only administrators can create, edit,
           activate, deactivate, or delete staff accounts.
@@ -161,19 +167,19 @@ const StaffManagementPage = () => {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-xl font-bold text-slate-950">
-              {isAdmin ? "All users" : "All staff"}
+              {isCsrAdmin ? "CSR team" : isAdmin ? "All users" : "All staff"}
             </h2>
             <p className="mt-1 text-sm text-slate-600">
               {pagination.total} user{pagination.total !== 1 ? "s" : ""}
             </p>
           </div>
-          {isAdmin && (
+          {canManageUsers && (
             <button
               type="button"
               onClick={openCreateModal}
               className="inline-flex items-center justify-center rounded-full bg-blue-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-800"
             >
-              Add user
+              {isCsrAdmin ? "Add CSR" : "Add user"}
             </button>
           )}
         </div>
@@ -196,7 +202,7 @@ const StaffManagementPage = () => {
             onChange={(e) => setDepartment(e.target.value)}
             className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
           />
-          {isAdmin && (
+          {canManageUsers && (
             <select
               value={roleFilter}
               onChange={(e) => {
@@ -206,9 +212,11 @@ const StaffManagementPage = () => {
               className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
             >
               <option value="">All roles</option>
-              <option value="staff">Staff</option>
-              <option value="hr">HR</option>
-              <option value="admin">Admin</option>
+              {roleOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           )}
           <select
@@ -250,7 +258,7 @@ const StaffManagementPage = () => {
                   <th className="pb-3 pr-4 font-medium">Position</th>
                   <th className="pb-3 pr-4 font-medium">Role</th>
                   <th className="pb-3 pr-4 font-medium">Status</th>
-                  {isAdmin && (
+                  {canManageUsers && (
                     <th className="pb-3 font-medium text-right">Actions</th>
                   )}
                 </tr>
@@ -278,10 +286,14 @@ const StaffManagementPage = () => {
                             ? "bg-blue-100 text-blue-900"
                             : member.role === "hr"
                               ? "bg-indigo-100 text-indigo-900"
+                              : member.role === "csrAdmin"
+                                ? "bg-emerald-100 text-emerald-900"
+                                : member.role === "csr"
+                                  ? "bg-teal-100 text-teal-900"
                               : "bg-blue-100 text-blue-900"
                         }`}
                       >
-                        {member.role || "staff"}
+                        {formatRoleLabel(member.role || "staff")}
                       </span>
                     </td>
                     <td className="py-3 pr-4">
@@ -295,7 +307,7 @@ const StaffManagementPage = () => {
                         {member.isActive !== false ? "Active" : "Inactive"}
                       </span>
                     </td>
-                    {isAdmin && (
+                    {canManageUsers && (
                       <td className="py-3 text-right">
                         <div className="flex flex-wrap justify-end gap-2">
                           <button
@@ -358,7 +370,7 @@ const StaffManagementPage = () => {
         )}
       </div>
 
-      {isAdmin && (
+      {canManageUsers && (
         <StaffFormModal
           staff={editingStaff}
           isOpen={modalOpen}
@@ -366,6 +378,8 @@ const StaffManagementPage = () => {
           onSubmit={handleFormSubmit}
           saving={saving}
           currentUserId={user?._id}
+          defaultRole={isCsrAdmin ? "csr" : "staff"}
+          roleOptions={roleOptions}
         />
       )}
     </PanelLayout>

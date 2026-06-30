@@ -3,6 +3,7 @@ const express = require("express");
 const morgan = require("morgan");
 
 const authRoutes = require("./routes/auth.routes");
+const crmRoutes = require("./routes/crm.routes");
 const healthRoutes = require("./routes/health.routes");
 const assessmentRoutes = require("./routes/assessment.routes");
 const materialRoutes = require("./routes/material.routes");
@@ -42,6 +43,7 @@ app.use("/api/assessments", assessmentRoutes);
 app.use("/api/results", resultsRoutes);
 app.use("/api/materials", materialRoutes);
 app.use("/api/progress", progressRoutes);
+app.use("/api/crm", crmRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

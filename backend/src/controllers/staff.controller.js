@@ -1,15 +1,41 @@
 const User = require("../models/User");
 const asyncHandler = require("../utils/asyncHandler");
 
-const ROLES = ["staff", "hr", "admin"];
+const ROLES = ["staff", "hr", "admin", "csr", "csrAdmin"];
+const CSR_MANAGED_ROLES = ["csr", "csrAdmin"];
 
-const buildUserFilter = (query, isAdmin) => {
+const getStaffAccessScope = (user) => {
+  if (user.role === "admin") {
+    return "admin";
+  }
+
+  if (user.role === "csrAdmin") {
+    return "csrAdmin";
+  }
+
+  return "staffOnly";
+};
+
+const buildManagedRoleFilter = (scope, queryRole) => {
+  if (scope === "admin") {
+    return queryRole && ROLES.includes(queryRole) ? queryRole : undefined;
+  }
+
+  if (scope === "csrAdmin") {
+    return queryRole && CSR_MANAGED_ROLES.includes(queryRole)
+      ? queryRole
+      : { $in: CSR_MANAGED_ROLES };
+  }
+
+  return "staff";
+};
+
+const buildUserFilter = (query, scope) => {
   const filter = {};
+  const roleFilter = buildManagedRoleFilter(scope, query.role);
 
-  if (!isAdmin) {
-    filter.role = "staff";
-  } else if (query.role && ROLES.includes(query.role)) {
-    filter.role = query.role;
+  if (roleFilter) {
+    filter.role = roleFilter;
   }
 
   if (query.department) {
@@ -35,6 +61,34 @@ const buildUserFilter = (query, isAdmin) => {
 
 const findUserById = async (id) => User.findById(id).select("-password");
 
+const assertCanManageRole = (actor, role) => {
+  if (actor.role === "admin") {
+    return;
+  }
+
+  if (actor.role === "csrAdmin" && CSR_MANAGED_ROLES.includes(role)) {
+    return;
+  }
+
+  const error = new Error("You can only manage CSR and CSR Admin accounts");
+  error.statusCode = 403;
+  throw error;
+};
+
+const assertCanManageStaffMember = (actor, staffMember) => {
+  if (actor.role === "admin") {
+    return;
+  }
+
+  if (actor.role === "csrAdmin" && CSR_MANAGED_ROLES.includes(staffMember.role)) {
+    return;
+  }
+
+  const error = new Error("You are not authorized to manage this user");
+  error.statusCode = 403;
+  throw error;
+};
+
 const assertNotSelf = (actorId, targetId, message) => {
   if (actorId.toString() === targetId.toString()) {
     const error = new Error(message);
@@ -44,11 +98,11 @@ const assertNotSelf = (actorId, targetId, message) => {
 };
 
 const listStaff = asyncHandler(async (req, res) => {
-  const isAdmin = req.user.role === "admin";
+  const scope = getStaffAccessScope(req.user);
   const page = Math.max(1, parseInt(req.query.page, 10) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
   const skip = (page - 1) * limit;
-  const filter = buildUserFilter(req.query, isAdmin);
+  const filter = buildUserFilter(req.query, scope);
 
   const [staff, total] = await Promise.all([
     User.find(filter)
@@ -71,11 +125,12 @@ const listStaff = asyncHandler(async (req, res) => {
 });
 
 const getStaff = asyncHandler(async (req, res) => {
-  const isAdmin = req.user.role === "admin";
+  const scope = getStaffAccessScope(req.user);
   const filter = { _id: req.params.id };
+  const roleFilter = buildManagedRoleFilter(scope, req.query.role);
 
-  if (!isAdmin) {
-    filter.role = "staff";
+  if (roleFilter) {
+    filter.role = roleFilter;
   }
 
   const staffMember = await User.findOne(filter).select("-password");
@@ -99,12 +154,14 @@ const createStaff = asyncHandler(async (req, res) => {
     );
   }
 
-  const assignedRole = role || "staff";
+  const assignedRole = role || (req.user.role === "csrAdmin" ? "csr" : "staff");
 
   if (!ROLES.includes(assignedRole)) {
     res.status(400);
-    throw new Error("Role must be staff, hr, or admin");
+    throw new Error("Role must be staff, hr, admin, csr, or csrAdmin");
   }
+
+  assertCanManageRole(req.user, assignedRole);
 
   const normalizedStaffId = staffId.trim().toUpperCase();
   const normalizedEmail = email.trim().toLowerCase();
@@ -143,6 +200,8 @@ const updateStaff = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("User not found");
   }
+
+  assertCanManageStaffMember(req.user, staffMember);
 
   const { name, email, staffId, department, position, password, role } =
     req.body;
@@ -197,15 +256,17 @@ const updateStaff = asyncHandler(async (req, res) => {
   if (role !== undefined) {
     if (!ROLES.includes(role)) {
       res.status(400);
-      throw new Error("Role must be staff, hr, or admin");
+      throw new Error("Role must be staff, hr, admin, csr, or csrAdmin");
     }
+
+    assertCanManageRole(req.user, role);
 
     if (
       req.user._id.toString() === staffMember._id.toString() &&
-      role !== "admin"
+      role !== req.user.role
     ) {
       res.status(400);
-      throw new Error("You cannot remove your own administrator access");
+      throw new Error("You cannot change your own administrator role");
     }
 
     staffMember.role = role;
@@ -231,6 +292,8 @@ const updateStaffStatus = asyncHandler(async (req, res) => {
     throw new Error("User not found");
   }
 
+  assertCanManageStaffMember(req.user, staffMember);
+
   assertNotSelf(
     req.user._id,
     staffMember._id,
@@ -250,6 +313,8 @@ const deleteStaff = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("User not found");
   }
+
+  assertCanManageStaffMember(req.user, staffMember);
 
   assertNotSelf(req.user._id, staffMember._id, "You cannot delete your own account");
 

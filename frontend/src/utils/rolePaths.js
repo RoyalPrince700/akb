@@ -7,6 +7,10 @@ export const getPanelBasePath = (role) => {
     return "/hr";
   }
 
+  if (role === "csr" || role === "csrAdmin") {
+    return "/csr";
+  }
+
   return null;
 };
 
@@ -37,6 +41,10 @@ export const panelSegmentPath = (role, segment) => {
 export const getResultsPath = (role) => {
   if (role === "staff") {
     return "/dashboard/results";
+  }
+
+  if (role === "csr" || role === "csrAdmin") {
+    return "/csr";
   }
 
   return panelSegmentPath(role, "results");

@@ -6,6 +6,7 @@ import AssessmentResultPage from "./pages/AssessmentResultPage";
 import AssessmentResultsPage from "./pages/AssessmentResultsPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import ChapterReaderPage from "./pages/ChapterReaderPage";
+import CsrDashboard from "./pages/CsrDashboard";
 import TakeAssessmentPage from "./pages/TakeAssessmentPage";
 import StaffResultsPage from "./pages/StaffResultsPage";
 import CourseDetailPage from "./pages/CourseDetailPage";
@@ -22,9 +23,26 @@ import LeaderboardPage from "./pages/LeaderboardPage";
 import ProfilePage from "./pages/ProfilePage";
 import StaffCourseCompletionsPage from "./pages/StaffCourseCompletionsPage";
 import StaffManagementPage from "./pages/StaffManagementPage";
+import CrmCustomerHistoryPage from "./pages/crm/CrmCustomerHistoryPage";
+import CrmInteractionFormPage from "./pages/crm/CrmInteractionFormPage";
+import CrmInteractionsPage from "./pages/crm/CrmInteractionsPage";
+import CrmReportsPage from "./pages/crm/CrmReportsPage";
+import CrmSalesRecordsPage from "./pages/crm/CrmSalesRecordsPage";
+import CrmSalesRepPage from "./pages/crm/CrmSalesRepPage";
+import CrmSurveysPage from "./pages/crm/CrmSurveysPage";
+import CrmSurveyResponsesPage from "./pages/crm/CrmSurveyResponsesPage";
+import PublicSurveyPage from "./pages/crm/PublicSurveyPage";
 
 const hrAdminPanel = (page) => (
   <ProtectedRoute roles={["hr", "admin"]}>{page}</ProtectedRoute>
+);
+
+const csrPanel = (page) => (
+  <ProtectedRoute roles={["csr", "csrAdmin"]}>{page}</ProtectedRoute>
+);
+
+const csrAdminPanel = (page) => (
+  <ProtectedRoute roles={["csrAdmin"]}>{page}</ProtectedRoute>
 );
 
 const App = () => {
@@ -35,6 +53,7 @@ const App = () => {
       <Route path="/features" element={<FeaturesPage />} />
       <Route path="/how-it-works" element={<HowItWorksPage />} />
       <Route path="/assessments" element={<AssessmentsPage />} />
+      <Route path="/crm/surveys/respond/:token" element={<PublicSurveyPage />} />
       <Route
         path="/leaderboard"
         element={
@@ -73,7 +92,7 @@ const App = () => {
       <Route
         path="/profile"
         element={
-          <ProtectedRoute roles={["staff", "hr", "admin"]}>
+          <ProtectedRoute roles={["staff", "hr", "admin", "csr", "csrAdmin"]}>
             <ProfilePage />
           </ProtectedRoute>
         }
@@ -126,6 +145,28 @@ const App = () => {
       />
       <Route path="/hr/results" element={hrAdminPanel(<AssessmentResultsPage />)} />
       <Route path="/hr/materials" element={hrAdminPanel(<MaterialsManagementPage />)} />
+
+      <Route
+        path="/csr"
+        element={
+          <ProtectedRoute roles={["csr", "csrAdmin"]}>
+            <CsrDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/csr/interactions" element={csrPanel(<CrmInteractionsPage />)} />
+      <Route path="/csr/interactions/new" element={csrPanel(<CrmInteractionFormPage />)} />
+      <Route
+        path="/csr/interactions/:id/edit"
+        element={csrPanel(<CrmInteractionFormPage />)}
+      />
+      <Route path="/csr/sales-records" element={csrPanel(<CrmSalesRecordsPage />)} />
+      <Route path="/csr/customers" element={csrPanel(<CrmCustomerHistoryPage />)} />
+      <Route path="/csr/surveys" element={csrPanel(<CrmSurveysPage />)} />
+      <Route path="/csr/survey-responses" element={csrAdminPanel(<CrmSurveyResponsesPage />)} />
+      <Route path="/csr/staff" element={csrAdminPanel(<StaffManagementPage />)} />
+      <Route path="/csr/sales-reps" element={csrAdminPanel(<CrmSalesRepPage />)} />
+      <Route path="/csr/reports" element={csrAdminPanel(<CrmReportsPage />)} />
     </Routes>
   );
 };

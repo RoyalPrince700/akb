@@ -9,8 +9,7 @@ const {
   updateStaffStatus,
 } = require("../controllers/staff.controller");
 const {
-  authorizeAdmin,
-  authorizeHrOrAdmin,
+  authorize,
   protect,
 } = require("../middleware/auth.middleware");
 
@@ -18,12 +17,12 @@ const router = express.Router();
 
 router.use(protect);
 
-router.get("/", authorizeHrOrAdmin, listStaff);
-router.get("/:id", authorizeHrOrAdmin, getStaff);
+router.get("/", authorize("hr", "admin", "csrAdmin"), listStaff);
+router.get("/:id", authorize("hr", "admin", "csrAdmin"), getStaff);
 
-router.post("/", authorizeAdmin, createStaff);
-router.put("/:id", authorizeAdmin, updateStaff);
-router.patch("/:id/status", authorizeAdmin, updateStaffStatus);
-router.delete("/:id", authorizeAdmin, deleteStaff);
+router.post("/", authorize("admin", "csrAdmin"), createStaff);
+router.put("/:id", authorize("admin", "csrAdmin"), updateStaff);
+router.patch("/:id/status", authorize("admin", "csrAdmin"), updateStaffStatus);
+router.delete("/:id", authorize("admin", "csrAdmin"), deleteStaff);
 
 module.exports = router;
