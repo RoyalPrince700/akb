@@ -8,13 +8,21 @@ const {
   CRM_STATUSES,
   CUSTOMER_TYPES,
   NIGERIAN_STATES,
+  ORGANIZATION_TYPES,
+  PHONE_LINE_LABELS,
 } = require("../constants/crm");
 
 const customerSchema = new mongoose.Schema(
   {
+    organizationType: {
+      type: String,
+      enum: ORGANIZATION_TYPES,
+      default: "school",
+      required: [true, "Organization type is required"],
+    },
     schoolName: {
       type: String,
-      required: [true, "School name is required"],
+      required: [true, "Organization name is required"],
       trim: true,
     },
     address: {
@@ -123,6 +131,7 @@ const crmInteractionSchema = new mongoose.Schema(
     },
     phoneLineLabel: {
       type: String,
+      enum: [...PHONE_LINE_LABELS, ""],
       trim: true,
       default: "",
     },

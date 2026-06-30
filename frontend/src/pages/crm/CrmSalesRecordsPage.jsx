@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { bookSaleClassOptions, formatBookSaleClass } from "../../constants/crm";
+import { bookSaleClassOptions, formatBookSaleClass, formatOrganizationType, getOrganizationNameLabel, organizationTypes } from "../../constants/crm";
 import { useAuth } from "../../context/AuthContext";
 import PanelLayout from "../../layouts/PanelLayout";
 import {
@@ -9,13 +9,28 @@ import {
 } from "../../services/api";
 import { capitalizeWords } from "../../utils/textFormat";
 
-const emptyForm = {
+const createEmptyBookItem = () => ({
+  title: "",
+  bookClass: "",
+  price: "",
+});
+
+const createEmptyForm = () => ({
+  organizationType: "school",
   schoolName: "",
   location: "",
-  bookTitles: "",
-  quantitySold: "",
-  bookClass: "",
-};
+  bookItems: [createEmptyBookItem()],
+  discountPercent: "",
+});
+
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    maximumFractionDigits: 2,
+  }).format(Number(value) || 0);
+
+const parseMoney = (value) => Number(value) || 0;
 
 const SummaryCard = ({ label, value, helper }) => (
   <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-lg shadow-emerald-900/5">
@@ -28,11 +43,12 @@ const SummaryCard = ({ label, value, helper }) => (
 const CrmSalesRecordsPage = () => {
   const { user } = useAuth();
   const isCsrAdmin = user?.role === "csrAdmin";
-  const [formData, setFormData] = useState(emptyForm);
+  const [formData, setFormData] = useState(createEmptyForm);
   const [records, setRecords] = useState([]);
   const [summary, setSummary] = useState({
     totalRecords: 0,
     totalQuantitySold: 0,
+    totalSalesValue: 0,
   });
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
@@ -60,6 +76,7 @@ const CrmSalesRecordsPage = () => {
         data.summary || {
           totalRecords: 0,
           totalQuantitySold: 0,
+          totalSalesValue: 0,
         }
       );
       setPagination(data.pagination || { page: 1, pages: 1, total: 0 });
@@ -69,6 +86,7 @@ const CrmSalesRecordsPage = () => {
       setSummary({
         totalRecords: 0,
         totalQuantitySold: 0,
+        totalSalesValue: 0,
       });
     } finally {
       setLoading(false);
@@ -87,6 +105,40 @@ const CrmSalesRecordsPage = () => {
     }));
   };
 
+  const handleBookItemChange = (index, field, value) => {
+    setFormData((current) => ({
+      ...current,
+      bookItems: current.bookItems.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [field]: value } : item
+      ),
+    }));
+  };
+
+  const addBookItem = () => {
+    setFormData((current) => ({
+      ...current,
+      bookItems: [...current.bookItems, createEmptyBookItem()],
+    }));
+  };
+
+  const removeBookItem = (index) => {
+    setFormData((current) => ({
+      ...current,
+      bookItems:
+        current.bookItems.length === 1
+          ? [createEmptyBookItem()]
+          : current.bookItems.filter((_, itemIndex) => itemIndex !== index),
+    }));
+  };
+
+  const subtotalPrice = formData.bookItems.reduce(
+    (total, item) => total + parseMoney(item.price),
+    0
+  );
+  const discountPercent = Math.min(100, Math.max(0, parseMoney(formData.discountPercent)));
+  const discountAmount = (subtotalPrice * discountPercent) / 100;
+  const totalPrice = Math.max(0, subtotalPrice - discountAmount);
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setSaving(true);
@@ -94,16 +146,42 @@ const CrmSalesRecordsPage = () => {
     setSuccessMessage("");
 
     try {
+      const bookItems = formData.bookItems
+        .map((item) => ({
+          title: item.title.trim(),
+          bookClass: item.bookClass,
+          price: parseMoney(item.price),
+          hasPrice: String(item.price).trim() !== "",
+        }))
+        .filter((item) => item.title || item.hasPrice);
+
+      if (!bookItems.length) {
+        throw new Error("Add at least one book title and price.");
+      }
+
+      if (bookItems.some((item) => !item.title || !item.bookClass || !item.hasPrice || item.price < 0)) {
+        throw new Error("Each book row must include a title, class, and valid price.");
+      }
+
       await createCrmSalesRecord({
-        ...formData,
-        quantitySold: Number(formData.quantitySold),
+        organizationType: formData.organizationType,
+        schoolName: formData.schoolName,
+        location: formData.location,
+        bookItems,
+        bookTitles: bookItems.map((item) => item.title).join(", "),
+        quantitySold: bookItems.length,
+        discountPercent,
       });
-      setFormData(emptyForm);
+      setFormData(createEmptyForm());
       setSuccessMessage("Sales record saved successfully.");
       setPage(1);
       loadRecords();
     } catch (apiError) {
-      setError(apiError.response?.data?.message || "Failed to save sales record.");
+      setError(
+        apiError.response?.data?.message ||
+          apiError.message ||
+          "Failed to save sales record."
+      );
     } finally {
       setSaving(false);
     }
@@ -129,20 +207,38 @@ const CrmSalesRecordsPage = () => {
         </p>
       )}
 
-      <div className={`grid gap-5 ${isCsrAdmin ? "" : "xl:grid-cols-[1.05fr_1.4fr]"}`}>
+      <div className="space-y-5">
         {!isCsrAdmin && (
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-emerald-900/5">
             <div>
               <h2 className="text-xl font-bold text-slate-950">Log a new sale</h2>
               <p className="mt-1 text-sm text-slate-600">
-                Record each school sale with the titles sold, quantity, and class group.
+                Record each school or bookshop sale with the titles sold, quantity, and class group.
               </p>
             </div>
 
-            <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+            <form className="mt-6 grid gap-4 lg:grid-cols-3" onSubmit={handleSubmit}>
               <div>
                 <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Name of school
+                  Customer type
+                </label>
+                <select
+                  name="organizationType"
+                  value={formData.organizationType}
+                  onChange={handleInputChange}
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                >
+                  {organizationTypes.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  {getOrganizationNameLabel(formData.organizationType)}
                 </label>
                 <input
                   type="text"
@@ -150,7 +246,11 @@ const CrmSalesRecordsPage = () => {
                   value={formData.schoolName}
                   onChange={handleInputChange}
                   className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-                  placeholder="Enter school name"
+                  placeholder={
+                    formData.organizationType === "bookshop"
+                      ? "Enter bookshop name"
+                      : "Enter school name"
+                  }
                   required
                 />
               </div>
@@ -170,63 +270,121 @@ const CrmSalesRecordsPage = () => {
                 />
               </div>
 
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Titles sold
-                </label>
-                <textarea
-                  name="bookTitles"
-                  value={formData.bookTitles}
-                  onChange={handleInputChange}
-                  rows={4}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-                  placeholder="Type all book titles sold"
-                  required
-                />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
-                    Quantity sold
+              <div className="space-y-3 lg:col-span-3">
+                <div className="flex items-center justify-between gap-3">
+                  <label className="block text-sm font-semibold text-slate-700">
+                    Book titles and prices
                   </label>
-                  <input
-                    type="number"
-                    min="1"
-                    name="quantitySold"
-                    value={formData.quantitySold}
-                    onChange={handleInputChange}
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-                    placeholder="0"
-                    required
-                  />
+                  <span className="text-xs font-medium text-slate-500">
+                    Quantity: {formData.bookItems.length}
+                  </span>
                 </div>
 
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-700">
-                    Book class
-                  </label>
-                  <select
-                    name="bookClass"
-                    value={formData.bookClass}
-                    onChange={handleInputChange}
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-                    required
+                {formData.bookItems.map((item, index) => (
+                  <div
+                    key={index}
+                    className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-[1fr_0.65fr_0.45fr_auto]"
                   >
-                    <option value="">Select class</option>
-                    {bookSaleClassOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                    <input
+                      type="text"
+                      value={item.title}
+                      onChange={(event) =>
+                        handleBookItemChange(index, "title", event.target.value)
+                      }
+                      className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                      placeholder={`Book title ${index + 1}`}
+                    />
+                    <select
+                      value={item.bookClass}
+                      onChange={(event) =>
+                        handleBookItemChange(index, "bookClass", event.target.value)
+                      }
+                      className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                      aria-label={`Book class ${index + 1}`}
+                    >
+                      <option value="">Select class</option>
+                      {bookSaleClassOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={item.price}
+                      onChange={(event) =>
+                        handleBookItemChange(index, "price", event.target.value)
+                      }
+                      className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                      placeholder="Price"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={addBookItem}
+                        className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-emerald-700 text-lg font-semibold text-white transition hover:bg-emerald-800"
+                        aria-label="Add another book"
+                      >
+                        +
+                      </button>
+                      {formData.bookItems.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeBookItem(index)}
+                          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-300 bg-white text-lg font-semibold text-slate-600 transition hover:border-red-300 hover:text-red-600"
+                          aria-label="Remove book"
+                        >
+                          -
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 lg:col-span-2">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">
+                      Discount (%)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      name="discountPercent"
+                      value={formData.discountPercent}
+                      onChange={handleInputChange}
+                      className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                      placeholder="Eg. 20"
+                    />
+                  </div>
+                  <div className="rounded-2xl bg-white p-4 text-sm text-slate-700">
+                    <div className="flex justify-between gap-4">
+                      <span>Subtotal</span>
+                      <span className="font-semibold">{formatCurrency(subtotalPrice)}</span>
+                    </div>
+                    <div className="mt-2 flex justify-between gap-4">
+                      <span>Discount ({discountPercent}%)</span>
+                      <span className="font-semibold">
+                        -{formatCurrency(discountAmount)}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex justify-between gap-4 border-t border-slate-200 pt-3 text-base font-bold text-emerald-800">
+                      <span>Total</span>
+                      <span>{formatCurrency(totalPrice)}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-70"
+                className="inline-flex items-center justify-center self-end justify-self-start rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {saving ? "Saving..." : "Save sales record"}
               </button>
@@ -235,7 +393,7 @@ const CrmSalesRecordsPage = () => {
         )}
 
         <div>
-          <div className="mb-5 grid gap-4 sm:grid-cols-2">
+          <div className="mb-5 grid gap-4 sm:grid-cols-3">
             <SummaryCard
               label="Sales records"
               value={summary.totalRecords ?? 0}
@@ -245,6 +403,11 @@ const CrmSalesRecordsPage = () => {
               label="Books sold"
               value={summary.totalQuantitySold ?? 0}
               helper="Total quantity across the filtered records"
+            />
+            <SummaryCard
+              label="Sales value"
+              value={formatCurrency(summary.totalSalesValue)}
+              helper="Discounted total across the filtered records"
             />
           </div>
 
@@ -264,7 +427,7 @@ const CrmSalesRecordsPage = () => {
             >
               <input
                 type="search"
-                placeholder="Search school, location, or title..."
+                placeholder="Search school, bookshop, location, or title..."
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
@@ -302,14 +465,17 @@ const CrmSalesRecordsPage = () => {
                   No sales records found yet.
                 </p>
               ) : (
-                <table className="w-full min-w-[1080px] text-left text-sm">
+                <table className="w-full min-w-[1280px] text-left text-sm">
                   <thead>
                     <tr className="border-b border-slate-200 text-slate-500">
-                      <th className="pb-3 pr-4 font-medium">School</th>
+                      <th className="pb-3 pr-4 font-medium">Type</th>
+                      <th className="pb-3 pr-4 font-medium">Name</th>
                       <th className="pb-3 pr-4 font-medium">Location</th>
-                      <th className="pb-3 pr-4 font-medium">Titles sold</th>
-                      <th className="pb-3 pr-4 font-medium">Class</th>
+                      <th className="pb-3 pr-4 font-medium">Titles, class, and price</th>
                       <th className="pb-3 pr-4 font-medium">Quantity</th>
+                      <th className="pb-3 pr-4 font-medium">Subtotal</th>
+                      <th className="pb-3 pr-4 font-medium">Discount</th>
+                      <th className="pb-3 pr-4 font-medium">Total</th>
                       {isCsrAdmin && <th className="pb-3 pr-4 font-medium">Logged by</th>}
                       <th className="pb-3 pr-4 font-medium">Date</th>
                       <th className="pb-3 font-medium">Time</th>
@@ -318,20 +484,60 @@ const CrmSalesRecordsPage = () => {
                   <tbody>
                     {records.map((record) => (
                       <tr key={record._id} className="border-b border-slate-100 last:border-0">
+                        <td className="py-3 pr-4 text-slate-700">
+                          {formatOrganizationType(record.organizationType || "school")}
+                        </td>
                         <td className="py-3 pr-4 font-medium text-slate-950">
                           {capitalizeWords(record.schoolName)}
                         </td>
                         <td className="py-3 pr-4 text-slate-700">{record.location}</td>
                         <td className="max-w-[320px] py-3 pr-4 text-slate-700">
-                          <span title={record.bookTitles} className="line-clamp-2">
-                            {record.bookTitles}
-                          </span>
-                        </td>
-                        <td className="py-3 pr-4 text-slate-700">
-                          {formatBookSaleClass(record.bookClass)}
+                          {record.bookItems?.length ? (
+                            <div className="space-y-1">
+                              {record.bookItems.map((item, index) => (
+                                <div
+                                  key={`${item.title}-${index}`}
+                                  className="grid gap-1 sm:grid-cols-[1fr_auto_auto] sm:items-center sm:gap-3"
+                                >
+                                  <span>{item.title}</span>
+                                  <span className="text-xs font-semibold text-slate-500">
+                                    {item.bookClass || record.bookClass
+                                      ? formatBookSaleClass(item.bookClass || record.bookClass)
+                                      : "-"}
+                                  </span>
+                                  <span className="font-semibold text-slate-900">
+                                    {formatCurrency(item.price)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div>
+                              <span title={record.bookTitles} className="line-clamp-2">
+                                {record.bookTitles}
+                              </span>
+                              {record.bookClass && (
+                                <span className="mt-1 block text-xs font-semibold text-slate-500">
+                                  {formatBookSaleClass(record.bookClass)}
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </td>
                         <td className="py-3 pr-4 font-semibold text-emerald-700">
                           {record.quantitySold}
+                        </td>
+                        <td className="py-3 pr-4 font-semibold text-slate-700">
+                          {formatCurrency(record.subtotalPrice)}
+                        </td>
+                        <td className="py-3 pr-4 text-slate-700">
+                          {record.discountPercent ? `${record.discountPercent}% ` : ""}
+                          {record.discountAmount
+                            ? `(${formatCurrency(record.discountAmount)})`
+                            : "-"}
+                        </td>
+                        <td className="py-3 pr-4 font-bold text-emerald-700">
+                          {formatCurrency(record.totalPrice)}
                         </td>
                         {isCsrAdmin && (
                           <td className="py-3 pr-4 text-slate-700">

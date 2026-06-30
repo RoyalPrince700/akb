@@ -11,6 +11,14 @@ const capitalizeWords = (value) => {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 };
 
+const normalizePhoneNumbers = (phoneNumbers = []) => {
+  if (!Array.isArray(phoneNumbers)) {
+    return [];
+  }
+
+  return [...new Set(phoneNumbers.map((phoneNumber) => phoneNumber.trim()).filter(Boolean))];
+};
+
 const sendAuthResponse = (res, statusCode, user) => {
   res.status(statusCode).json({
     user: user.toSafeObject(),
@@ -96,7 +104,7 @@ const getProfile = asyncHandler(async (req, res) => {
 });
 
 const updateProfile = asyncHandler(async (req, res) => {
-  const { name, email, department, position } = req.body;
+  const { name, email, department, position, csrPhoneNumbers } = req.body;
   const user = await User.findById(req.user._id);
 
   if (!user) {
@@ -126,6 +134,15 @@ const updateProfile = asyncHandler(async (req, res) => {
       }
       user.email = normalizedEmail;
     }
+  }
+
+  if (csrPhoneNumbers !== undefined) {
+    if (!["csr", "csrAdmin"].includes(user.role)) {
+      res.status(403);
+      throw new Error("Only CSR users can update CSR phone numbers");
+    }
+
+    user.csrPhoneNumbers = normalizePhoneNumbers(csrPhoneNumbers);
   }
 
   await user.save();

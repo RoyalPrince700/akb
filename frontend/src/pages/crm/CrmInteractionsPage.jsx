@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import SurveyDispatchModal from "../../components/crm/SurveyDispatchModal";
-import { formatCrmCategory, formatRoleLabel, nigerianStates } from "../../constants/crm";
+import { formatCrmCategory, formatOrganizationType, formatRoleLabel, nigerianStates } from "../../constants/crm";
 import { useAuth } from "../../context/AuthContext";
 import PanelLayout from "../../layouts/PanelLayout";
 import {
@@ -128,7 +128,7 @@ const CrmInteractionsPage = () => {
         >
           <input
             type="search"
-            placeholder="Search school, phone, address..."
+            placeholder="Search school, bookshop, phone, address..."
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 sm:col-span-2"
@@ -191,7 +191,8 @@ const CrmInteractionsPage = () => {
             <table className="w-full min-w-[1180px] text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-500">
-                  <th className="pb-3 pr-4 font-medium">School</th>
+                  <th className="pb-3 pr-4 font-medium">Type</th>
+                  <th className="pb-3 pr-4 font-medium">Name</th>
                   <th className="pb-3 pr-4 font-medium">Direction</th>
                   <th className="pb-3 pr-4 font-medium">Category</th>
                   <th className="pb-3 pr-4 font-medium">State</th>
@@ -206,6 +207,9 @@ const CrmInteractionsPage = () => {
               <tbody>
                 {interactions.map((interaction) => (
                   <tr key={interaction._id} className="border-b border-slate-100 last:border-0">
+                    <td className="py-3 pr-4 text-slate-700">
+                      {formatOrganizationType(interaction.customer.organizationType || "school")}
+                    </td>
                     <td className="py-3 pr-4 font-medium text-slate-950">
                       {capitalizeWords(interaction.customer.schoolName)}
                     </td>

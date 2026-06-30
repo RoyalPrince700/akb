@@ -29,6 +29,7 @@ import CrmInteractionsPage from "./pages/crm/CrmInteractionsPage";
 import CrmReportsPage from "./pages/crm/CrmReportsPage";
 import CrmSalesRecordsPage from "./pages/crm/CrmSalesRecordsPage";
 import CrmSalesRepPage from "./pages/crm/CrmSalesRepPage";
+import CrmSettingsPage from "./pages/crm/CrmSettingsPage";
 import CrmSurveysPage from "./pages/crm/CrmSurveysPage";
 import CrmSurveyResponsesPage from "./pages/crm/CrmSurveyResponsesPage";
 import PublicSurveyPage from "./pages/crm/PublicSurveyPage";
@@ -163,6 +164,7 @@ const App = () => {
       <Route path="/csr/sales-records" element={csrPanel(<CrmSalesRecordsPage />)} />
       <Route path="/csr/customers" element={csrPanel(<CrmCustomerHistoryPage />)} />
       <Route path="/csr/surveys" element={csrPanel(<CrmSurveysPage />)} />
+      <Route path="/csr/settings" element={csrPanel(<CrmSettingsPage />)} />
       <Route path="/csr/survey-responses" element={csrAdminPanel(<CrmSurveyResponsesPage />)} />
       <Route path="/csr/staff" element={csrAdminPanel(<StaffManagementPage />)} />
       <Route path="/csr/sales-reps" element={csrAdminPanel(<CrmSalesRepPage />)} />

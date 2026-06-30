@@ -52,6 +52,10 @@ const buildInteractionFilter = (query, user) => {
     filter["customer.state"] = query.state;
   }
 
+  if (query.organizationType) {
+    filter["customer.organizationType"] = query.organizationType;
+  }
+
   if (query.owner && canManageAllCrmRecords(user)) {
     filter.owner = query.owner;
   }
@@ -80,9 +84,16 @@ const buildInteractionFilter = (query, user) => {
 
 const buildSalesRecordFilter = (query, user) => {
   const filter = { ...buildSalesRecordAccessFilter(user) };
+  const conditions = [];
 
   if (query.bookClass) {
-    filter.bookClass = query.bookClass;
+    conditions.push({
+      $or: [{ bookClass: query.bookClass }, { "bookItems.bookClass": query.bookClass }],
+    });
+  }
+
+  if (query.organizationType) {
+    filter.organizationType = query.organizationType;
   }
 
   if (query.owner && canManageAllCrmRecords(user) && mongoose.Types.ObjectId.isValid(query.owner)) {
@@ -91,11 +102,18 @@ const buildSalesRecordFilter = (query, user) => {
 
   if (query.search) {
     const search = query.search.trim();
-    filter.$or = [
-      { schoolName: new RegExp(search, "i") },
-      { location: new RegExp(search, "i") },
-      { bookTitles: new RegExp(search, "i") },
-    ];
+    conditions.push({
+      $or: [
+        { schoolName: new RegExp(search, "i") },
+        { location: new RegExp(search, "i") },
+        { bookTitles: new RegExp(search, "i") },
+        { "bookItems.title": new RegExp(search, "i") },
+      ],
+    });
+  }
+
+  if (conditions.length) {
+    filter.$and = conditions;
   }
 
   return filter;
@@ -123,6 +141,51 @@ const ensureSalesRep = async (salesRepId) => {
   return salesRep;
 };
 
+const resolveSalesRepId = (body, existingInteraction = null) => {
+  if (body.salesRep === undefined) {
+    return existingInteraction?.salesRep ?? null;
+  }
+
+  return body.salesRep || null;
+};
+
+const roundMoney = (value) => Number((Number(value) || 0).toFixed(2));
+
+const buildSalesRecordBookPayload = (body) => {
+  const submittedItems = Array.isArray(body.bookItems) ? body.bookItems : [];
+  const bookItems = submittedItems
+    .map((item) => ({
+      title: capitalizeWords(item.title || ""),
+      bookClass: item.bookClass || body.bookClass,
+      price: roundMoney(item.price),
+    }))
+    .filter((item) => item.title);
+
+  const fallbackTitles = capitalizeWords(body.bookTitles || "");
+  const bookTitles = bookItems.length
+    ? bookItems.map((item) => item.title).join(", ")
+    : fallbackTitles;
+  const subtotalPrice = roundMoney(
+    bookItems.reduce((total, item) => total + item.price, 0)
+  );
+  const discountPercent = Math.min(
+    100,
+    Math.max(0, roundMoney(body.discountPercent))
+  );
+  const discountAmount = roundMoney((subtotalPrice * discountPercent) / 100);
+  const totalPrice = roundMoney(Math.max(0, subtotalPrice - discountAmount));
+
+  return {
+    bookTitles,
+    bookItems,
+    quantitySold: bookItems.length || Number(body.quantitySold),
+    subtotalPrice,
+    discountPercent,
+    discountAmount,
+    totalPrice,
+  };
+};
+
 const buildInteractionPayload = async (body, user, existingInteraction = null) => {
   const phoneNumber = body.phoneNumber || existingInteraction?.customer?.phoneNumber || "";
   const normalizedPhoneNumber = normalizePhoneNumber(phoneNumber);
@@ -133,7 +196,7 @@ const buildInteractionPayload = async (body, user, existingInteraction = null) =
     throw error;
   }
 
-  await ensureSalesRep(body.salesRep || existingInteraction?.salesRep || null);
+  await ensureSalesRep(resolveSalesRepId(body, existingInteraction));
 
   const owner =
     canManageAllCrmRecords(user) && body.owner && mongoose.Types.ObjectId.isValid(body.owner)
@@ -147,6 +210,8 @@ const buildInteractionPayload = async (body, user, existingInteraction = null) =
     direction: body.direction ?? existingInteraction?.direction,
     category: body.category ?? existingInteraction?.category,
     customer: {
+      organizationType:
+        body.organizationType ?? existingCustomer.organizationType ?? "school",
       schoolName: capitalizeWords(body.schoolName || existingCustomer.schoolName || ""),
       address: capitalizeWords(body.address || existingCustomer.address || ""),
       state: body.state ?? existingCustomer.state,
@@ -165,22 +230,22 @@ const buildInteractionPayload = async (body, user, existingInteraction = null) =
         : Number(body.requestQuantity),
     status: body.status ?? existingInteraction?.status,
     remark: capitalizeWords(body.remark || existingInteraction?.remark || ""),
-    salesRep: body.salesRep ?? existingInteraction?.salesRep ?? null,
+    salesRep: resolveSalesRepId(body, existingInteraction),
     owner,
     createdBy: existingInteraction?.createdBy || user._id,
     updatedBy: user._id,
-    phoneLineLabel: capitalizeWords(body.phoneLineLabel || existingInteraction?.phoneLineLabel || ""),
+    phoneLineLabel: body.phoneLineLabel ?? existingInteraction?.phoneLineLabel ?? "",
     csrPhoneNumber: (body.csrPhoneNumber || existingInteraction?.csrPhoneNumber || "").trim(),
     callReference: (body.callReference || existingInteraction?.callReference || "").trim(),
   };
 };
 
 const buildSalesRecordPayload = (body, user) => ({
+  organizationType: body.organizationType || "school",
   schoolName: capitalizeWords(body.schoolName || ""),
   location: capitalizeWords(body.location || ""),
-  bookTitles: capitalizeWords(body.bookTitles || ""),
-  quantitySold: Number(body.quantitySold),
-  bookClass: body.bookClass,
+  ...buildSalesRecordBookPayload(body),
+  bookClass: body.bookClass || body.bookItems?.[0]?.bookClass,
   saleDate: body.saleDate || new Date(),
   owner: user._id,
   createdBy: user._id,
@@ -280,6 +345,7 @@ const listCustomers = asyncHandler(async (req, res) => {
       $group: {
         _id: "$customer.normalizedPhoneNumber",
         schoolName: { $first: "$customer.schoolName" },
+        organizationType: { $first: "$customer.organizationType" },
         address: { $first: "$customer.address" },
         state: { $first: "$customer.state" },
         phoneNumber: { $first: "$customer.phoneNumber" },
@@ -349,6 +415,7 @@ const getCustomerLookup = asyncHandler(async (req, res) => {
 
   res.json({
     customer: {
+      organizationType: latestInteraction.customer.organizationType || "school",
       schoolName: latestInteraction.customer.schoolName,
       address: latestInteraction.customer.address,
       state: latestInteraction.customer.state,
@@ -536,6 +603,7 @@ const listSalesRecords = asyncHandler(async (req, res) => {
         $group: {
           _id: null,
           totalQuantitySold: { $sum: "$quantitySold" },
+          totalSalesValue: { $sum: "$totalPrice" },
         },
       },
     ]),
@@ -546,6 +614,7 @@ const listSalesRecords = asyncHandler(async (req, res) => {
     summary: {
       totalRecords: total,
       totalQuantitySold: totals[0]?.totalQuantitySold || 0,
+      totalSalesValue: totals[0]?.totalSalesValue || 0,
     },
     pagination: {
       page,
@@ -884,6 +953,7 @@ const getDashboardSummary = asyncHandler(async (req, res) => {
         $group: {
           _id: null,
           totalBooksSold: { $sum: "$quantitySold" },
+          totalSalesValue: { $sum: "$totalPrice" },
         },
       },
     ]),
@@ -905,6 +975,7 @@ const getDashboardSummary = asyncHandler(async (req, res) => {
       surveysSent,
       totalSalesRecords,
       totalBooksSold: salesRecordTotals[0]?.totalBooksSold || 0,
+      totalSalesValue: salesRecordTotals[0]?.totalSalesValue || 0,
     },
     recentInteractions,
   });

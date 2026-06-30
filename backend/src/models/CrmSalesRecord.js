@@ -1,12 +1,18 @@
 const mongoose = require("mongoose");
 
-const { BOOK_SALE_CLASSES } = require("../constants/crm");
+const { BOOK_SALE_CLASSES, ORGANIZATION_TYPES } = require("../constants/crm");
 
 const crmSalesRecordSchema = new mongoose.Schema(
   {
+    organizationType: {
+      type: String,
+      enum: ORGANIZATION_TYPES,
+      default: "school",
+      required: [true, "Organization type is required"],
+    },
     schoolName: {
       type: String,
-      required: [true, "School name is required"],
+      required: [true, "Organization name is required"],
       trim: true,
     },
     location: {
@@ -19,6 +25,25 @@ const crmSalesRecordSchema = new mongoose.Schema(
       required: [true, "Book titles are required"],
       trim: true,
     },
+    bookItems: [
+      {
+        title: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        price: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+        bookClass: {
+          type: String,
+          required: true,
+          enum: BOOK_SALE_CLASSES,
+        },
+      },
+    ],
     quantitySold: {
       type: Number,
       required: [true, "Quantity sold is required"],
@@ -26,8 +51,28 @@ const crmSalesRecordSchema = new mongoose.Schema(
     },
     bookClass: {
       type: String,
-      required: [true, "Book class is required"],
       enum: BOOK_SALE_CLASSES,
+    },
+    subtotalPrice: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    discountPercent: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
+    discountAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    totalPrice: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
     saleDate: {
       type: Date,
@@ -55,6 +100,7 @@ const crmSalesRecordSchema = new mongoose.Schema(
 
 crmSalesRecordSchema.index({ owner: 1, saleDate: -1 });
 crmSalesRecordSchema.index({ bookClass: 1, saleDate: -1 });
+crmSalesRecordSchema.index({ "bookItems.bookClass": 1, saleDate: -1 });
 crmSalesRecordSchema.index({ schoolName: 1, location: 1, saleDate: -1 });
 
 module.exports = mongoose.model("CrmSalesRecord", crmSalesRecordSchema);

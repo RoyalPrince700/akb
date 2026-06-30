@@ -62,11 +62,24 @@ export const contactMedia = [
   { value: "website", label: "Website" },
   { value: "mail", label: "Mail" },
   { value: "phone", label: "Phone" },
+  { value: "whatsapp", label: "WhatsApp" },
 ];
+
+export const phoneLineLabels = [
+  { value: "landline", label: "Landline" },
+  { value: "csrOfficialLine", label: "CSR Official Line" },
+];
+
+export const landlinePhoneNumber = "02012278139";
 
 export const customerTypes = [
   { value: "newCustomer", label: "New customer" },
   { value: "existingCustomer", label: "Existing customer" },
+];
+
+export const organizationTypes = [
+  { value: "school", label: "School" },
+  { value: "bookshop", label: "Bookshop" },
 ];
 
 export const callerStatuses = [
@@ -117,3 +130,12 @@ export const formatRoleLabel = (role) =>
 
 export const formatBookSaleClass = (value) =>
   bookSaleClassOptions.find((item) => item.value === value)?.label || value;
+
+export const formatPhoneLineLabel = (value) =>
+  phoneLineLabels.find((item) => item.value === value)?.label || value;
+
+export const formatOrganizationType = (value) =>
+  organizationTypes.find((item) => item.value === value)?.label || value;
+
+export const getOrganizationNameLabel = (organizationType) =>
+  organizationType === "bookshop" ? "Bookshop name" : "School name";

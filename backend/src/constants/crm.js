@@ -50,8 +50,10 @@ const OUTBOUND_CATEGORIES = [
 const INBOUND_CATEGORIES = ["enquiry", "complaint", "request"];
 const CRM_CATEGORIES = [...new Set([...OUTBOUND_CATEGORIES, ...INBOUND_CATEGORIES])];
 const CRM_STATUSES = ["resolved", "unresolved"];
-const CONTACT_MEDIA = ["website", "mail", "phone"];
+const CONTACT_MEDIA = ["website", "mail", "phone", "whatsapp"];
+const PHONE_LINE_LABELS = ["landline", "csrOfficialLine"];
 const CUSTOMER_TYPES = ["newCustomer", "existingCustomer"];
+const ORGANIZATION_TYPES = ["school", "bookshop"];
 const CALLER_STATUSES = ["firstCaller", "repeatCaller"];
 const SURVEY_CHANNELS = ["WhatsApp", "SMS", "Email", "Manual"];
 const BOOK_SALE_CLASSES = [
@@ -82,6 +84,8 @@ module.exports = {
   INBOUND_CATEGORIES,
   NIGERIAN_STATES,
   BOOK_SALE_CLASSES,
+  ORGANIZATION_TYPES,
   OUTBOUND_CATEGORIES,
+  PHONE_LINE_LABELS,
   SURVEY_CHANNELS,
 };

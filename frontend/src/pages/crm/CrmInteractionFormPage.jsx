@@ -8,9 +8,13 @@ import {
   crmStatuses,
   customerTypes,
   formatCrmCategory,
+  getOrganizationNameLabel,
   inboundCategories,
+  landlinePhoneNumber,
   nigerianStates,
+  organizationTypes,
   outboundCategories,
+  phoneLineLabels,
 } from "../../constants/crm";
 import { useAuth } from "../../context/AuthContext";
 import PanelLayout from "../../layouts/PanelLayout";
@@ -33,6 +37,7 @@ const getDefaultDateTime = () => new Date().toISOString().slice(0, 16);
 const emptyForm = {
   direction: "inbound",
   category: "enquiry",
+  organizationType: "school",
   schoolName: "",
   address: "",
   state: nigerianStates[0],
@@ -49,7 +54,6 @@ const emptyForm = {
   salesRep: "",
   phoneLineLabel: "",
   csrPhoneNumber: "",
-  callReference: "",
 };
 
 const CrmInteractionFormPage = () => {
@@ -75,6 +79,33 @@ const CrmInteractionFormPage = () => {
   const [surveyModalOpen, setSurveyModalOpen] = useState(false);
 
   const ticketsPath = panelSegmentPath(user?.role, "interactions");
+  const csrPhoneNumbers = useMemo(
+    () => (Array.isArray(user?.csrPhoneNumbers) ? user.csrPhoneNumbers : []),
+    [user?.csrPhoneNumbers]
+  );
+  const settingsPath = panelSegmentPath(user?.role, "settings");
+
+  const resolveCsrPhoneForLineLabel = (lineLabel, currentPhoneNumber = "") => {
+    if (lineLabel === "landline") {
+      return landlinePhoneNumber;
+    }
+
+    if (lineLabel === "csrOfficialLine") {
+      if (csrPhoneNumbers.length === 1) {
+        return csrPhoneNumbers[0];
+      }
+
+      if (csrPhoneNumbers.length > 1) {
+        return csrPhoneNumbers.includes(currentPhoneNumber)
+          ? currentPhoneNumber
+          : csrPhoneNumbers[0];
+      }
+
+      return "";
+    }
+
+    return "";
+  };
 
   const categoryOptions = useMemo(
     () => (formData.direction === "outbound" ? outboundCategories : inboundCategories),
@@ -112,9 +143,28 @@ const CrmInteractionFormPage = () => {
           return;
         }
 
+        const phoneLineLabel = phoneLineLabels.some((item) => item.value === interaction.phoneLineLabel)
+          ? interaction.phoneLineLabel
+          : "";
+        const savedCsrPhone = interaction.csrPhoneNumber || "";
+        let csrPhoneNumber = savedCsrPhone;
+
+        if (phoneLineLabel === "landline") {
+          csrPhoneNumber = landlinePhoneNumber;
+        } else if (phoneLineLabel === "csrOfficialLine") {
+          if (csrPhoneNumbers.length === 1) {
+            csrPhoneNumber = csrPhoneNumbers[0];
+          } else if (csrPhoneNumbers.length > 1) {
+            csrPhoneNumber = csrPhoneNumbers.includes(savedCsrPhone)
+              ? savedCsrPhone
+              : csrPhoneNumbers[0];
+          }
+        }
+
         setFormData({
           direction: interaction.direction,
           category: interaction.category,
+          organizationType: interaction.customer.organizationType || "school",
           schoolName: capitalizeWords(interaction.customer.schoolName || ""),
           address: capitalizeWords(interaction.customer.address || ""),
           state: interaction.customer.state || nigerianStates[0],
@@ -129,9 +179,8 @@ const CrmInteractionFormPage = () => {
           status: interaction.status || "resolved",
           remark: capitalizeWords(interaction.remark || ""),
           salesRep: interaction.salesRep?._id || "",
-          phoneLineLabel: capitalizeWords(interaction.phoneLineLabel || ""),
-          csrPhoneNumber: interaction.csrPhoneNumber || "",
-          callReference: interaction.callReference || "",
+          phoneLineLabel,
+          csrPhoneNumber,
         });
       } catch (apiError) {
         setError(apiError.response?.data?.message || "Failed to load CRM ticket.");
@@ -147,7 +196,7 @@ const CrmInteractionFormPage = () => {
     return () => {
       mounted = false;
     };
-  }, [id, isEdit]);
+  }, [csrPhoneNumbers, id, isEdit]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -163,6 +212,10 @@ const CrmInteractionFormPage = () => {
 
       if (name === "direction") {
         next.category = value === "outbound" ? "enquiry" : "enquiry";
+      }
+
+      if (name === "phoneLineLabel") {
+        next.csrPhoneNumber = resolveCsrPhoneForLineLabel(value, current.csrPhoneNumber);
       }
 
       return next;
@@ -185,6 +238,7 @@ const CrmInteractionFormPage = () => {
 
       setFormData((current) => ({
         ...current,
+        organizationType: data.customer.organizationType || current.organizationType,
         schoolName: current.schoolName || capitalizeWords(data.customer.schoolName || ""),
         address: current.address || capitalizeWords(data.customer.address || ""),
         state: current.schoolName ? current.state : data.customer.state || nigerianStates[0],
@@ -214,6 +268,7 @@ const CrmInteractionFormPage = () => {
             ? Number(formData.requestQuantity)
             : "",
         complaintNature: formData.category === "complaint" ? formData.complaintNature : "",
+        salesRep: formData.salesRep || null,
       };
 
       const response = isEdit
@@ -334,8 +389,27 @@ const CrmInteractionFormPage = () => {
               </div>
 
               <div>
+                <label htmlFor="organizationType" className="text-sm font-medium text-slate-700">
+                  Customer type
+                </label>
+                <select
+                  id="organizationType"
+                  name="organizationType"
+                  value={formData.organizationType}
+                  onChange={handleChange}
+                  className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                >
+                  {organizationTypes.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
                 <label htmlFor="schoolName" className="text-sm font-medium text-slate-700">
-                  School name
+                  {getOrganizationNameLabel(formData.organizationType)}
                 </label>
                 <input
                   id="schoolName"
@@ -343,6 +417,11 @@ const CrmInteractionFormPage = () => {
                   required
                   value={formData.schoolName}
                   onChange={handleChange}
+                  placeholder={
+                    formData.organizationType === "bookshop"
+                      ? "Enter bookshop name"
+                      : "Enter school name"
+                  }
                   className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
                 />
               </div>
@@ -441,7 +520,7 @@ const CrmInteractionFormPage = () => {
                   htmlFor="customerType"
                   className="text-sm font-medium text-slate-700"
                 >
-                  Customer type
+                  New or existing customer
                 </label>
                 <select
                   id="customerType"
@@ -581,14 +660,20 @@ const CrmInteractionFormPage = () => {
                 >
                   Line label
                 </label>
-                <input
+                <select
                   id="phoneLineLabel"
                   name="phoneLineLabel"
                   value={formData.phoneLineLabel}
                   onChange={handleChange}
-                  placeholder="Grandstream landline or CSR personal line"
                   className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-                />
+                >
+                  <option value="">Select line label</option>
+                  {phoneLineLabels.map((lineLabel) => (
+                    <option key={lineLabel.value} value={lineLabel.value}>
+                      {lineLabel.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -598,28 +683,77 @@ const CrmInteractionFormPage = () => {
                 >
                   CSR phone number
                 </label>
-                <input
-                  id="csrPhoneNumber"
-                  name="csrPhoneNumber"
-                  value={formData.csrPhoneNumber}
-                  onChange={handleChange}
-                  placeholder="Optional personal or line number"
-                  className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label htmlFor="callReference" className="text-sm font-medium text-slate-700">
-                  Call reference
-                </label>
-                <input
-                  id="callReference"
-                  name="callReference"
-                  value={formData.callReference}
-                  onChange={handleChange}
-                  placeholder="Future PBX, SIP, or manual reference ID"
-                  className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-                />
+                {!formData.phoneLineLabel ? (
+                  <p className="mt-1 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-500">
+                    Select a line label to set the CSR phone number.
+                  </p>
+                ) : formData.phoneLineLabel === "landline" ? (
+                  <input
+                    id="csrPhoneNumber"
+                    name="csrPhoneNumber"
+                    readOnly
+                    value={formData.csrPhoneNumber || landlinePhoneNumber}
+                    className="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-950 outline-none"
+                  />
+                ) : formData.phoneLineLabel === "csrOfficialLine" &&
+                  csrPhoneNumbers.length > 1 ? (
+                  <>
+                    <select
+                      id="csrPhoneNumber"
+                      name="csrPhoneNumber"
+                      required
+                      value={formData.csrPhoneNumber}
+                      onChange={handleChange}
+                      className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                    >
+                      {csrPhoneNumbers.map((phoneNumber) => (
+                        <option key={phoneNumber} value={phoneNumber}>
+                          {phoneNumber}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Choose the official line used for this call.
+                    </p>
+                  </>
+                ) : formData.phoneLineLabel === "csrOfficialLine" &&
+                  csrPhoneNumbers.length === 1 ? (
+                  <>
+                    <input
+                      id="csrPhoneNumber"
+                      name="csrPhoneNumber"
+                      readOnly
+                      value={formData.csrPhoneNumber || csrPhoneNumbers[0]}
+                      className="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-950 outline-none"
+                    />
+                    <p className="mt-1 text-xs text-slate-500">
+                      Your saved CSR official line.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <input
+                      id="csrPhoneNumber"
+                      name="csrPhoneNumber"
+                      type="tel"
+                      required
+                      value={formData.csrPhoneNumber}
+                      onChange={handleChange}
+                      placeholder="Enter your CSR line number"
+                      className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                    />
+                    <p className="mt-1 text-xs text-slate-500">
+                      No CSR numbers saved yet.{" "}
+                      <Link
+                        to={settingsPath}
+                        className="font-semibold text-emerald-700 hover:text-emerald-800"
+                      >
+                        Add them in Settings
+                      </Link>{" "}
+                      or enter a number above.
+                    </p>
+                  </>
+                )}
               </div>
 
               <div className="md:col-span-2">

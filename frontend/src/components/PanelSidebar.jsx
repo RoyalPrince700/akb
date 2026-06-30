@@ -8,6 +8,7 @@ import {
   MessageSquareShare,
   PhoneCall,
   ScrollText,
+  Settings,
   Users,
   X,
 } from "lucide-react";
@@ -70,6 +71,11 @@ const PanelSidebar = ({ accent, onNavigate, className = "" }) => {
           to: panelSegmentPath(role, "surveys"),
           label: "Surveys",
           icon: MessageSquareShare,
+        },
+        {
+          to: panelSegmentPath(role, "settings"),
+          label: "Settings",
+          icon: Settings,
         },
         ...(isCsrAdmin
           ? [
