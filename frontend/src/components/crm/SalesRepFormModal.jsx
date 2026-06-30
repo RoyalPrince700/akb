@@ -46,7 +46,7 @@ const SalesRepFormModal = ({
     let nextValue = type === "checkbox" ? checked : value;
 
     if (name === "name") {
-      nextValue = capitalizeWords(value);
+      nextValue = capitalizeWords(value, { trim: false });
     }
 
     setFormData((current) => ({

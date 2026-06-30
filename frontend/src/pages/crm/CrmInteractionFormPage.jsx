@@ -151,7 +151,9 @@ const CrmInteractionFormPage = () => {
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    const nextValue = CRM_CAPITALIZED_FIELDS.includes(name) ? capitalizeWords(value) : value;
+    const nextValue = CRM_CAPITALIZED_FIELDS.includes(name)
+      ? capitalizeWords(value, { trim: false })
+      : value;
 
     setFormData((current) => {
       const next = {

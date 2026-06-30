@@ -1,9 +1,12 @@
-export const capitalizeWords = (value) => {
+export const capitalizeWords = (value, options = {}) => {
   if (!value || typeof value !== "string") {
     return value;
   }
 
-  return value.trim().toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+  const { trim = true } = options;
+  const normalizedValue = trim ? value.trim() : value;
+
+  return normalizedValue.toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
 };
 
 export const CRM_CAPITALIZED_FIELDS = [
