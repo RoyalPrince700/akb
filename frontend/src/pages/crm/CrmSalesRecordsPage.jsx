@@ -12,7 +12,9 @@ import { capitalizeWords } from "../../utils/textFormat";
 const createEmptyBookItem = () => ({
   title: "",
   bookClass: "",
+  quantity: "1",
   price: "",
+  discountPercent: "",
 });
 
 const createEmptyForm = () => ({
@@ -20,7 +22,6 @@ const createEmptyForm = () => ({
   schoolName: "",
   location: "",
   bookItems: [createEmptyBookItem()],
-  discountPercent: "",
 });
 
 const formatCurrency = (value) =>
@@ -31,6 +32,26 @@ const formatCurrency = (value) =>
   }).format(Number(value) || 0);
 
 const parseMoney = (value) => Number(value) || 0;
+
+const clampPercent = (value) => Math.min(100, Math.max(0, parseMoney(value)));
+
+const parseQuantity = (value) => Math.max(0, Number(value) || 0);
+
+const getBookItemTotals = (item) => {
+  const quantity = parseQuantity(item.quantity);
+  const price = parseMoney(item.price);
+  const discountPercent = clampPercent(item.discountPercent);
+  const subtotalPrice = quantity * price;
+  const discountAmount = (subtotalPrice * discountPercent) / 100;
+
+  return {
+    discountAmount,
+    discountPercent,
+    quantity,
+    subtotalPrice,
+    totalPrice: Math.max(0, subtotalPrice - discountAmount),
+  };
+};
 
 const SummaryCard = ({ label, value, helper }) => (
   <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-lg shadow-emerald-900/5">
@@ -132,12 +153,21 @@ const CrmSalesRecordsPage = () => {
   };
 
   const subtotalPrice = formData.bookItems.reduce(
-    (total, item) => total + parseMoney(item.price),
+    (total, item) => total + getBookItemTotals(item).subtotalPrice,
     0
   );
-  const discountPercent = Math.min(100, Math.max(0, parseMoney(formData.discountPercent)));
-  const discountAmount = (subtotalPrice * discountPercent) / 100;
+  const discountAmount = formData.bookItems.reduce(
+    (total, item) => total + getBookItemTotals(item).discountAmount,
+    0
+  );
   const totalPrice = Math.max(0, subtotalPrice - discountAmount);
+  const totalQuantity = formData.bookItems.reduce(
+    (total, item) =>
+      item.title.trim() || item.bookClass || String(item.price).trim()
+        ? total + getBookItemTotals(item).quantity
+        : total,
+    0
+  );
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -150,17 +180,24 @@ const CrmSalesRecordsPage = () => {
         .map((item) => ({
           title: item.title.trim(),
           bookClass: item.bookClass,
+          quantity: parseQuantity(item.quantity),
           price: parseMoney(item.price),
+          discountPercent: clampPercent(item.discountPercent),
           hasPrice: String(item.price).trim() !== "",
         }))
-        .filter((item) => item.title || item.hasPrice);
+        .filter((item) => item.title || item.bookClass || item.hasPrice);
 
       if (!bookItems.length) {
         throw new Error("Add at least one book title and price.");
       }
 
-      if (bookItems.some((item) => !item.title || !item.bookClass || !item.hasPrice || item.price < 0)) {
-        throw new Error("Each book row must include a title, class, and valid price.");
+      if (
+        bookItems.some(
+          (item) =>
+            !item.title || !item.bookClass || item.quantity < 1 || !item.hasPrice || item.price < 0
+        )
+      ) {
+        throw new Error("Each book row must include a title, class, quantity, and valid price.");
       }
 
       await createCrmSalesRecord({
@@ -169,8 +206,7 @@ const CrmSalesRecordsPage = () => {
         location: formData.location,
         bookItems,
         bookTitles: bookItems.map((item) => item.title).join(", "),
-        quantitySold: bookItems.length,
-        discountPercent,
+        quantitySold: totalQuantity,
       });
       setFormData(createEmptyForm());
       setSuccessMessage("Sales record saved successfully.");
@@ -276,14 +312,14 @@ const CrmSalesRecordsPage = () => {
                     Book titles and prices
                   </label>
                   <span className="text-xs font-medium text-slate-500">
-                    Quantity: {formData.bookItems.length}
+                    Quantity: {totalQuantity}
                   </span>
                 </div>
 
                 {formData.bookItems.map((item, index) => (
                   <div
                     key={index}
-                    className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-[1fr_0.65fr_0.45fr_auto]"
+                    className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 md:grid-cols-[1fr_0.7fr_0.35fr_0.45fr_0.45fr_auto]"
                   >
                     <input
                       type="text"
@@ -311,6 +347,18 @@ const CrmSalesRecordsPage = () => {
                     </select>
                     <input
                       type="number"
+                      min="1"
+                      step="1"
+                      value={item.quantity}
+                      onChange={(event) =>
+                        handleBookItemChange(index, "quantity", event.target.value)
+                      }
+                      className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                      placeholder="Qty"
+                      aria-label={`Quantity ${index + 1}`}
+                    />
+                    <input
+                      type="number"
                       min="0"
                       step="0.01"
                       value={item.price}
@@ -319,6 +367,19 @@ const CrmSalesRecordsPage = () => {
                       }
                       className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
                       placeholder="Price"
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      value={item.discountPercent}
+                      onChange={(event) =>
+                        handleBookItemChange(index, "discountPercent", event.target.value)
+                      }
+                      className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                      placeholder="Disc %"
+                      aria-label={`Discount percent ${index + 1}`}
                     />
                     <div className="flex gap-2">
                       <button
@@ -345,38 +406,18 @@ const CrmSalesRecordsPage = () => {
               </div>
 
               <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 lg:col-span-2">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">
-                      Discount (%)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.01"
-                      name="discountPercent"
-                      value={formData.discountPercent}
-                      onChange={handleInputChange}
-                      className="w-full rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-                      placeholder="Eg. 20"
-                    />
+                <div className="rounded-2xl bg-white p-4 text-sm text-slate-700">
+                  <div className="flex justify-between gap-4">
+                    <span>Subtotal</span>
+                    <span className="font-semibold">{formatCurrency(subtotalPrice)}</span>
                   </div>
-                  <div className="rounded-2xl bg-white p-4 text-sm text-slate-700">
-                    <div className="flex justify-between gap-4">
-                      <span>Subtotal</span>
-                      <span className="font-semibold">{formatCurrency(subtotalPrice)}</span>
-                    </div>
-                    <div className="mt-2 flex justify-between gap-4">
-                      <span>Discount ({discountPercent}%)</span>
-                      <span className="font-semibold">
-                        -{formatCurrency(discountAmount)}
-                      </span>
-                    </div>
-                    <div className="mt-3 flex justify-between gap-4 border-t border-slate-200 pt-3 text-base font-bold text-emerald-800">
-                      <span>Total</span>
-                      <span>{formatCurrency(totalPrice)}</span>
-                    </div>
+                  <div className="mt-2 flex justify-between gap-4">
+                    <span>Discount</span>
+                    <span className="font-semibold">-{formatCurrency(discountAmount)}</span>
+                  </div>
+                  <div className="mt-3 flex justify-between gap-4 border-t border-slate-200 pt-3 text-base font-bold text-emerald-800">
+                    <span>Total</span>
+                    <span>{formatCurrency(totalPrice)}</span>
                   </div>
                 </div>
               </div>
@@ -471,7 +512,7 @@ const CrmSalesRecordsPage = () => {
                       <th className="pb-3 pr-4 font-medium">Type</th>
                       <th className="pb-3 pr-4 font-medium">Name</th>
                       <th className="pb-3 pr-4 font-medium">Location</th>
-                      <th className="pb-3 pr-4 font-medium">Titles, class, and price</th>
+                      <th className="pb-3 pr-4 font-medium">Titles, class, quantity, and price</th>
                       <th className="pb-3 pr-4 font-medium">Quantity</th>
                       <th className="pb-3 pr-4 font-medium">Subtotal</th>
                       <th className="pb-3 pr-4 font-medium">Discount</th>
@@ -497,7 +538,7 @@ const CrmSalesRecordsPage = () => {
                               {record.bookItems.map((item, index) => (
                                 <div
                                   key={`${item.title}-${index}`}
-                                  className="grid gap-1 sm:grid-cols-[1fr_auto_auto] sm:items-center sm:gap-3"
+                                  className="grid gap-1 sm:grid-cols-[1fr_auto_auto_auto] sm:items-center sm:gap-3"
                                 >
                                   <span>{item.title}</span>
                                   <span className="text-xs font-semibold text-slate-500">
@@ -505,8 +546,19 @@ const CrmSalesRecordsPage = () => {
                                       ? formatBookSaleClass(item.bookClass || record.bookClass)
                                       : "-"}
                                   </span>
+                                  <span className="text-xs font-semibold text-slate-500">
+                                    Qty {item.quantity || 1}
+                                  </span>
                                   <span className="font-semibold text-slate-900">
-                                    {formatCurrency(item.price)}
+                                    {formatCurrency(item.totalPrice ?? item.price)}
+                                  </span>
+                                  <span className="text-xs text-slate-500 sm:col-start-2 sm:col-span-3">
+                                    Unit {formatCurrency(item.price)}
+                                    {item.discountPercent
+                                      ? `, discount ${item.discountPercent}% (${formatCurrency(
+                                          item.discountAmount
+                                        )})`
+                                      : ""}
                                   </span>
                                 </div>
                               ))}

@@ -22,28 +22,27 @@ const customerSchema = new mongoose.Schema(
     },
     schoolName: {
       type: String,
-      required: [true, "Organization name is required"],
       trim: true,
+      default: "",
     },
     address: {
       type: String,
-      required: [true, "Address is required"],
       trim: true,
+      default: "",
     },
     state: {
       type: String,
-      required: [true, "State is required"],
       enum: NIGERIAN_STATES,
     },
     phoneNumber: {
       type: String,
-      required: [true, "Phone number is required"],
       trim: true,
+      default: "",
     },
     normalizedPhoneNumber: {
       type: String,
-      required: [true, "Normalized phone number is required"],
       trim: true,
+      default: "",
     },
   },
   { _id: false }
@@ -152,15 +151,5 @@ const crmInteractionSchema = new mongoose.Schema(
 crmInteractionSchema.index({ "customer.normalizedPhoneNumber": 1, dateOfContact: -1 });
 crmInteractionSchema.index({ owner: 1, dateOfContact: -1 });
 crmInteractionSchema.index({ salesRep: 1, dateOfContact: -1 });
-
-crmInteractionSchema.pre("validate", function validateInteraction() {
-  if (this.category === "request" && !this.requestQuantity) {
-    this.invalidate("requestQuantity", "Request quantity is required for request calls");
-  }
-
-  if (this.category === "complaint" && !this.complaintNature.trim()) {
-    this.invalidate("complaintNature", "Complaint nature is required for complaint calls");
-  }
-});
 
 module.exports = mongoose.model("CrmInteraction", crmInteractionSchema);

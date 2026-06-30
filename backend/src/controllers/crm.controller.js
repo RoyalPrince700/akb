@@ -24,6 +24,107 @@ const parsePagination = (query) => {
   return { limit, page, skip };
 };
 
+const parseDateBoundary = (value, endOfDay = false) => {
+  if (!value || typeof value !== "string") {
+    return null;
+  }
+
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) {
+    return null;
+  }
+
+  const [, year, month, day] = match;
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  if (endOfDay) {
+    date.setHours(23, 59, 59, 999);
+  } else {
+    date.setHours(0, 0, 0, 0);
+  }
+
+  return date;
+};
+
+const formatDateOnly = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const parseDashboardDateRange = (query) => {
+  const period = query.period || "all";
+
+  if (period === "all") {
+    return null;
+  }
+
+  const now = new Date();
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
+
+  if (period === "week") {
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    const day = start.getDay();
+    const diffToMonday = day === 0 ? 6 : day - 1;
+    start.setDate(start.getDate() - diffToMonday);
+    return { period, startDate: start, endDate: endOfToday };
+  }
+
+  if (period === "month") {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    start.setHours(0, 0, 0, 0);
+    return { period, startDate: start, endDate: endOfToday };
+  }
+
+  if (period === "year") {
+    const start = new Date(now.getFullYear(), 0, 1);
+    start.setHours(0, 0, 0, 0);
+    return { period, startDate: start, endDate: endOfToday };
+  }
+
+  if (period === "custom") {
+    const startDate = parseDateBoundary(query.startDate, false);
+    const endDate = parseDateBoundary(query.endDate, true);
+
+    if (!startDate || !endDate) {
+      const error = new Error("Custom period requires valid startDate and endDate (YYYY-MM-DD)");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (startDate > endDate) {
+      const error = new Error("startDate must be before or equal to endDate");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    return { period, startDate, endDate };
+  }
+
+  return null;
+};
+
+const applyDateRange = (filter, field, dateRange) => {
+  if (!dateRange) {
+    return filter;
+  }
+
+  return {
+    ...filter,
+    [field]: {
+      $gte: dateRange.startDate,
+      $lte: dateRange.endDate,
+    },
+  };
+};
+
 const canManageAllCrmRecords = (user) =>
   user?.role === "csrAdmin" || user?.role === "admin";
 
@@ -151,14 +252,32 @@ const resolveSalesRepId = (body, existingInteraction = null) => {
 
 const roundMoney = (value) => Number((Number(value) || 0).toFixed(2));
 
+const clampPercent = (value) => Math.min(100, Math.max(0, roundMoney(value)));
+
 const buildSalesRecordBookPayload = (body) => {
   const submittedItems = Array.isArray(body.bookItems) ? body.bookItems : [];
   const bookItems = submittedItems
-    .map((item) => ({
-      title: capitalizeWords(item.title || ""),
-      bookClass: item.bookClass || body.bookClass,
-      price: roundMoney(item.price),
-    }))
+    .map((item) => {
+      const quantity = Math.max(1, Number(item.quantity) || 1);
+      const price = roundMoney(item.price);
+      const discountPercent = clampPercent(
+        item.discountPercent === undefined ? body.discountPercent : item.discountPercent
+      );
+      const subtotalPrice = roundMoney(price * quantity);
+      const discountAmount = roundMoney((subtotalPrice * discountPercent) / 100);
+      const totalPrice = roundMoney(Math.max(0, subtotalPrice - discountAmount));
+
+      return {
+        title: capitalizeWords(item.title || ""),
+        bookClass: item.bookClass || body.bookClass,
+        price,
+        quantity,
+        discountPercent,
+        discountAmount,
+        subtotalPrice,
+        totalPrice,
+      };
+    })
     .filter((item) => item.title);
 
   const fallbackTitles = capitalizeWords(body.bookTitles || "");
@@ -166,21 +285,22 @@ const buildSalesRecordBookPayload = (body) => {
     ? bookItems.map((item) => item.title).join(", ")
     : fallbackTitles;
   const subtotalPrice = roundMoney(
-    bookItems.reduce((total, item) => total + item.price, 0)
+    bookItems.reduce((total, item) => total + item.subtotalPrice, 0)
   );
-  const discountPercent = Math.min(
-    100,
-    Math.max(0, roundMoney(body.discountPercent))
+  const discountAmount = roundMoney(
+    bookItems.reduce((total, item) => total + item.discountAmount, 0)
   );
-  const discountAmount = roundMoney((subtotalPrice * discountPercent) / 100);
-  const totalPrice = roundMoney(Math.max(0, subtotalPrice - discountAmount));
+  const totalPrice = roundMoney(bookItems.reduce((total, item) => total + item.totalPrice, 0));
+  const quantitySold = bookItems.length
+    ? bookItems.reduce((total, item) => total + item.quantity, 0)
+    : Number(body.quantitySold);
 
   return {
     bookTitles,
     bookItems,
-    quantitySold: bookItems.length || Number(body.quantitySold),
+    quantitySold,
     subtotalPrice,
-    discountPercent,
+    discountPercent: body.discountPercent ? clampPercent(body.discountPercent) : 0,
     discountAmount,
     totalPrice,
   };
@@ -189,12 +309,6 @@ const buildSalesRecordBookPayload = (body) => {
 const buildInteractionPayload = async (body, user, existingInteraction = null) => {
   const phoneNumber = body.phoneNumber || existingInteraction?.customer?.phoneNumber || "";
   const normalizedPhoneNumber = normalizePhoneNumber(phoneNumber);
-
-  if (!normalizedPhoneNumber) {
-    const error = new Error("Phone number is required");
-    error.statusCode = 400;
-    throw error;
-  }
 
   await ensureSalesRep(resolveSalesRepId(body, existingInteraction));
 
@@ -214,11 +328,11 @@ const buildInteractionPayload = async (body, user, existingInteraction = null) =
         body.organizationType ?? existingCustomer.organizationType ?? "school",
       schoolName: capitalizeWords(body.schoolName || existingCustomer.schoolName || ""),
       address: capitalizeWords(body.address || existingCustomer.address || ""),
-      state: body.state ?? existingCustomer.state,
+      state: body.state || existingCustomer.state || undefined,
       phoneNumber: phoneNumber.trim(),
       normalizedPhoneNumber,
     },
-    dateOfContact: body.dateOfContact ?? existingInteraction?.dateOfContact,
+    dateOfContact: body.dateOfContact || existingInteraction?.dateOfContact || new Date(),
     medium: body.medium ?? existingInteraction?.medium,
     customerType: body.customerType ?? existingInteraction?.customerType,
     callerStatus: body.callerStatus ?? existingInteraction?.callerStatus,
@@ -921,9 +1035,26 @@ const submitPublicSurveyResponse = asyncHandler(async (req, res) => {
 });
 
 const getDashboardSummary = asyncHandler(async (req, res) => {
-  const filter = buildInteractionAccessFilter(req.user);
-  const salesRecordFilter = buildSalesRecordAccessFilter(req.user);
-  const interactionIds = await CrmInteraction.find(filter).distinct("_id");
+  const dateRange = parseDashboardDateRange(req.query);
+  const accessFilter = buildInteractionAccessFilter(req.user);
+  const filter = applyDateRange(accessFilter, "dateOfContact", dateRange);
+  const salesRecordFilter = applyDateRange(
+    buildSalesRecordAccessFilter(req.user),
+    "saleDate",
+    dateRange
+  );
+  const interactionIds = await CrmInteraction.find(accessFilter).distinct("_id");
+  const surveyFilter = {
+    interaction: { $in: interactionIds },
+  };
+
+  if (dateRange) {
+    surveyFilter.createdAt = {
+      $gte: dateRange.startDate,
+      $lte: dateRange.endDate,
+    };
+  }
+
   const [
     totalContacts,
     inboundCount,
@@ -943,9 +1074,7 @@ const getDashboardSummary = asyncHandler(async (req, res) => {
       category: "request",
       status: "unresolved",
     }),
-    SurveyDispatch.countDocuments({
-      interaction: { $in: interactionIds },
-    }),
+    SurveyDispatch.countDocuments(surveyFilter),
     CrmSalesRecord.countDocuments(salesRecordFilter),
     CrmSalesRecord.aggregate([
       { $match: salesRecordFilter },
@@ -977,6 +1106,13 @@ const getDashboardSummary = asyncHandler(async (req, res) => {
       totalBooksSold: salesRecordTotals[0]?.totalBooksSold || 0,
       totalSalesValue: salesRecordTotals[0]?.totalSalesValue || 0,
     },
+    period: dateRange
+      ? {
+          type: dateRange.period,
+          startDate: formatDateOnly(dateRange.startDate),
+          endDate: formatDateOnly(dateRange.endDate),
+        }
+      : { type: "all" },
     recentInteractions,
   });
 });

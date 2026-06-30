@@ -148,8 +148,8 @@ export const getStaffCourseCompletions = async () => {
   return response.data;
 };
 
-export const getCrmDashboardSummary = async () => {
-  const response = await api.get("/crm/dashboard-summary");
+export const getCrmDashboardSummary = async (params = {}) => {
+  const response = await api.get("/crm/dashboard-summary", { params });
   return response.data;
 };
 

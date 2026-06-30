@@ -40,7 +40,7 @@ const emptyForm = {
   organizationType: "school",
   schoolName: "",
   address: "",
-  state: nigerianStates[0],
+  state: "",
   phoneNumber: "",
   dateOfContact: getDefaultDateTime(),
   medium: "phone",
@@ -167,7 +167,7 @@ const CrmInteractionFormPage = () => {
           organizationType: interaction.customer.organizationType || "school",
           schoolName: capitalizeWords(interaction.customer.schoolName || ""),
           address: capitalizeWords(interaction.customer.address || ""),
-          state: interaction.customer.state || nigerianStates[0],
+          state: interaction.customer.state || "",
           phoneNumber: interaction.customer.phoneNumber || "",
           dateOfContact: new Date(interaction.dateOfContact).toISOString().slice(0, 16),
           medium: interaction.medium || "phone",
@@ -241,7 +241,7 @@ const CrmInteractionFormPage = () => {
         organizationType: data.customer.organizationType || current.organizationType,
         schoolName: current.schoolName || capitalizeWords(data.customer.schoolName || ""),
         address: current.address || capitalizeWords(data.customer.address || ""),
-        state: current.schoolName ? current.state : data.customer.state || nigerianStates[0],
+        state: current.schoolName ? current.state : data.customer.state || "",
         customerType: data.interactionCount > 0 ? "existingCustomer" : current.customerType,
         callerStatus: data.interactionCount > 1 ? "repeatCaller" : current.callerStatus,
       }));
@@ -414,7 +414,6 @@ const CrmInteractionFormPage = () => {
                 <input
                   id="schoolName"
                   name="schoolName"
-                  required
                   value={formData.schoolName}
                   onChange={handleChange}
                   placeholder={
@@ -433,7 +432,6 @@ const CrmInteractionFormPage = () => {
                 <input
                   id="phoneNumber"
                   name="phoneNumber"
-                  required
                   value={formData.phoneNumber}
                   onChange={handleChange}
                   onBlur={handlePhoneBlur}
@@ -451,7 +449,6 @@ const CrmInteractionFormPage = () => {
                 <textarea
                   id="address"
                   name="address"
-                  required
                   rows={3}
                   value={formData.address}
                   onChange={handleChange}
@@ -470,6 +467,7 @@ const CrmInteractionFormPage = () => {
                   onChange={handleChange}
                   className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
                 >
+                  <option value="">Select state (optional)</option>
                   {nigerianStates.map((state) => (
                     <option key={state} value={state}>
                       {state}
@@ -489,7 +487,6 @@ const CrmInteractionFormPage = () => {
                   id="dateOfContact"
                   name="dateOfContact"
                   type="datetime-local"
-                  required
                   value={formData.dateOfContact}
                   onChange={handleChange}
                   className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
@@ -609,7 +606,6 @@ const CrmInteractionFormPage = () => {
                   <textarea
                     id="complaintNature"
                     name="complaintNature"
-                    required
                     rows={3}
                     value={formData.complaintNature}
                     onChange={handleChange}
@@ -631,7 +627,6 @@ const CrmInteractionFormPage = () => {
                     name="requestQuantity"
                     type="number"
                     min="1"
-                    required
                     value={formData.requestQuantity}
                     onChange={handleChange}
                     className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
@@ -701,7 +696,6 @@ const CrmInteractionFormPage = () => {
                     <select
                       id="csrPhoneNumber"
                       name="csrPhoneNumber"
-                      required
                       value={formData.csrPhoneNumber}
                       onChange={handleChange}
                       className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
@@ -736,7 +730,6 @@ const CrmInteractionFormPage = () => {
                       id="csrPhoneNumber"
                       name="csrPhoneNumber"
                       type="tel"
-                      required
                       value={formData.csrPhoneNumber}
                       onChange={handleChange}
                       placeholder="Enter your CSR line number"

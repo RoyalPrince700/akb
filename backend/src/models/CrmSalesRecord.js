@@ -37,6 +37,33 @@ const crmSalesRecordSchema = new mongoose.Schema(
           required: true,
           min: 0,
         },
+        quantity: {
+          type: Number,
+          required: true,
+          min: 1,
+          default: 1,
+        },
+        discountPercent: {
+          type: Number,
+          default: 0,
+          min: 0,
+          max: 100,
+        },
+        discountAmount: {
+          type: Number,
+          default: 0,
+          min: 0,
+        },
+        subtotalPrice: {
+          type: Number,
+          default: 0,
+          min: 0,
+        },
+        totalPrice: {
+          type: Number,
+          default: 0,
+          min: 0,
+        },
         bookClass: {
           type: String,
           required: true,
