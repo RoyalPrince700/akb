@@ -14,6 +14,8 @@ const { errorHandler, notFoundHandler } = require("./middleware/error.middleware
 
 const app = express();
 
+app.set("etag", false);
+
 const allowedOrigin = process.env.CLIENT_URL || "http://localhost:5173";
 
 app.use(

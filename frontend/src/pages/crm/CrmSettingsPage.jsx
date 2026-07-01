@@ -1,4 +1,6 @@
+import { LogOut } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../context/AuthContext";
 import PanelLayout from "../../layouts/PanelLayout";
@@ -9,7 +11,8 @@ const normalizePhoneNumbers = (phoneNumbers) => [
 ];
 
 const CrmSettingsPage = () => {
-  const { updateUser, user } = useAuth();
+  const { logout, updateUser, user } = useAuth();
+  const navigate = useNavigate();
   const initialPhoneNumbers = useMemo(
     () => (Array.isArray(user?.csrPhoneNumbers) ? user.csrPhoneNumbers : []),
     [user?.csrPhoneNumbers]
@@ -17,6 +20,7 @@ const CrmSettingsPage = () => {
   const [phoneNumbers, setPhoneNumbers] = useState(
     initialPhoneNumbers.length ? initialPhoneNumbers : [""]
   );
+  const [csrDisplayName, setCsrDisplayName] = useState(user?.csrDisplayName || "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -49,15 +53,21 @@ const CrmSettingsPage = () => {
 
     try {
       const csrPhoneNumbers = normalizePhoneNumbers(phoneNumbers);
-      const data = await updateProfile({ csrPhoneNumbers });
+      const data = await updateProfile({ csrDisplayName, csrPhoneNumbers });
       updateUser(data.user);
+      setCsrDisplayName(data.user.csrDisplayName || "");
       setPhoneNumbers(csrPhoneNumbers.length ? csrPhoneNumbers : [""]);
-      setSuccess("CSR phone numbers updated successfully.");
+      setSuccess("CSR settings updated successfully.");
     } catch (apiError) {
-      setError(apiError.response?.data?.message || "Failed to update CSR phone numbers.");
+      setError(apiError.response?.data?.message || "Failed to update CSR settings.");
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
   };
 
   return (
@@ -81,14 +91,34 @@ const CrmSettingsPage = () => {
         >
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-700">
-              Phone lines
+              Public CSR details
             </p>
             <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">
-              CSR phone numbers
+              CSR settings
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Add the phone numbers you use for customer calls. These numbers will be available
-              when logging CRM tickets.
+              Choose the CSR name customers see in surveys and add the phone numbers you use for
+              customer calls.
+            </p>
+          </div>
+
+          <div className="mt-6">
+            <label htmlFor="csrDisplayName" className="text-sm font-medium text-slate-700">
+              Survey and dashboard name
+            </label>
+            <input
+              id="csrDisplayName"
+              value={csrDisplayName}
+              onChange={(event) => {
+                setCsrDisplayName(event.target.value);
+                setSuccess("");
+              }}
+              placeholder={user?.name || "Enter your preferred CSR name"}
+              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+            />
+            <p className="mt-2 text-xs leading-5 text-slate-500">
+              This name will appear on customer surveys and CSR dashboard views. Leave it blank to
+              use your profile name.
             </p>
           </div>
 
@@ -137,6 +167,26 @@ const CrmSettingsPage = () => {
             </button>
           </div>
         </form>
+
+        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-emerald-900/5">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
+              Account
+            </p>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">Sign out</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              End your CRM session and return to the login page.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="mt-6 inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+          >
+            <LogOut className="h-4 w-4" aria-hidden />
+            Logout
+          </button>
+        </section>
       </div>
     </PanelLayout>
   );

@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { CalendarRange } from "lucide-react";
 
-import { bookSaleClassOptions, formatBookSaleClass, formatOrganizationType, getOrganizationNameLabel, organizationTypes } from "../../constants/crm";
+import { bookSaleClassOptions, formatBookSaleClass, formatOrganizationType, getCsrDisplayName, getOrganizationNameLabel, getOrganizationNamePlaceholder, organizationTypes } from "../../constants/crm";
+import SchoolSearchSelect from "../../components/crm/SchoolSearchSelect";
 import { useAuth } from "../../context/AuthContext";
 import PanelLayout from "../../layouts/PanelLayout";
 import {
@@ -30,6 +32,52 @@ const formatCurrency = (value) =>
     currency: "NGN",
     maximumFractionDigits: 2,
   }).format(Number(value) || 0);
+
+const periodOptions = [
+  { value: "all", label: "All time" },
+  { value: "week", label: "This week" },
+  { value: "month", label: "This month" },
+  { value: "year", label: "This year" },
+  { value: "custom", label: "Custom range" },
+];
+
+const formatDisplayDate = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+
+  return date.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const getPeriodDescription = (period) => {
+  if (!period || period.type === "all") {
+    return "Showing all sales records";
+  }
+
+  const start = formatDisplayDate(period.startDate);
+  const end = formatDisplayDate(period.endDate);
+
+  if (period.type === "week") {
+    return `Showing sales from this week (${start} – ${end})`;
+  }
+
+  if (period.type === "month") {
+    return `Showing sales from this month (${start} – ${end})`;
+  }
+
+  if (period.type === "year") {
+    return `Showing sales from this year (${start} – ${end})`;
+  }
+
+  return `Showing sales from ${start} to ${end}`;
+};
 
 const parseMoney = (value) => Number(value) || 0;
 
@@ -78,51 +126,115 @@ const CrmSalesRecordsPage = () => {
   const [successMessage, setSuccessMessage] = useState("");
   const [search, setSearch] = useState("");
   const [bookClassFilter, setBookClassFilter] = useState("");
+  const [period, setPeriod] = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [appliedCustomRange, setAppliedCustomRange] = useState({ startDate: "", endDate: "" });
+  const [activePeriod, setActivePeriod] = useState({ type: "all" });
   const [page, setPage] = useState(1);
+
+  const emptySummary = {
+    totalRecords: 0,
+    totalQuantitySold: 0,
+    totalSalesValue: 0,
+  };
 
   const loadRecords = useCallback(async () => {
     setLoading(true);
     setError("");
 
     try {
-      const data = await listCrmSalesRecords({
+      const params = {
         page,
         limit: 12,
+        period,
         search: search.trim() || undefined,
         bookClass: bookClassFilter || undefined,
-      });
+      };
+
+      if (period === "custom") {
+        if (!appliedCustomRange.startDate || !appliedCustomRange.endDate) {
+          setRecords([]);
+          setSummary(emptySummary);
+          setActivePeriod({ type: "custom" });
+          setPagination({ page: 1, pages: 1, total: 0 });
+          setLoading(false);
+          return;
+        }
+
+        params.startDate = appliedCustomRange.startDate;
+        params.endDate = appliedCustomRange.endDate;
+      }
+
+      const data = await listCrmSalesRecords(params);
 
       setRecords(data.records || []);
-      setSummary(
-        data.summary || {
-          totalRecords: 0,
-          totalQuantitySold: 0,
-          totalSalesValue: 0,
-        }
-      );
+      setSummary(data.summary || emptySummary);
+      setActivePeriod(data.period || { type: period });
       setPagination(data.pagination || { page: 1, pages: 1, total: 0 });
     } catch (apiError) {
       setError(apiError.response?.data?.message || "Failed to load sales records.");
       setRecords([]);
-      setSummary({
-        totalRecords: 0,
-        totalQuantitySold: 0,
-        totalSalesValue: 0,
-      });
+      setSummary(emptySummary);
     } finally {
       setLoading(false);
     }
-  }, [bookClassFilter, page, search]);
+  }, [appliedCustomRange.endDate, appliedCustomRange.startDate, bookClassFilter, page, period, search]);
 
   useEffect(() => {
     loadRecords();
   }, [loadRecords]);
+
+  const periodDescription = useMemo(() => getPeriodDescription(activePeriod), [activePeriod]);
+
+  const handlePeriodChange = (event) => {
+    const nextPeriod = event.target.value;
+    setPeriod(nextPeriod);
+    setPage(1);
+
+    if (nextPeriod !== "custom") {
+      setAppliedCustomRange({ startDate: "", endDate: "" });
+    }
+  };
+
+  const handleApplyCustomRange = (event) => {
+    event.preventDefault();
+
+    if (!startDate || !endDate) {
+      setError("Choose both a start date and an end date for the custom range.");
+      return;
+    }
+
+    if (startDate > endDate) {
+      setError("Start date must be before or equal to the end date.");
+      return;
+    }
+
+    setError("");
+    setPage(1);
+    setAppliedCustomRange({ startDate, endDate });
+  };
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
     setFormData((current) => ({
       ...current,
       [name]: value,
+    }));
+  };
+
+  const handleSchoolNameChange = (value) => {
+    setFormData((current) => ({
+      ...current,
+      schoolName: capitalizeWords(value, { trim: false }),
+    }));
+  };
+
+  const handleSchoolSelect = (school) => {
+    setFormData((current) => ({
+      ...current,
+      schoolName: school.schoolName || current.schoolName,
+      location: school.location || current.location,
     }));
   };
 
@@ -171,6 +283,11 @@ const CrmSalesRecordsPage = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    if (event.target !== event.currentTarget && !event.currentTarget.contains(event.target)) {
+      return;
+    }
+
     setSaving(true);
     setError("");
     setSuccessMessage("");
@@ -276,19 +393,27 @@ const CrmSalesRecordsPage = () => {
                 <label className="mb-2 block text-sm font-semibold text-slate-700">
                   {getOrganizationNameLabel(formData.organizationType)}
                 </label>
-                <input
-                  type="text"
-                  name="schoolName"
-                  value={formData.schoolName}
-                  onChange={handleInputChange}
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-                  placeholder={
-                    formData.organizationType === "bookshop"
-                      ? "Enter bookshop name"
-                      : "Enter school name"
-                  }
-                  required
-                />
+                {formData.organizationType === "school" ? (
+                  <SchoolSearchSelect
+                    name="schoolName"
+                    value={formData.schoolName}
+                    onChange={handleSchoolNameChange}
+                    onSchoolSelect={handleSchoolSelect}
+                    placeholder="Search uploaded school name..."
+                    required
+                    inputClassName="w-full rounded-xl border border-slate-300 px-4 py-3 pl-10 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    name="schoolName"
+                    value={formData.schoolName}
+                    onChange={handleInputChange}
+                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                    placeholder={getOrganizationNamePlaceholder(formData.organizationType)}
+                    required
+                  />
+                )}
               </div>
 
               <div>
@@ -434,21 +559,82 @@ const CrmSalesRecordsPage = () => {
         )}
 
         <div>
+          <div className="mb-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-lg shadow-emerald-900/5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <div className="flex items-center gap-2 text-emerald-700">
+                  <CalendarRange className="h-4 w-4" aria-hidden />
+                  <p className="text-sm font-semibold">Sales period</p>
+                </div>
+                <p className="mt-2 text-sm text-slate-600">{periodDescription}</p>
+              </div>
+
+              <div className="flex w-full flex-col gap-3 lg:max-w-3xl">
+                <label className="block">
+                  <span className="text-sm font-medium text-slate-700">Filter by period</span>
+                  <select
+                    value={period}
+                    onChange={handlePeriodChange}
+                    className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                  >
+                    {periodOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                {period === "custom" && (
+                  <form
+                    className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]"
+                    onSubmit={handleApplyCustomRange}
+                  >
+                    <label className="block">
+                      <span className="text-sm font-medium text-slate-700">Start date</span>
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(event) => setStartDate(event.target.value)}
+                        className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-sm font-medium text-slate-700">End date</span>
+                      <input
+                        type="date"
+                        value={endDate}
+                        onChange={(event) => setEndDate(event.target.value)}
+                        className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                      />
+                    </label>
+                    <button
+                      type="submit"
+                      className="self-end rounded-full bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800"
+                    >
+                      Apply range
+                    </button>
+                  </form>
+                )}
+              </div>
+            </div>
+          </div>
+
           <div className="mb-5 grid gap-4 sm:grid-cols-3">
             <SummaryCard
               label="Sales records"
               value={summary.totalRecords ?? 0}
-              helper="Entries currently visible in your dashboard"
+              helper="Entries in the selected period"
             />
             <SummaryCard
               label="Books sold"
               value={summary.totalQuantitySold ?? 0}
-              helper="Total quantity across the filtered records"
+              helper="Total quantity in the selected period"
             />
             <SummaryCard
               label="Sales value"
               value={formatCurrency(summary.totalSalesValue)}
-              helper="Discounted total across the filtered records"
+              helper="Discounted total in the selected period"
             />
           </div>
 
@@ -593,7 +779,7 @@ const CrmSalesRecordsPage = () => {
                         </td>
                         {isCsrAdmin && (
                           <td className="py-3 pr-4 text-slate-700">
-                            {record.owner?.name || "Unknown"}
+                            {getCsrDisplayName(record.owner, "Unknown")}
                           </td>
                         )}
                         <td className="py-3 pr-4 text-slate-700">

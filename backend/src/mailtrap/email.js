@@ -12,9 +12,10 @@ const sendSurveyEmail = async ({ dispatch, interaction }) => {
   }
 
   const transporter = createMailtrapTransport();
+  const csrName = interaction?.owner?.csrDisplayName || interaction?.owner?.name;
   const template = buildSurveyEmailTemplate({
     customerName: dispatch.customerName,
-    csrName: interaction?.owner?.name,
+    csrName,
     message: dispatch.message,
     surveyUrl: dispatch.surveyUrl,
   });

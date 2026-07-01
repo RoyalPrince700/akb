@@ -80,6 +80,7 @@ export const customerTypes = [
 export const organizationTypes = [
   { value: "school", label: "School" },
   { value: "bookshop", label: "Bookshop" },
+  { value: "individual", label: "Individual" },
 ];
 
 export const callerStatuses = [
@@ -95,6 +96,9 @@ export const surveyChannels = [
 ];
 
 export const bookSaleClassOptions = [
+  { value: "nursery1", label: "Nursery 1" },
+  { value: "nursery2", label: "Nursery 2" },
+  { value: "nursery3", label: "Nursery 3" },
   { value: "primary1", label: "Primary 1" },
   { value: "primary2", label: "Primary 2" },
   { value: "primary3", label: "Primary 3" },
@@ -128,6 +132,9 @@ export const formatCrmCategory = (value) => {
 export const formatRoleLabel = (role) =>
   crmRoleOptions.find((item) => item.value === role)?.label || role;
 
+export const getCsrDisplayName = (user, fallback = "Unknown CSR") =>
+  user?.csrDisplayName || user?.name || fallback;
+
 export const formatBookSaleClass = (value) =>
   bookSaleClassOptions.find((item) => item.value === value)?.label || value;
 
@@ -137,5 +144,14 @@ export const formatPhoneLineLabel = (value) =>
 export const formatOrganizationType = (value) =>
   organizationTypes.find((item) => item.value === value)?.label || value;
 
-export const getOrganizationNameLabel = (organizationType) =>
-  organizationType === "bookshop" ? "Bookshop name" : "School name";
+export const getOrganizationNameLabel = (organizationType) => {
+  if (organizationType === "bookshop") return "Bookshop name";
+  if (organizationType === "individual") return "Individual name";
+  return "School name";
+};
+
+export const getOrganizationNamePlaceholder = (organizationType) => {
+  if (organizationType === "bookshop") return "Enter bookshop name";
+  if (organizationType === "individual") return "Enter individual name";
+  return "Search uploaded school name...";
+};

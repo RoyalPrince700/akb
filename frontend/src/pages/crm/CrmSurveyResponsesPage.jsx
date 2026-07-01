@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { getCsrDisplayName } from "../../constants/crm";
 import PanelLayout from "../../layouts/PanelLayout";
 import { listSurveyResponses } from "../../services/api";
 import { capitalizeWords } from "../../utils/textFormat";
@@ -211,13 +212,13 @@ const CrmSurveyResponsesPage = () => {
                       )}
                     </td>
                     <td className="py-3 pr-4 text-slate-700">
-                      {entry.interaction?.owner?.name || "Unknown"}
+                      {getCsrDisplayName(entry.interaction?.owner, "Unknown")}
                     </td>
                     <td className="py-3 pr-4 text-slate-700">
                       {capitalizeWords(entry.interaction?.salesRep?.name) || "Unassigned"}
                     </td>
                     <td className="py-3 pr-4 text-slate-700">
-                      {entry.sentBy?.name || "Unknown"}
+                      {getCsrDisplayName(entry.sentBy, "Unknown")}
                     </td>
                     <td className="py-3 pr-4 text-slate-700">
                       {entry.response?.respondedAt

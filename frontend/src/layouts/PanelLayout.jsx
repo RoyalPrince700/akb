@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 import Footer from "../components/Footer";
 import PanelSidebar from "../components/PanelSidebar";
+import accessibleLogo from "../assets/accessiblelogo.png";
 import { useAuth } from "../context/AuthContext";
 
 const PanelLayout = ({ children, title }) => {
@@ -12,6 +13,7 @@ const PanelLayout = ({ children, title }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const accent =
     user?.role === "admin" ? "admin" : user?.role === "hr" ? "hr" : "csr";
+  const isCsrPanel = user?.role === "csr" || user?.role === "csrAdmin";
   const showFooter = user?.role === "hr";
 
   const handleLogout = () => {
@@ -53,9 +55,11 @@ const PanelLayout = ({ children, title }) => {
                 <Menu className="h-5 w-5" />
               </button>
               <div>
-                <p className="hidden text-xs font-medium text-slate-500 sm:block">
-                  Knowledge Hub
-                </p>
+                {!isCsrPanel && (
+                  <p className="hidden text-xs font-medium text-slate-500 sm:block">
+                    Knowledge Hub
+                  </p>
+                )}
                 <h1 className="truncate text-xl font-bold tracking-tight text-slate-950 sm:text-2xl">
                   {title}
                 </h1>
@@ -63,21 +67,34 @@ const PanelLayout = ({ children, title }) => {
             </div>
 
             <div className="flex shrink-0 items-center gap-4">
-              <Link
-                to="/"
-                className="hidden items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-blue-700 sm:inline-flex"
-              >
-                <Home className="h-4 w-4" aria-hidden />
-                Site home
-              </Link>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"
-              >
-                <LogOut className="h-4 w-4" aria-hidden />
-                <span className="hidden sm:inline">Logout</span>
-              </button>
+              {!isCsrPanel && (
+                <>
+                  <Link
+                    to="/"
+                    className="hidden items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-blue-700 sm:inline-flex"
+                  >
+                    <Home className="h-4 w-4" aria-hidden />
+                    Site home
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"
+                  >
+                    <LogOut className="h-4 w-4" aria-hidden />
+                    <span className="hidden sm:inline">Logout</span>
+                  </button>
+                </>
+              )}
+              {isCsrPanel && (
+                <Link to="/" className="inline-flex shrink-0 items-center">
+                  <img
+                    src={accessibleLogo}
+                    alt="Accessible Publishers Ltd — Accessible Knowledge Base"
+                    className="h-9 w-auto max-w-[min(100%,180px)] object-contain object-left sm:h-10 sm:max-w-[min(100%,220px)]"
+                  />
+                </Link>
+              )}
             </div>
           </div>
         </header>

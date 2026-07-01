@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { getCsrDisplayName } from "../../constants/crm";
 import PanelLayout from "../../layouts/PanelLayout";
 import {
   getCrmCustomerHistory,
@@ -203,7 +204,7 @@ const CrmCustomerHistoryPage = () => {
                       {new Date(interaction.dateOfContact).toLocaleString()}
                     </p>
                     <p className="mt-2 text-sm text-slate-700">
-                      <strong>CSR:</strong> {interaction.owner?.name || "Unknown"}
+                      <strong>CSR:</strong> {getCsrDisplayName(interaction.owner, "Unknown")}
                     </p>
                     {interaction.salesRep?.name && (
                       <p className="mt-2 text-sm text-slate-700">

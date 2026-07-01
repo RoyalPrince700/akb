@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import SurveyDispatchModal from "../../components/crm/SurveyDispatchModal";
+import SchoolSearchSelect from "../../components/crm/SchoolSearchSelect";
 import {
   callerStatuses,
   contactMedia,
@@ -9,6 +10,7 @@ import {
   customerTypes,
   formatCrmCategory,
   getOrganizationNameLabel,
+  getOrganizationNamePlaceholder,
   inboundCategories,
   landlinePhoneNumber,
   nigerianStates,
@@ -26,7 +28,10 @@ import {
   lookupCrmCustomerByPhone,
   updateCrmInteraction,
 } from "../../services/api";
-import { handleSurveyDispatchShare } from "../../utils/crmSurvey";
+import {
+  handleSurveyDispatchShare,
+  wasSurveySentByServer,
+} from "../../utils/crmSurvey";
 import { panelSegmentPath } from "../../utils/rolePaths";
 import { capitalizeWords, CRM_CAPITALIZED_FIELDS } from "../../utils/textFormat";
 
@@ -177,7 +182,7 @@ const CrmInteractionFormPage = () => {
           requestQuantity: interaction.requestQuantity || "",
           bookTitles: capitalizeWords(interaction.bookTitles || ""),
           status: interaction.status || "resolved",
-          remark: capitalizeWords(interaction.remark || ""),
+          remark: interaction.remark || "",
           salesRep: interaction.salesRep?._id || "",
           phoneLineLabel,
           csrPhoneNumber,
@@ -255,8 +260,32 @@ const CrmInteractionFormPage = () => {
     }
   };
 
+  const handleSchoolSelect = (school) => {
+    setFormData((current) => ({
+      ...current,
+      schoolName: school.schoolName || current.schoolName,
+      address: school.address || current.address,
+      state: school.state || current.state,
+      phoneNumber: school.phoneNumber || current.phoneNumber,
+    }));
+    setAutofillMessage("School details loaded from the uploaded directory.");
+  };
+
+  const handleSchoolNameChange = (value) => {
+    setFormData((current) => ({
+      ...current,
+      schoolName: value,
+    }));
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    // Ignore submit events bubbled from portaled modals (e.g. AddSchoolModal).
+    if (event.target !== event.currentTarget && !event.currentTarget.contains(event.target)) {
+      return;
+    }
+
     setSaving(true);
     setError("");
 
@@ -295,12 +324,16 @@ const CrmInteractionFormPage = () => {
 
     try {
       const data = await createSurveyDispatch(formData);
-      if (data.dispatch && !data.email?.sent) {
+      if (data.dispatch && !wasSurveySentByServer(data.dispatch, data)) {
         await handleSurveyDispatchShare(data.dispatch);
       }
       setSurveyModalOpen(false);
       setCreatedTicket(null);
-      window.alert("Ticket saved and survey triggered successfully.");
+      window.alert(
+        data.dispatch?.channel === "SMS" && data.sms?.sent
+          ? "Ticket saved and survey SMS sent successfully."
+          : "Ticket saved and survey triggered successfully."
+      );
       navigate(ticketsPath);
     } catch (apiError) {
       setError(apiError.response?.data?.message || "Failed to trigger customer survey.");
@@ -411,18 +444,25 @@ const CrmInteractionFormPage = () => {
                 <label htmlFor="schoolName" className="text-sm font-medium text-slate-700">
                   {getOrganizationNameLabel(formData.organizationType)}
                 </label>
-                <input
-                  id="schoolName"
-                  name="schoolName"
-                  value={formData.schoolName}
-                  onChange={handleChange}
-                  placeholder={
-                    formData.organizationType === "bookshop"
-                      ? "Enter bookshop name"
-                      : "Enter school name"
-                  }
-                  className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-                />
+                {formData.organizationType === "school" ? (
+                  <SchoolSearchSelect
+                    id="schoolName"
+                    name="schoolName"
+                    value={formData.schoolName}
+                    onChange={handleSchoolNameChange}
+                    onSchoolSelect={handleSchoolSelect}
+                    placeholder="Search uploaded school name..."
+                  />
+                ) : (
+                  <input
+                    id="schoolName"
+                    name="schoolName"
+                    value={formData.schoolName}
+                    onChange={handleChange}
+                    placeholder={getOrganizationNamePlaceholder(formData.organizationType)}
+                    className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                  />
+                )}
               </div>
 
               <div>
@@ -759,6 +799,7 @@ const CrmInteractionFormPage = () => {
                   rows={4}
                   value={formData.remark}
                   onChange={handleChange}
+                  autoCapitalize="off"
                   placeholder="Additional notes from the call"
                   className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
                 />

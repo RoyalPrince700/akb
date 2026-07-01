@@ -1,6 +1,6 @@
 # Accessible Knowledge Base
 
-Accessible Knowledge Base is a company learning management system for Accessible Publishers Limited. The platform will help staff learn from approved company materials, understand product knowledge, review the company profile, and take assessments where required.
+Accessible Knowledge Base is a company learning management system and integrated CRM for Accessible Publishers Limited. The platform helps staff learn from approved company materials, understand product knowledge, review the company profile, take assessments where required, and manage customer relationship workflows from the same application.
 
 ## Purpose
 
@@ -11,6 +11,7 @@ This project is designed as an internal knowledge base and LMS where:
 - Some materials can include assessments, while others can remain read-only.
 - Staff can read assigned materials, take assessments, and view their results.
 - HR can view staff details, learning progress, and assessment results.
+- CSR teams can log customer calls, manage sales records, send surveys, and review CRM activity.
 
 ## Tech Stack
 
@@ -52,6 +53,13 @@ akb/
 - View staff assessment results.
 - Track staff learning activity.
 
+### CSR/CSR Admin
+
+- Log inbound and outbound customer interactions.
+- Maintain customer history and sales records.
+- Send customer surveys and review survey responses.
+- Manage CSR team members and CRM reporting where authorized.
+
 ## Main Features
 
 - Secure authentication and role-based authorization.
@@ -62,6 +70,8 @@ akb/
 - Staff dashboard for learning and results.
 - HR/admin dashboard for staff, content, and assessment management.
 - Assessment scoring and result history.
+- Integrated CRM for customer interactions, sales records, surveys, and reports.
+- CSR settings for phone numbers and customer-facing survey display names.
 
 ## Backend Overview
 
@@ -75,6 +85,7 @@ The backend will provide REST APIs for:
 - Assessments and questions.
 - Assessment submissions and results.
 - HR reporting and staff progress.
+- CRM customer interactions, customer history, sales records, survey dispatches, survey responses, and CRM reports.
 
 ## Frontend Overview
 
@@ -89,6 +100,7 @@ The frontend will provide pages for:
 - HR/admin dashboard.
 - Staff management.
 - Material and assessment management.
+- CSR dashboard for customer interactions, sales records, surveys, customer history, and CRM reports.
 
 ## Environment Variables
 

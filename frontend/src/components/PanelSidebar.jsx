@@ -9,13 +9,14 @@ import {
   PhoneCall,
   ScrollText,
   Settings,
+  Upload,
   Users,
   X,
 } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
-import { formatRoleLabel } from "../constants/crm";
+import { formatRoleLabel, getCsrDisplayName } from "../constants/crm";
 import { getDashboardPath, panelSegmentPath } from "../utils/rolePaths";
 
 const sidebarLinkClass =
@@ -90,6 +91,11 @@ const PanelSidebar = ({ accent, onNavigate, className = "" }) => {
                 icon: Users,
               },
               {
+                to: panelSegmentPath(role, "upload-data"),
+                label: "Upload Data",
+                icon: Upload,
+              },
+              {
                 to: panelSegmentPath(role, "reports"),
                 label: "Reports",
                 icon: ScrollText,
@@ -158,31 +164,16 @@ const PanelSidebar = ({ accent, onNavigate, className = "" }) => {
           >
             {panelLabel}
           </p>
-          <div className="mt-2 flex items-center gap-3">
-            <div
-              className={`grid h-10 w-10 place-items-center rounded-2xl text-sm font-black tracking-[-0.08em] ${
-                isCsrPanel
-                  ? "bg-linear-to-br from-white via-emerald-100 to-emerald-300 text-slate-950 shadow-[0_18px_40px_rgba(16,185,129,0.2)]"
-                  : "bg-slate-950 text-white"
-              }`}
-            >
-              AKH
+          {!isCsrPanel && (
+            <div className="mt-2 flex items-center gap-3">
+              <div className="grid h-10 w-10 place-items-center rounded-2xl bg-slate-950 text-sm font-black tracking-[-0.08em] text-white">
+                AKH
+              </div>
+              <div>
+                <p className="text-lg font-bold tracking-[-0.045em] text-slate-950">Assist</p>
+              </div>
             </div>
-            <div>
-              <p
-                className={`text-lg font-bold tracking-[-0.045em] ${
-                  isCsrPanel ? "text-white" : "text-slate-950"
-                }`}
-              >
-                Assist
-              </p>
-              {isCsrPanel && (
-                <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-slate-500">
-                  Premium CRM
-                </p>
-              )}
-            </div>
-          </div>
+          )}
         </div>
         {onNavigate && (
           <button
@@ -248,7 +239,7 @@ const PanelSidebar = ({ accent, onNavigate, className = "" }) => {
 
       <div className={`${isCsrPanel ? "border-t border-white/10" : "border-t border-slate-200"} p-4`}>
         <p className={`truncate text-sm font-semibold ${isCsrPanel ? "text-white" : "text-slate-950"}`}>
-          {user?.name}
+          {isCsrPanel ? getCsrDisplayName(user) : user?.name}
         </p>
         <p className={`truncate text-xs ${isCsrPanel ? "text-slate-500" : "text-slate-500"}`}>
           {formatRoleLabel(user?.role)}

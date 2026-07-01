@@ -4,6 +4,7 @@ const {
   createInteraction,
   createSalesRecord,
   createSalesRep,
+  createSchool,
   createSurveyDispatch,
   deleteSalesRep,
   getCustomerHistory,
@@ -13,10 +14,12 @@ const {
   getPublicSurvey,
   getReportsSummary,
   importSalesReps,
+  importSchools,
   listCustomers,
   listInteractions,
   listSalesRecords,
   listSalesReps,
+  listSchools,
   listSurveyDispatches,
   listSurveyResponses,
   submitPublicSurveyResponse,
@@ -56,6 +59,10 @@ router.post("/sales-reps", authorizeCsrAdmin, createSalesRep);
 router.post("/sales-reps/import", authorizeCsrAdmin, importSalesReps);
 router.put("/sales-reps/:id", authorizeCsrAdmin, updateSalesRep);
 router.delete("/sales-reps/:id", authorizeCsrAdmin, deleteSalesRep);
+
+router.get("/schools", authorizeCsrOrAdmin, listSchools);
+router.post("/schools", authorizeCsrOrAdmin, createSchool);
+router.post("/schools/import", authorizeCsrAdmin, importSchools);
 
 router.get("/survey-dispatches", authorizeCsrOrAdmin, listSurveyDispatches);
 router.post("/survey-dispatches", authorizeCsrOrAdmin, createSurveyDispatch);

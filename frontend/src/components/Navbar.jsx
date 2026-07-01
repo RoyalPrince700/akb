@@ -91,6 +91,14 @@ const mobileCsrAdminBadgeClass = ({ isActive }) =>
   }`;
 
 const getRoleBadgeClass = (role, mobile = false) => {
+  if (role === "admin") {
+    return mobile ? mobileAdminBadgeClass : adminBadgeClass;
+  }
+
+  if (role === "hr") {
+    return mobile ? mobileHrBadgeClass : hrBadgeClass;
+  }
+
   if (role === "csrAdmin") {
     return mobile ? mobileCsrAdminBadgeClass : csrAdminBadgeClass;
   }
@@ -99,12 +107,18 @@ const getRoleBadgeClass = (role, mobile = false) => {
 };
 
 const RoleBadge = ({ role }) => {
+  const isAdmin = role === "admin";
+  const isHr = role === "hr";
   const isCsrAdmin = role === "csrAdmin";
 
   return (
     <span
       className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest ${
-        isCsrAdmin
+        isAdmin
+          ? "border-slate-200 bg-slate-100 text-slate-700"
+          : isHr
+            ? "border-violet-200 bg-violet-50 text-violet-700"
+            : isCsrAdmin
           ? "border-violet-200 bg-violet-50 text-violet-700"
           : "border-emerald-200 bg-emerald-50 text-emerald-700"
       }`}
@@ -136,10 +150,9 @@ const NavLinks = ({ children, mobile = false, onNavigate }) => {
   const { isAuthenticated, loading, user } = useAuth();
   const firstName = getFirstName(user?.name);
   const linkClass = mobile ? mobileNavLinkClass : navLinkClass;
-  const adminClass = mobile ? mobileAdminBadgeClass : adminBadgeClass;
-  const hrClass = mobile ? mobileHrBadgeClass : hrBadgeClass;
+  const roleDashboardPath = getDashboardPath(user?.role);
+  const roleDashboardClass = getRoleBadgeClass(user?.role, mobile);
   const isCsrRole = user?.role === "csr" || user?.role === "csrAdmin";
-  const csrPanelClass = getRoleBadgeClass(user?.role, mobile);
   const isLearningRole = ["staff", "hr", "admin"].includes(user?.role);
 
   const handleChildNavClick = (event) => {
@@ -222,54 +235,49 @@ const NavLinks = ({ children, mobile = false, onNavigate }) => {
           </NavLink>
         </>
       )}
-      {user.role === "admin" && (
-        <NavLink to="/admin" className={adminClass} onClick={onNavigate}>
-          Admin
-        </NavLink>
-      )}
-      {user.role === "hr" && (
-        <NavLink to="/hr" className={hrClass} onClick={onNavigate}>
-          HR
-        </NavLink>
-      )}
-      {(user.role === "csr" || user.role === "csrAdmin") && (
-        <NavLink to="/csr" className={csrPanelClass} onClick={onNavigate}>
+      {user.role !== "staff" && (
+        <NavLink to={roleDashboardPath} className={roleDashboardClass} onClick={onNavigate}>
           {formatRoleLabel(user.role)}
         </NavLink>
       )}
-      <Link
-        to="/profile"
-        onClick={onNavigate}
-        aria-label={`${firstName}, go to profile`}
-        className={
-          mobile
-            ? "inline-flex w-full items-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 transition hover:border-slate-400 hover:bg-slate-50"
-            : "inline-flex items-center gap-2.5 transition hover:opacity-80"
-        }
-      >
-        {!mobile && isCsrRole && (
-          <div className="hidden items-center gap-2 sm:flex">
-            <span className="text-sm font-semibold text-slate-700">{firstName}</span>
-            <RoleBadge role={user.role} />
-          </div>
-        )}
-        {mobile && isCsrRole && (
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="truncate text-sm font-semibold text-slate-900">{user.name}</span>
-            <RoleBadge role={user.role} />
-          </div>
-        )}
-        <span
+      <div className={mobile ? "flex flex-col gap-2" : "flex items-center gap-2.5"}>
+        <Link
+          to="/profile"
+          onClick={onNavigate}
+          aria-label={`${firstName}, go to profile`}
           className={
             mobile
-              ? "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-slate-800 to-slate-950 text-sm font-bold text-white shadow-sm"
-              : "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-slate-800 to-slate-950 text-xs font-bold text-white shadow-sm"
+              ? "inline-flex w-full items-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 transition hover:border-slate-400 hover:bg-slate-50"
+              : "inline-flex items-center gap-2.5 transition hover:opacity-80"
           }
-          aria-hidden="true"
         >
-          {getFirstInitial(user.name)}
-        </span>
-      </Link>
+          {!mobile && isCsrRole && (
+            <div className="hidden items-center gap-2 sm:flex">
+              <span className="text-sm font-semibold text-slate-700">{firstName}</span>
+            </div>
+          )}
+          {mobile && isCsrRole && (
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
+              <span className="truncate text-sm font-semibold text-slate-900">{user.name}</span>
+            </div>
+          )}
+          <span
+            className={
+              mobile
+                ? "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-slate-800 to-slate-950 text-sm font-bold text-white shadow-sm"
+                : "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-slate-800 to-slate-950 text-xs font-bold text-white shadow-sm"
+            }
+            aria-hidden="true"
+          >
+            {getFirstInitial(user.name)}
+          </span>
+        </Link>
+        {isCsrRole && (
+          <NavLink to={roleDashboardPath} className={() => ""} onClick={onNavigate}>
+            <RoleBadge role={user.role} />
+          </NavLink>
+        )}
+      </div>
     </>
   ) : (
     !loading && (

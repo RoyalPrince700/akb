@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowUpRight,
+  Banknote,
   BookOpen,
   CalendarRange,
   CheckCircle2,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
+import { getCsrDisplayName } from "../constants/crm";
 import PanelLayout from "../layouts/PanelLayout";
 import { getCrmDashboardSummary } from "../services/api";
 import { panelSegmentPath } from "../utils/rolePaths";
@@ -27,7 +29,15 @@ const emptySummary = {
   surveysSent: 0,
   totalSalesRecords: 0,
   totalBooksSold: 0,
+  totalSalesValue: 0,
 };
+
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    maximumFractionDigits: 2,
+  }).format(Number(value) || 0);
 
 const periodOptions = [
   { value: "all", label: "All time" },
@@ -75,7 +85,15 @@ const getPeriodDescription = (period) => {
   return `Showing activity from ${start} to ${end}`;
 };
 
-const OverviewCard = ({ label, value, description, to, icon: Icon, tone = "emerald" }) => (
+const OverviewCard = ({
+  label,
+  value,
+  description,
+  to,
+  icon: Icon,
+  tone = "emerald",
+  valueClassName = "text-5xl",
+}) => (
   <Link
     to={to}
     className="group relative overflow-hidden rounded-[30px] border border-white/70 bg-white p-7 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:border-emerald-200/80"
@@ -88,7 +106,7 @@ const OverviewCard = ({ label, value, description, to, icon: Icon, tone = "emera
     <div className="relative flex items-start justify-between gap-4">
       <div>
         <p className="text-sm font-semibold text-slate-500">{label}</p>
-        <h2 className="mt-5 text-5xl font-black tracking-[-0.08em] text-slate-950">
+        <h2 className={`mt-5 font-black tracking-[-0.08em] text-slate-950 ${valueClassName}`}>
           {value}
         </h2>
       </div>
@@ -192,8 +210,10 @@ const CsrDashboard = () => {
   const salesRepsPath = panelSegmentPath(user?.role, "sales-reps");
   const staffPath = panelSegmentPath(user?.role, "staff");
 
+  const csrDisplayName = getCsrDisplayName(user, "CSR");
+
   return (
-    <PanelLayout title={isCsrAdmin ? "CSR Admin Dashboard" : "CSR Dashboard"}>
+    <PanelLayout title={isCsrAdmin ? "CSR Admin Dashboard" : `${csrDisplayName}'s CSR Dashboard`}>
       <div className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-lg shadow-emerald-900/5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -319,6 +339,15 @@ const CsrDashboard = () => {
             to={salesRecordsPath}
             icon={BookOpen}
             tone="blue"
+          />
+          <OverviewCard
+            label="Sales value"
+            value={formatCurrency(summary.totalSalesValue ?? 0)}
+            description="Total sales amount recorded in this period"
+            to={salesRecordsPath}
+            icon={Banknote}
+            tone="amber"
+            valueClassName="text-3xl sm:text-4xl"
           />
           {isCsrAdmin && (
             <>

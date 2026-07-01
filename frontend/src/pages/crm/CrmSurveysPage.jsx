@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { surveyChannels } from "../../constants/crm";
+import { getCsrDisplayName, surveyChannels } from "../../constants/crm";
 import PanelLayout from "../../layouts/PanelLayout";
 import { listSurveyDispatches } from "../../services/api";
 import { handleSurveyDispatchShare } from "../../utils/crmSurvey";
@@ -125,7 +125,7 @@ const CrmSurveysPage = () => {
                       {dispatch.customerName}
                     </td>
                     <td className="py-3 pr-4 text-slate-700">
-                      {dispatch.interaction?.owner?.name || "Unknown CSR"}
+                      {getCsrDisplayName(dispatch.interaction?.owner)}
                     </td>
                     <td className="py-3 pr-4 text-slate-700">
                       {dispatch.customerPhoneNumber}
@@ -133,7 +133,7 @@ const CrmSurveysPage = () => {
                     <td className="py-3 pr-4 text-slate-700">{dispatch.customerEmail || "-"}</td>
                     <td className="py-3 pr-4 text-slate-700">{dispatch.channel}</td>
                     <td className="py-3 pr-4 text-slate-700">
-                      {dispatch.sentBy?.name || "Unknown"}
+                      {getCsrDisplayName(dispatch.sentBy, "Unknown")}
                     </td>
                     <td className="py-3 pr-4">
                       <span

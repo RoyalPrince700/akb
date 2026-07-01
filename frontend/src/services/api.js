@@ -217,6 +217,43 @@ export const importSalesReps = async (salesReps) => {
   return response.data;
 };
 
+export const listSchools = async (params = {}) => {
+  console.log("[api.listSchools] request", params);
+  const response = await api.get("/crm/schools", {
+    params: {
+      ...params,
+      _ts: Date.now(),
+    },
+    headers: {
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    },
+  });
+  console.log("[api.listSchools] response", {
+    status: response.status,
+    count: response.data?.schools?.length,
+    total: response.data?.pagination?.total,
+    hasBody: Boolean(response.data),
+  });
+  return response.data;
+};
+
+export const createSchool = async (payload) => {
+  console.log("[api.createSchool] request", payload);
+  const response = await api.post("/crm/schools", payload);
+  console.log("[api.createSchool] response", {
+    action: response.data?.action,
+    schoolId: response.data?.school?._id,
+    schoolName: response.data?.school?.schoolName,
+  });
+  return response.data;
+};
+
+export const importSchools = async (schools) => {
+  const response = await api.post("/crm/schools/import", { schools });
+  return response.data;
+};
+
 export const updateSalesRep = async (id, payload) => {
   const response = await api.put(`/crm/sales-reps/${id}`, payload);
   return response.data;

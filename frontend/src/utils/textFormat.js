@@ -14,5 +14,4 @@ export const CRM_CAPITALIZED_FIELDS = [
   "address",
   "complaintNature",
   "bookTitles",
-  "remark",
 ];

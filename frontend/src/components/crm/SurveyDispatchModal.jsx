@@ -4,6 +4,7 @@ import { surveyChannels } from "../../constants/crm";
 
 const emptyForm = {
   channel: surveyChannels[0].value,
+  customerName: "",
   customerEmail: "",
   customerPhoneNumber: "",
   message: "",
@@ -68,8 +69,8 @@ const SurveyDispatchModal = ({
       <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-xl">
         <h2 className="text-xl font-bold text-slate-950">Trigger customer survey</h2>
         <p className="mt-2 text-sm text-slate-600">
-          Create a survey link for <strong>{interaction.customer.schoolName}</strong>{" "}
-          and record how your team shared it after this ticket.
+          Enter a short customer name and contact details for this survey send. The ticket
+          school name is not used automatically.
         </p>
 
         <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
@@ -92,7 +93,44 @@ const SurveyDispatchModal = ({
             </select>
           </div>
 
-          {!isManualChannel ? (
+          <div>
+            <label htmlFor="customerName" className="text-sm font-medium text-slate-700">
+              Customer name
+            </label>
+            <input
+              id="customerName"
+              name="customerName"
+              type="text"
+              required
+              value={formData.customerName}
+              onChange={handleChange}
+              className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+              placeholder="e.g. Mrs Ade - Greenfield Primary"
+            />
+            {interaction.customer.schoolName?.trim() && (
+              <p className="mt-1 text-xs text-slate-500">
+                Ticket school: {interaction.customer.schoolName}
+              </p>
+            )}
+          </div>
+
+          {isManualChannel ? (
+            <div>
+              <label htmlFor="customerPhoneNumber" className="text-sm font-medium text-slate-700">
+                Customer phone number
+              </label>
+              <input
+                id="customerPhoneNumber"
+                name="customerPhoneNumber"
+                type="tel"
+                required
+                value={formData.customerPhoneNumber}
+                onChange={handleChange}
+                className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                placeholder="2348012345678"
+              />
+            </div>
+          ) : (
             <div>
               <label
                 htmlFor={isEmailChannel ? "customerEmail" : "customerPhoneNumber"}
@@ -119,7 +157,9 @@ const SurveyDispatchModal = ({
                 </p>
               )}
             </div>
-          ) : (
+          )}
+
+          {isManualChannel && (
             <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
               Manual sends create the survey link and copy it to the clipboard so the CSR
               can paste it wherever needed.

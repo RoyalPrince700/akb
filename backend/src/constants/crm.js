@@ -53,10 +53,13 @@ const CRM_STATUSES = ["resolved", "unresolved"];
 const CONTACT_MEDIA = ["website", "mail", "phone", "whatsapp"];
 const PHONE_LINE_LABELS = ["landline", "csrOfficialLine"];
 const CUSTOMER_TYPES = ["newCustomer", "existingCustomer"];
-const ORGANIZATION_TYPES = ["school", "bookshop"];
+const ORGANIZATION_TYPES = ["school", "bookshop", "individual"];
 const CALLER_STATUSES = ["firstCaller", "repeatCaller"];
 const SURVEY_CHANNELS = ["WhatsApp", "SMS", "Email", "Manual"];
 const BOOK_SALE_CLASSES = [
+  "nursery1",
+  "nursery2",
+  "nursery3",
   "primary1",
   "primary2",
   "primary3",

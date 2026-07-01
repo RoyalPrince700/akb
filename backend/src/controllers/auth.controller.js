@@ -104,7 +104,7 @@ const getProfile = asyncHandler(async (req, res) => {
 });
 
 const updateProfile = asyncHandler(async (req, res) => {
-  const { name, email, department, position, csrPhoneNumbers } = req.body;
+  const { name, email, department, position, csrDisplayName, csrPhoneNumbers } = req.body;
   const user = await User.findById(req.user._id);
 
   if (!user) {
@@ -136,12 +136,18 @@ const updateProfile = asyncHandler(async (req, res) => {
     }
   }
 
-  if (csrPhoneNumbers !== undefined) {
+  if (csrDisplayName !== undefined || csrPhoneNumbers !== undefined) {
     if (!["csr", "csrAdmin"].includes(user.role)) {
       res.status(403);
-      throw new Error("Only CSR users can update CSR phone numbers");
+      throw new Error("Only CSR users can update CSR settings");
     }
+  }
 
+  if (csrDisplayName !== undefined) {
+    user.csrDisplayName = csrDisplayName.trim() || undefined;
+  }
+
+  if (csrPhoneNumbers !== undefined) {
     user.csrPhoneNumbers = normalizePhoneNumbers(csrPhoneNumbers);
   }
 

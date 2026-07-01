@@ -4,11 +4,26 @@ const mongoose = require("mongoose");
 const CrmInteraction = require("../models/CrmInteraction");
 const CrmSalesRecord = require("../models/CrmSalesRecord");
 const SalesRep = require("../models/SalesRep");
+const School = require("../models/School");
 const SurveyDispatch = require("../models/SurveyDispatch");
+const { NIGERIAN_STATES } = require("../constants/crm");
 const asyncHandler = require("../utils/asyncHandler");
 const { sendSurveyEmail } = require("../mailtrap/email");
+const { sendSurveySms } = require("../sms/xwireless");
 
 const normalizePhoneNumber = (value = "") => value.replace(/\D/g, "");
+
+const getStoredPhoneFields = (phoneNumber = "") => {
+  const phone = (phoneNumber || "").trim();
+  const normalizedPhoneNumber = normalizePhoneNumber(phone);
+
+  return {
+    phoneNumber: phone,
+    normalizedPhoneNumber: normalizedPhoneNumber || null,
+  };
+};
+
+const escapeRegex = (value = "") => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const capitalizeWords = (value = "") =>
   value
@@ -184,7 +199,12 @@ const buildInteractionFilter = (query, user) => {
 };
 
 const buildSalesRecordFilter = (query, user) => {
-  const filter = { ...buildSalesRecordAccessFilter(user) };
+  const dateRange = parseDashboardDateRange(query);
+  const filter = applyDateRange(
+    { ...buildSalesRecordAccessFilter(user) },
+    "saleDate",
+    dateRange
+  );
   const conditions = [];
 
   if (query.bookClass) {
@@ -253,6 +273,10 @@ const resolveSalesRepId = (body, existingInteraction = null) => {
 const roundMoney = (value) => Number((Number(value) || 0).toFixed(2));
 
 const clampPercent = (value) => Math.min(100, Math.max(0, roundMoney(value)));
+
+const CSR_USER_FIELDS = "name csrDisplayName staffId role";
+
+const getCsrDisplayName = (user) => user?.csrDisplayName || user?.name || "";
 
 const buildSalesRecordBookPayload = (body) => {
   const submittedItems = Array.isArray(body.bookItems) ? body.bookItems : [];
@@ -343,7 +367,7 @@ const buildInteractionPayload = async (body, user, existingInteraction = null) =
         ? (existingRequestQty ?? null)
         : Number(body.requestQuantity),
     status: body.status ?? existingInteraction?.status,
-    remark: capitalizeWords(body.remark || existingInteraction?.remark || ""),
+    remark: (body.remark || existingInteraction?.remark || "").trim(),
     salesRep: resolveSalesRepId(body, existingInteraction),
     owner,
     createdBy: existingInteraction?.createdBy || user._id,
@@ -374,7 +398,7 @@ const findScopedInteraction = async (interactionId, user) => {
   return CrmInteraction.findOne({
     _id: interactionId,
     ...buildInteractionAccessFilter(user),
-  }).populate("owner", "name staffId role").populate("salesRep", "name state location");
+  }).populate("owner", CSR_USER_FIELDS).populate("salesRep", "name state location");
 };
 
 const listInteractions = asyncHandler(async (req, res) => {
@@ -383,7 +407,7 @@ const listInteractions = asyncHandler(async (req, res) => {
 
   const [interactions, total] = await Promise.all([
     CrmInteraction.find(filter)
-      .populate("owner", "name staffId role")
+      .populate("owner", CSR_USER_FIELDS)
       .populate("salesRep", "name state location")
       .sort({ dateOfContact: -1, createdAt: -1 })
       .skip(skip)
@@ -417,7 +441,7 @@ const createInteraction = asyncHandler(async (req, res) => {
   const payload = await buildInteractionPayload(req.body, req.user);
   const interaction = await CrmInteraction.create(payload);
   const populated = await CrmInteraction.findById(interaction._id)
-    .populate("owner", "name staffId role")
+    .populate("owner", CSR_USER_FIELDS)
     .populate("salesRep", "name state location");
 
   res.status(201).json({ interaction: populated });
@@ -439,7 +463,7 @@ const updateInteraction = asyncHandler(async (req, res) => {
   await interaction.save();
 
   const populated = await CrmInteraction.findById(interaction._id)
-    .populate("owner", "name staffId role")
+    .populate("owner", CSR_USER_FIELDS)
     .populate("salesRep", "name state location");
 
   res.json({ interaction: populated });
@@ -514,7 +538,7 @@ const getCustomerLookup = asyncHandler(async (req, res) => {
 
   const [latestInteraction, interactionCount] = await Promise.all([
     CrmInteraction.findOne(filter)
-      .populate("owner", "name staffId role")
+      .populate("owner", CSR_USER_FIELDS)
       .populate("salesRep", "name state location")
       .sort({ dateOfContact: -1, createdAt: -1 }),
     CrmInteraction.countDocuments(filter),
@@ -553,7 +577,7 @@ const getCustomerHistory = asyncHandler(async (req, res) => {
   const interactions = await CrmInteraction.find({
     "customer.normalizedPhoneNumber": normalizedPhoneNumber,
   })
-    .populate("owner", "name staffId role")
+    .populate("owner", CSR_USER_FIELDS)
     .populate("salesRep", "name state location")
     .sort({ dateOfContact: -1, createdAt: -1 });
 
@@ -655,6 +679,347 @@ const importSalesReps = asyncHandler(async (req, res) => {
   res.status(201).json({ message: "Sales reps imported successfully" });
 });
 
+const resolveNigerianState = (value = "") => {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const match = NIGERIAN_STATES.find(
+    (state) => state.toLowerCase() === trimmed.toLowerCase()
+  );
+
+  return match || null;
+};
+
+const buildSchoolLookupFilter = (entry) => {
+  const phoneFields = getStoredPhoneFields(entry.phoneNumber);
+  const conditions = [
+    {
+      schoolName: new RegExp(`^${escapeRegex(entry.schoolName)}$`, "i"),
+      state: entry.state,
+      address: new RegExp(`^${escapeRegex(entry.address || "")}$`, "i"),
+    },
+  ];
+
+  if (phoneFields.normalizedPhoneNumber) {
+    conditions.unshift({ normalizedPhoneNumber: phoneFields.normalizedPhoneNumber });
+  }
+
+  return { $or: conditions };
+};
+
+const normalizeStoredSchoolPhones = async () => {
+  await School.updateMany(
+    { normalizedPhoneNumber: { $in: ["", null] } },
+    { $unset: { normalizedPhoneNumber: "" } }
+  );
+};
+
+const dedupeSchoolEntries = (entries) => {
+  const seen = new Map();
+
+  entries.forEach((entry, index) => {
+    const normalizedPhoneNumber = normalizePhoneNumber(entry.phoneNumber || "");
+    const key = normalizedPhoneNumber
+      ? `phone:${normalizedPhoneNumber}`
+      : `school:${entry.schoolName}|${entry.state}|${entry.address}`.toLowerCase();
+
+    seen.set(key, { entry, index });
+  });
+
+  return Array.from(seen.values());
+};
+
+const upsertSchoolEntry = async (entry, userId) => {
+  const phoneFields = getStoredPhoneFields(entry.phoneNumber);
+  const payload = {
+    schoolName: entry.schoolName,
+    address: entry.address,
+    state: entry.state,
+    phoneNumber: phoneFields.phoneNumber,
+    updatedBy: userId,
+  };
+
+  if (phoneFields.normalizedPhoneNumber) {
+    payload.normalizedPhoneNumber = phoneFields.normalizedPhoneNumber;
+  }
+
+  const applyPhoneFields = (document) => {
+    Object.assign(document, payload);
+
+    if (!phoneFields.normalizedPhoneNumber) {
+      document.normalizedPhoneNumber = undefined;
+    }
+  };
+
+  let existing = await School.findOne(buildSchoolLookupFilter(entry));
+
+  if (existing) {
+    if (
+      phoneFields.normalizedPhoneNumber &&
+      existing.normalizedPhoneNumber &&
+      existing.normalizedPhoneNumber !== phoneFields.normalizedPhoneNumber
+    ) {
+      const phoneOwner = await School.findOne({
+        normalizedPhoneNumber: phoneFields.normalizedPhoneNumber,
+        _id: { $ne: existing._id },
+      });
+
+      if (phoneOwner) {
+        return { action: "skipped", reason: "Duplicate record skipped (phone already exists)" };
+      }
+    }
+
+    applyPhoneFields(existing);
+    await existing.save();
+    return { action: "updated", school: existing };
+  }
+
+  if (phoneFields.normalizedPhoneNumber) {
+    existing = await School.findOne({
+      normalizedPhoneNumber: phoneFields.normalizedPhoneNumber,
+    });
+
+    if (existing) {
+      applyPhoneFields(existing);
+      await existing.save();
+      return { action: "updated", school: existing };
+    }
+  }
+
+  try {
+    const school = await School.create({
+      ...payload,
+      createdBy: userId,
+    });
+    return { action: "inserted", school };
+  } catch (error) {
+    if (error.code !== 11000) {
+      throw error;
+    }
+
+    existing =
+      (await School.findOne(buildSchoolLookupFilter(entry))) ||
+      (phoneFields.normalizedPhoneNumber
+        ? await School.findOne({ normalizedPhoneNumber: phoneFields.normalizedPhoneNumber })
+        : null);
+
+    if (!existing) {
+      return { action: "skipped", reason: "Duplicate record skipped" };
+    }
+
+    applyPhoneFields(existing);
+    await existing.save();
+    return { action: "updated", school: existing };
+  }
+};
+
+const listSchools = asyncHandler(async (req, res) => {
+  const { limit, page, skip } = parsePagination(req.query);
+  const filter = {};
+
+  if (req.query.state) {
+    filter.state = req.query.state;
+  }
+
+  if (req.query.search) {
+    const search = req.query.search.trim();
+    const phoneSearch = normalizePhoneNumber(search);
+    const searchPattern = new RegExp(escapeRegex(search), "i");
+    filter.$or = [
+      { schoolName: searchPattern },
+      { address: searchPattern },
+      { phoneNumber: searchPattern },
+      ...(phoneSearch ? [{ normalizedPhoneNumber: phoneSearch }] : []),
+    ];
+  }
+
+  const [schools, total] = await Promise.all([
+    School.find(filter).sort({ schoolName: 1, createdAt: -1 }).skip(skip).limit(limit),
+    School.countDocuments(filter),
+  ]);
+
+  console.log("[listSchools]", {
+    search: req.query.search || null,
+    state: req.query.state || null,
+    limit,
+    page,
+    total,
+    returned: schools.length,
+    sample: schools.slice(0, 3).map((school) => ({
+      id: school._id,
+      schoolName: school.schoolName,
+      state: school.state,
+    })),
+  });
+
+  res.set({
+    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+    Pragma: "no-cache",
+    Expires: "0",
+  });
+
+  res.status(200).json({
+    schools,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit) || 1,
+    },
+  });
+});
+
+const createSchool = asyncHandler(async (req, res) => {
+  await normalizeStoredSchoolPhones();
+
+  const schoolName = (req.body.schoolName || "").trim();
+  const state = resolveNigerianState(req.body.state || "");
+
+  if (!schoolName) {
+    res.status(400);
+    throw new Error("School name is required");
+  }
+
+  if (!state) {
+    res.status(400);
+    throw new Error("A valid Nigerian state is required");
+  }
+
+  const entry = {
+    schoolName: capitalizeWords(schoolName),
+    address: capitalizeWords(req.body.address || ""),
+    state,
+    phoneNumber: (req.body.phoneNumber || "").trim(),
+  };
+
+  const result = await upsertSchoolEntry(entry, req.user._id);
+
+  console.log("[createSchool]", {
+    requested: entry,
+    action: result.action,
+    schoolId: result.school?._id,
+    schoolName: result.school?.schoolName,
+    state: result.school?.state,
+    skippedReason: result.reason || null,
+  });
+
+  if (result.action === "skipped") {
+    res.status(409);
+    throw new Error(result.reason || "Could not add school");
+  }
+
+  const school = result.school || (await School.findOne(buildSchoolLookupFilter(entry)));
+
+  if (!school) {
+    res.status(500);
+    throw new Error("School was saved but could not be loaded");
+  }
+
+  res.set({
+    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+    Pragma: "no-cache",
+    Expires: "0",
+  });
+
+  res.status(result.action === "inserted" ? 201 : 200).json({
+    school,
+    action: result.action,
+    message:
+      result.action === "inserted"
+        ? "School added to the directory"
+        : "Existing school record updated",
+  });
+});
+
+const importSchools = asyncHandler(async (req, res) => {
+  await normalizeStoredSchoolPhones();
+
+  const schools = Array.isArray(req.body.schools) ? req.body.schools : [];
+
+  if (!schools.length) {
+    res.status(400);
+    throw new Error("Provide at least one school to import");
+  }
+
+  const validEntries = [];
+  const skipped = [];
+
+  schools.forEach((entry, index) => {
+    const schoolName = (entry.schoolName || "").trim();
+    const state = resolveNigerianState(entry.state || "");
+
+    if (!schoolName || !state) {
+      skipped.push({
+        row: index + 1,
+        reason: !schoolName ? "Missing school name" : "Invalid or missing state",
+      });
+      return;
+    }
+
+    const phoneNumber = (entry.phoneNumber || "").trim();
+    const phoneFields = getStoredPhoneFields(phoneNumber);
+
+    validEntries.push({
+      schoolName: capitalizeWords(schoolName),
+      address: capitalizeWords(entry.address || ""),
+      state,
+      phoneNumber: phoneFields.phoneNumber,
+      normalizedPhoneNumber: phoneFields.normalizedPhoneNumber,
+      sourceRow: index + 1,
+    });
+  });
+
+  if (!validEntries.length) {
+    res.status(400);
+    throw new Error("No valid school records were found to import");
+  }
+
+  const dedupedEntries = dedupeSchoolEntries(validEntries);
+  const duplicateRowsSkipped = validEntries.length - dedupedEntries.length;
+
+  let inserted = 0;
+  let updated = 0;
+
+  for (const { entry, index } of dedupedEntries) {
+    try {
+      const result = await upsertSchoolEntry(entry, req.user._id);
+
+      if (result.action === "inserted") {
+        inserted += 1;
+      } else if (result.action === "updated") {
+        updated += 1;
+      } else {
+        skipped.push({
+          row: entry.sourceRow || index + 1,
+          reason: result.reason || "Duplicate record skipped",
+        });
+      }
+    } catch (error) {
+      skipped.push({
+        row: entry.sourceRow || index + 1,
+        reason: error.message || "Failed to import row",
+      });
+    }
+  }
+
+  if (duplicateRowsSkipped > 0) {
+    skipped.push({
+      row: null,
+      reason: `${duplicateRowsSkipped} duplicate row(s) in this batch were skipped`,
+    });
+  }
+
+  res.status(201).json({
+    message: "School import batch completed",
+    imported: inserted + updated,
+    inserted,
+    updated,
+    skipped,
+  });
+});
+
 const updateSalesRep = asyncHandler(async (req, res) => {
   const salesRep = await SalesRep.findById(req.params.id);
 
@@ -702,11 +1067,12 @@ const deleteSalesRep = asyncHandler(async (req, res) => {
 
 const listSalesRecords = asyncHandler(async (req, res) => {
   const { limit, page, skip } = parsePagination(req.query);
+  const dateRange = parseDashboardDateRange(req.query);
   const filter = buildSalesRecordFilter(req.query, req.user);
 
   const [records, total, totals] = await Promise.all([
     CrmSalesRecord.find(filter)
-      .populate("owner", "name staffId role")
+      .populate("owner", CSR_USER_FIELDS)
       .sort({ saleDate: -1, createdAt: -1 })
       .skip(skip)
       .limit(limit),
@@ -730,6 +1096,13 @@ const listSalesRecords = asyncHandler(async (req, res) => {
       totalQuantitySold: totals[0]?.totalQuantitySold || 0,
       totalSalesValue: totals[0]?.totalSalesValue || 0,
     },
+    period: dateRange
+      ? {
+          type: dateRange.period,
+          startDate: formatDateOnly(dateRange.startDate),
+          endDate: formatDateOnly(dateRange.endDate),
+        }
+      : { type: "all" },
     pagination: {
       page,
       limit,
@@ -744,7 +1117,7 @@ const createSalesRecord = asyncHandler(async (req, res) => {
   const record = await CrmSalesRecord.create(payload);
   const populated = await CrmSalesRecord.findById(record._id).populate(
     "owner",
-    "name staffId role"
+    CSR_USER_FIELDS
   );
 
   res.status(201).json({ record: populated });
@@ -755,11 +1128,37 @@ const buildSurveyUrl = (token) => {
   return `${clientUrl}/crm/surveys/respond/${token}`;
 };
 
+const resolveSurveyCustomerName = (interaction, customerPhoneNumber = "", manualName = "") => {
+  const providedName = (manualName || "").trim();
+
+  if (providedName) {
+    return providedName;
+  }
+
+  const schoolName = (interaction.customer?.schoolName || "").trim();
+
+  if (schoolName) {
+    return schoolName;
+  }
+
+  const phoneNumber = (
+    customerPhoneNumber ||
+    interaction.customer?.phoneNumber ||
+    ""
+  ).trim();
+
+  if (phoneNumber) {
+    return phoneNumber;
+  }
+
+  return "Customer";
+};
+
 const createSurveyDispatch = asyncHandler(async (req, res) => {
   const interaction = await CrmInteraction.findOne({
     _id: req.body.interactionId,
     ...buildInteractionAccessFilter(req.user),
-  }).populate("owner", "name staffId role");
+  }).populate("owner", CSR_USER_FIELDS);
 
   if (!interaction) {
     res.status(404);
@@ -767,12 +1166,18 @@ const createSurveyDispatch = asyncHandler(async (req, res) => {
   }
 
   const channel = req.body.channel;
+  const manualCustomerName = (req.body.customerName || "").trim();
   const customerEmail =
     channel === "Email" ? (req.body.customerEmail || "").trim().toLowerCase() : "";
   const customerPhoneNumber =
-    channel === "WhatsApp" || channel === "SMS"
-      ? (req.body.customerPhoneNumber || "").trim()
+    channel === "WhatsApp" || channel === "SMS" || channel === "Manual"
+      ? (req.body.customerPhoneNumber || "").trim() || interaction.customer.phoneNumber
       : interaction.customer.phoneNumber;
+
+  if (!manualCustomerName) {
+    res.status(400);
+    throw new Error("Customer name is required when triggering a survey");
+  }
 
   if (channel === "Email" && !customerEmail) {
     res.status(400);
@@ -785,20 +1190,28 @@ const createSurveyDispatch = asyncHandler(async (req, res) => {
   }
 
   const token = crypto.randomBytes(18).toString("hex");
+  const customerName = resolveSurveyCustomerName(
+    interaction,
+    customerPhoneNumber,
+    manualCustomerName
+  );
   const dispatch = await SurveyDispatch.create({
     interaction: interaction._id,
-    customerName: interaction.customer.schoolName,
+    customerName,
     customerPhoneNumber,
     customerEmail,
     channel,
     message: (req.body.message || "").trim(),
     token,
     surveyUrl: buildSurveyUrl(token),
-    status: channel === "Email" ? "pending" : "sent",
+    status: channel === "Email" || channel === "SMS" ? "pending" : "sent",
     sentBy: req.user._id,
   });
 
   let emailDelivery = {
+    sent: false,
+  };
+  let smsDelivery = {
     sent: false,
   };
 
@@ -819,14 +1232,36 @@ const createSurveyDispatch = asyncHandler(async (req, res) => {
     }
   }
 
+  if (channel === "SMS") {
+    try {
+      const smsResult = await sendSurveySms({ dispatch });
+      dispatch.status = "sent";
+      dispatch.sentAt = new Date();
+      await dispatch.save();
+      smsDelivery = {
+        messageId: smsResult.messageId,
+        sent: true,
+      };
+    } catch (error) {
+      console.error("[crm] Survey SMS send failed", {
+        dispatchId: dispatch._id?.toString(),
+        phoneNumber: customerPhoneNumber,
+        message: error.message,
+      });
+      error.statusCode = error.statusCode || 502;
+      error.message = `Failed to send survey SMS: ${error.message}`;
+      throw error;
+    }
+  }
+
   const populated = await SurveyDispatch.findById(dispatch._id)
     .populate({
       path: "interaction",
-      populate: { path: "owner", select: "name staffId role" },
+      populate: { path: "owner", select: CSR_USER_FIELDS },
     })
-    .populate("sentBy", "name staffId role");
+    .populate("sentBy", CSR_USER_FIELDS);
 
-  res.status(201).json({ dispatch: populated, email: emailDelivery });
+  res.status(201).json({ dispatch: populated, email: emailDelivery, sms: smsDelivery });
 });
 
 const listSurveyDispatches = asyncHandler(async (req, res) => {
@@ -873,9 +1308,9 @@ const listSurveyDispatches = asyncHandler(async (req, res) => {
     SurveyDispatch.find(filter)
       .populate({
         path: "interaction",
-        populate: { path: "owner", select: "name staffId role" },
+        populate: { path: "owner", select: CSR_USER_FIELDS },
       })
-      .populate("sentBy", "name staffId role")
+      .populate("sentBy", CSR_USER_FIELDS)
       .sort({ sentAt: -1, createdAt: -1 })
       .skip(skip)
       .limit(limit),
@@ -916,11 +1351,11 @@ const listSurveyResponses = asyncHandler(async (req, res) => {
       .populate({
         path: "interaction",
         populate: [
-          { path: "owner", select: "name staffId role" },
+          { path: "owner", select: CSR_USER_FIELDS },
           { path: "salesRep", select: "name state location" },
         ],
       })
-      .populate("sentBy", "name staffId role")
+      .populate("sentBy", CSR_USER_FIELDS)
       .sort({ "response.respondedAt": -1 })
       .skip(skip)
       .limit(limit),
@@ -973,7 +1408,7 @@ const getPublicSurvey = asyncHandler(async (req, res) => {
   const dispatch = await SurveyDispatch.findOne({ token: req.params.token }).populate({
     path: "interaction",
     populate: [
-      { path: "owner", select: "name" },
+      { path: "owner", select: "name csrDisplayName" },
       { path: "salesRep", select: "name" },
     ],
   });
@@ -984,7 +1419,7 @@ const getPublicSurvey = asyncHandler(async (req, res) => {
   }
 
   const marketerName = dispatch.interaction?.salesRep?.name;
-  const csrName = dispatch.interaction?.owner?.name;
+  const csrName = getCsrDisplayName(dispatch.interaction?.owner);
   const marketerLabel = marketerName
     ? `How would you rate the marketer (${marketerName}) who attended to you?`
     : "How would you rate the marketer who attended to you?";
@@ -1089,7 +1524,7 @@ const getDashboardSummary = asyncHandler(async (req, res) => {
   ]);
 
   const recentInteractions = await CrmInteraction.find(filter)
-    .populate("owner", "name staffId role")
+    .populate("owner", CSR_USER_FIELDS)
     .populate("salesRep", "name state location")
     .sort({ dateOfContact: -1, createdAt: -1 })
     .limit(5);
@@ -1156,7 +1591,12 @@ const getReportsSummary = asyncHandler(async (req, res) => {
       {
         $project: {
           count: 1,
-          name: { $ifNull: [{ $arrayElemAt: ["$owner.name", 0] }, "Unknown CSR"] },
+          name: {
+            $ifNull: [
+              { $arrayElemAt: ["$owner.csrDisplayName", 0] },
+              { $ifNull: [{ $arrayElemAt: ["$owner.name", 0] }, "Unknown CSR"] },
+            ],
+          },
         },
       },
       { $sort: { count: -1 } },
@@ -1218,7 +1658,12 @@ const getReportsSummary = asyncHandler(async (req, res) => {
       {
         $project: {
           count: 1,
-          name: { $ifNull: [{ $arrayElemAt: ["$sender.name", 0] }, "Unknown sender"] },
+          name: {
+            $ifNull: [
+              { $arrayElemAt: ["$sender.csrDisplayName", 0] },
+              { $ifNull: [{ $arrayElemAt: ["$sender.name", 0] }, "Unknown sender"] },
+            ],
+          },
         },
       },
       { $sort: { count: -1 } },
@@ -1251,7 +1696,12 @@ const getReportsSummary = asyncHandler(async (req, res) => {
       {
         $project: {
           count: 1,
-          name: { $ifNull: [{ $arrayElemAt: ["$owner.name", 0] }, "Unknown CSR"] },
+          name: {
+            $ifNull: [
+              { $arrayElemAt: ["$owner.csrDisplayName", 0] },
+              { $ifNull: [{ $arrayElemAt: ["$owner.name", 0] }, "Unknown CSR"] },
+            ],
+          },
         },
       },
       { $sort: { count: -1 } },
@@ -1282,6 +1732,7 @@ module.exports = {
   createInteraction,
   createSalesRecord,
   createSalesRep,
+  createSchool,
   createSurveyDispatch,
   deleteSalesRep,
   getCustomerHistory,
@@ -1291,10 +1742,12 @@ module.exports = {
   getPublicSurvey,
   getReportsSummary,
   importSalesReps,
+  importSchools,
   listCustomers,
   listInteractions,
   listSalesRecords,
   listSalesReps,
+  listSchools,
   listSurveyDispatches,
   listSurveyResponses,
   submitPublicSurveyResponse,

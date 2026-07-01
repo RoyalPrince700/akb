@@ -2,14 +2,17 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import SurveyDispatchModal from "../../components/crm/SurveyDispatchModal";
-import { formatCrmCategory, formatOrganizationType, formatRoleLabel, nigerianStates } from "../../constants/crm";
+import { formatCrmCategory, formatOrganizationType, formatRoleLabel, getCsrDisplayName, nigerianStates } from "../../constants/crm";
 import { useAuth } from "../../context/AuthContext";
 import PanelLayout from "../../layouts/PanelLayout";
 import {
   createSurveyDispatch,
   listCrmInteractions,
 } from "../../services/api";
-import { handleSurveyDispatchShare } from "../../utils/crmSurvey";
+import {
+  handleSurveyDispatchShare,
+  wasSurveySentByServer,
+} from "../../utils/crmSurvey";
 import { panelSegmentPath } from "../../utils/rolePaths";
 import { capitalizeWords } from "../../utils/textFormat";
 
@@ -79,8 +82,14 @@ const CrmInteractionsPage = () => {
     try {
       const data = await createSurveyDispatch(formData);
       if (data.dispatch) {
-        await handleSurveyDispatchShare(data.dispatch);
-        window.alert("Survey link triggered successfully.");
+        if (!wasSurveySentByServer(data.dispatch, data)) {
+          await handleSurveyDispatchShare(data.dispatch);
+        }
+        window.alert(
+          data.dispatch.channel === "SMS" && data.sms?.sent
+            ? "Survey SMS sent successfully."
+            : "Survey link triggered successfully."
+        );
       }
       closeSurveyModal();
     } catch (apiError) {
@@ -227,7 +236,7 @@ const CrmInteractionsPage = () => {
                       {capitalizeWords(interaction.salesRep?.name) || "Unassigned"}
                     </td>
                     <td className="py-3 pr-4 text-slate-700">
-                      {interaction.owner?.name || formatRoleLabel(user?.role)}
+                      {getCsrDisplayName(interaction.owner, formatRoleLabel(user?.role))}
                     </td>
                     <td className="py-3 pr-4">
                       <span
