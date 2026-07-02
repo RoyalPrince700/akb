@@ -5,6 +5,7 @@ import {
   ContactRound,
   Globe,
   LayoutDashboard,
+  ListChecks,
   MessageSquareShare,
   PhoneCall,
   ScrollText,
@@ -55,17 +56,26 @@ const PanelSidebar = ({ accent, onNavigate, className = "" }) => {
         },
         {
           to: panelSegmentPath(role, "interactions"),
-          label: "Tickets",
+          label: isCsrAdmin ? "All Tickets" : "Tickets",
           icon: PhoneCall,
         },
+        ...(isCsrAdmin
+          ? [
+              {
+                to: panelSegmentPath(role, "csr-tickets"),
+                label: "CSR Tickets",
+                icon: ListChecks,
+              },
+            ]
+          : []),
         {
           to: panelSegmentPath(role, "customers"),
           label: "Customer History",
           icon: ContactRound,
         },
         {
-          to: panelSegmentPath(role, "sales-records"),
-          label: "Sales Records",
+          to: panelSegmentPath(role, isCsrAdmin ? "csr-sales" : "sales-records"),
+          label: isCsrAdmin ? "All Sales" : "Sales Records",
           icon: BookOpen,
         },
         {

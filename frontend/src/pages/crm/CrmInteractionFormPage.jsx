@@ -17,6 +17,7 @@ import {
   organizationTypes,
   outboundCategories,
   phoneLineLabels,
+  getPhoneLineLabelsForMedium,
 } from "../../constants/crm";
 import { useAuth } from "../../context/AuthContext";
 import PanelLayout from "../../layouts/PanelLayout";
@@ -65,6 +66,7 @@ const CrmInteractionFormPage = () => {
   const { user } = useAuth();
   const { id } = useParams();
   const isEdit = Boolean(id);
+  const isCsrAdmin = user?.role === "csrAdmin";
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialDirection = searchParams.get("direction");
@@ -89,6 +91,12 @@ const CrmInteractionFormPage = () => {
     [user?.csrPhoneNumbers]
   );
   const settingsPath = panelSegmentPath(user?.role, "settings");
+
+  useEffect(() => {
+    if (isCsrAdmin && isEdit && id) {
+      navigate(`${ticketsPath}/${id}`, { replace: true });
+    }
+  }, [id, isCsrAdmin, isEdit, navigate, ticketsPath]);
 
   const resolveCsrPhoneForLineLabel = (lineLabel, currentPhoneNumber = "") => {
     if (lineLabel === "landline") {
@@ -116,6 +124,13 @@ const CrmInteractionFormPage = () => {
     () => (formData.direction === "outbound" ? outboundCategories : inboundCategories),
     [formData.direction]
   );
+
+  const lineLabelOptions = useMemo(
+    () => getPhoneLineLabelsForMedium(formData.medium),
+    [formData.medium]
+  );
+
+  const showLineLabelFields = formData.medium === "phone" || formData.medium === "whatsapp";
 
   useEffect(() => {
     const loadSalesReps = async () => {
@@ -148,9 +163,12 @@ const CrmInteractionFormPage = () => {
           return;
         }
 
-        const phoneLineLabel = phoneLineLabels.some((item) => item.value === interaction.phoneLineLabel)
+        let phoneLineLabel = phoneLineLabels.some((item) => item.value === interaction.phoneLineLabel)
           ? interaction.phoneLineLabel
           : "";
+        if (interaction.medium === "whatsapp") {
+          phoneLineLabel = "message";
+        }
         const savedCsrPhone = interaction.csrPhoneNumber || "";
         let csrPhoneNumber = savedCsrPhone;
 
@@ -217,6 +235,21 @@ const CrmInteractionFormPage = () => {
 
       if (name === "direction") {
         next.category = value === "outbound" ? "enquiry" : "enquiry";
+      }
+
+      if (name === "medium") {
+        if (value === "whatsapp") {
+          next.phoneLineLabel = "message";
+          next.csrPhoneNumber = "";
+        } else if (value === "phone") {
+          if (current.phoneLineLabel === "message") {
+            next.phoneLineLabel = "";
+            next.csrPhoneNumber = "";
+          }
+        } else {
+          next.phoneLineLabel = "";
+          next.csrPhoneNumber = "";
+        }
       }
 
       if (name === "phoneLineLabel") {
@@ -688,106 +721,110 @@ const CrmInteractionFormPage = () => {
                 />
               </div>
 
-              <div>
-                <label
-                  htmlFor="phoneLineLabel"
-                  className="text-sm font-medium text-slate-700"
-                >
-                  Line label
-                </label>
-                <select
-                  id="phoneLineLabel"
-                  name="phoneLineLabel"
-                  value={formData.phoneLineLabel}
-                  onChange={handleChange}
-                  className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-                >
-                  <option value="">Select line label</option>
-                  {phoneLineLabels.map((lineLabel) => (
-                    <option key={lineLabel.value} value={lineLabel.value}>
-                      {lineLabel.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {showLineLabelFields && (
+                <div>
+                  <label
+                    htmlFor="phoneLineLabel"
+                    className="text-sm font-medium text-slate-700"
+                  >
+                    Line label
+                  </label>
+                  <select
+                    id="phoneLineLabel"
+                    name="phoneLineLabel"
+                    value={formData.phoneLineLabel}
+                    onChange={handleChange}
+                    className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                  >
+                    <option value="">Select line label</option>
+                    {lineLabelOptions.map((lineLabel) => (
+                      <option key={lineLabel.value} value={lineLabel.value}>
+                        {lineLabel.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
-              <div>
-                <label
-                  htmlFor="csrPhoneNumber"
-                  className="text-sm font-medium text-slate-700"
-                >
-                  CSR phone number
-                </label>
-                {!formData.phoneLineLabel ? (
-                  <p className="mt-1 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-500">
-                    Select a line label to set the CSR phone number.
-                  </p>
-                ) : formData.phoneLineLabel === "landline" ? (
-                  <input
-                    id="csrPhoneNumber"
-                    name="csrPhoneNumber"
-                    readOnly
-                    value={formData.csrPhoneNumber || landlinePhoneNumber}
-                    className="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-950 outline-none"
-                  />
-                ) : formData.phoneLineLabel === "csrOfficialLine" &&
-                  csrPhoneNumbers.length > 1 ? (
-                  <>
-                    <select
-                      id="csrPhoneNumber"
-                      name="csrPhoneNumber"
-                      value={formData.csrPhoneNumber}
-                      onChange={handleChange}
-                      className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-                    >
-                      {csrPhoneNumbers.map((phoneNumber) => (
-                        <option key={phoneNumber} value={phoneNumber}>
-                          {phoneNumber}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="mt-1 text-xs text-slate-500">
-                      Choose the official line used for this call.
+              {showLineLabelFields && formData.medium === "phone" && (
+                <div>
+                  <label
+                    htmlFor="csrPhoneNumber"
+                    className="text-sm font-medium text-slate-700"
+                  >
+                    CSR phone number
+                  </label>
+                  {!formData.phoneLineLabel ? (
+                    <p className="mt-1 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-500">
+                      Select a line label to set the CSR phone number.
                     </p>
-                  </>
-                ) : formData.phoneLineLabel === "csrOfficialLine" &&
-                  csrPhoneNumbers.length === 1 ? (
-                  <>
+                  ) : formData.phoneLineLabel === "landline" ? (
                     <input
                       id="csrPhoneNumber"
                       name="csrPhoneNumber"
                       readOnly
-                      value={formData.csrPhoneNumber || csrPhoneNumbers[0]}
+                      value={formData.csrPhoneNumber || landlinePhoneNumber}
                       className="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-950 outline-none"
                     />
-                    <p className="mt-1 text-xs text-slate-500">
-                      Your saved CSR official line.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <input
-                      id="csrPhoneNumber"
-                      name="csrPhoneNumber"
-                      type="tel"
-                      value={formData.csrPhoneNumber}
-                      onChange={handleChange}
-                      placeholder="Enter your CSR line number"
-                      className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-                    />
-                    <p className="mt-1 text-xs text-slate-500">
-                      No CSR numbers saved yet.{" "}
-                      <Link
-                        to={settingsPath}
-                        className="font-semibold text-emerald-700 hover:text-emerald-800"
+                  ) : formData.phoneLineLabel === "csrOfficialLine" &&
+                    csrPhoneNumbers.length > 1 ? (
+                    <>
+                      <select
+                        id="csrPhoneNumber"
+                        name="csrPhoneNumber"
+                        value={formData.csrPhoneNumber}
+                        onChange={handleChange}
+                        className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
                       >
-                        Add them in Settings
-                      </Link>{" "}
-                      or enter a number above.
-                    </p>
-                  </>
-                )}
-              </div>
+                        {csrPhoneNumbers.map((phoneNumber) => (
+                          <option key={phoneNumber} value={phoneNumber}>
+                            {phoneNumber}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Choose the official line used for this call.
+                      </p>
+                    </>
+                  ) : formData.phoneLineLabel === "csrOfficialLine" &&
+                    csrPhoneNumbers.length === 1 ? (
+                    <>
+                      <input
+                        id="csrPhoneNumber"
+                        name="csrPhoneNumber"
+                        readOnly
+                        value={formData.csrPhoneNumber || csrPhoneNumbers[0]}
+                        className="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-slate-950 outline-none"
+                      />
+                      <p className="mt-1 text-xs text-slate-500">
+                        Your saved CSR official line.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <input
+                        id="csrPhoneNumber"
+                        name="csrPhoneNumber"
+                        type="tel"
+                        value={formData.csrPhoneNumber}
+                        onChange={handleChange}
+                        placeholder="Enter your CSR line number"
+                        className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                      />
+                      <p className="mt-1 text-xs text-slate-500">
+                        No CSR numbers saved yet.{" "}
+                        <Link
+                          to={settingsPath}
+                          className="font-semibold text-emerald-700 hover:text-emerald-800"
+                        >
+                          Add them in Settings
+                        </Link>{" "}
+                        or enter a number above.
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
 
               <div className="md:col-span-2">
                 <label htmlFor="remark" className="text-sm font-medium text-slate-700">

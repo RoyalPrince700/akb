@@ -1,13 +1,19 @@
-import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 
 import SurveyDispatchModal from "../../components/crm/SurveyDispatchModal";
-import { formatCrmCategory, formatOrganizationType, formatRoleLabel, getCsrDisplayName, nigerianStates } from "../../constants/crm";
+import {
+  formatCrmCategory,
+  formatOrganizationType,
+  getCsrDisplayName,
+  nigerianStates,
+} from "../../constants/crm";
 import { useAuth } from "../../context/AuthContext";
 import PanelLayout from "../../layouts/PanelLayout";
 import {
   createSurveyDispatch,
   listCrmInteractions,
+  listStaff,
 } from "../../services/api";
 import {
   handleSurveyDispatchShare,
@@ -18,6 +24,8 @@ import { capitalizeWords } from "../../utils/textFormat";
 
 const CrmInteractionsPage = () => {
   const { user } = useAuth();
+  const isCsrAdmin = user?.role === "csrAdmin";
+  const [searchParams, setSearchParams] = useSearchParams();
   const [interactions, setInteractions] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
@@ -26,12 +34,46 @@ const CrmInteractionsPage = () => {
   const [stateFilter, setStateFilter] = useState("");
   const [directionFilter, setDirectionFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [ownerFilter, setOwnerFilter] = useState(searchParams.get("owner") || "");
+  const [csrOptions, setCsrOptions] = useState([]);
   const [page, setPage] = useState(1);
   const [surveyModalOpen, setSurveyModalOpen] = useState(false);
   const [activeInteraction, setActiveInteraction] = useState(null);
   const [sendingSurvey, setSendingSurvey] = useState(false);
 
   const listPath = panelSegmentPath(user?.role, "interactions");
+
+  const selectedCsrLabel = useMemo(() => {
+    if (!ownerFilter) {
+      return "";
+    }
+
+    const match = csrOptions.find((csr) => csr._id === ownerFilter);
+    return getCsrDisplayName(match, "Selected CSR");
+  }, [csrOptions, ownerFilter]);
+
+  useEffect(() => {
+    if (!isCsrAdmin) {
+      return;
+    }
+
+    const loadCsrs = async () => {
+      try {
+        const data = await listStaff({ role: "csr", limit: 100 });
+        setCsrOptions(data.staff || []);
+      } catch {
+        setCsrOptions([]);
+      }
+    };
+
+    loadCsrs();
+  }, [isCsrAdmin]);
+
+  useEffect(() => {
+    const ownerFromUrl = searchParams.get("owner") || "";
+    setOwnerFilter(ownerFromUrl);
+    setPage(1);
+  }, [searchParams]);
 
   const loadInteractions = useCallback(async () => {
     setLoading(true);
@@ -43,6 +85,7 @@ const CrmInteractionsPage = () => {
       if (stateFilter) params.state = stateFilter;
       if (directionFilter) params.direction = directionFilter;
       if (statusFilter) params.status = statusFilter;
+      if (isCsrAdmin && ownerFilter) params.owner = ownerFilter;
 
       const data = await listCrmInteractions(params);
       setInteractions(data.interactions || []);
@@ -53,7 +96,7 @@ const CrmInteractionsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [directionFilter, page, search, stateFilter, statusFilter]);
+  }, [directionFilter, isCsrAdmin, ownerFilter, page, search, stateFilter, statusFilter]);
 
   useEffect(() => {
     loadInteractions();
@@ -63,6 +106,20 @@ const CrmInteractionsPage = () => {
     event.preventDefault();
     setPage(1);
     loadInteractions();
+  };
+
+  const handleOwnerFilterChange = (event) => {
+    const nextOwner = event.target.value;
+    setOwnerFilter(nextOwner);
+    setPage(1);
+
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextOwner) {
+      nextParams.set("owner", nextOwner);
+    } else {
+      nextParams.delete("owner");
+    }
+    setSearchParams(nextParams, { replace: true });
   };
 
   const openSurveyModal = (interaction) => {
@@ -100,7 +157,7 @@ const CrmInteractionsPage = () => {
   };
 
   return (
-    <PanelLayout title="CRM Tickets">
+    <PanelLayout title={isCsrAdmin ? "All CRM Tickets" : "CRM Tickets"}>
       {error && (
         <p className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {error}
@@ -112,27 +169,33 @@ const CrmInteractionsPage = () => {
           <div>
             <h2 className="text-xl font-bold text-slate-950">Ticket log</h2>
             <p className="mt-1 text-sm text-slate-600">
-              {pagination.total} ticket{pagination.total !== 1 ? "s" : ""} logged
+              {isCsrAdmin
+                ? selectedCsrLabel
+                  ? `${pagination.total} ticket${pagination.total !== 1 ? "s" : ""} for ${selectedCsrLabel} (read-only)`
+                  : `${pagination.total} ticket${pagination.total !== 1 ? "s" : ""} across the CSR team (read-only)`
+                : `${pagination.total} ticket${pagination.total !== 1 ? "s" : ""} logged`}
             </p>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              to={`${listPath}/new?direction=inbound`}
-              className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800"
-            >
-              Create inbound ticket
-            </Link>
-            <Link
-              to={`${listPath}/new?direction=outbound`}
-              className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
-            >
-              Create outbound ticket
-            </Link>
-          </div>
+          {!isCsrAdmin && (
+            <div className="flex flex-wrap gap-3">
+              <Link
+                to={`${listPath}/new?direction=inbound`}
+                className="inline-flex items-center justify-center rounded-full bg-emerald-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800"
+              >
+                Create inbound ticket
+              </Link>
+              <Link
+                to={`${listPath}/new?direction=outbound`}
+                className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
+              >
+                Create outbound ticket
+              </Link>
+            </div>
+          )}
         </div>
 
         <form
-          className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5"
+          className={`mt-5 grid gap-3 sm:grid-cols-2 ${isCsrAdmin ? "xl:grid-cols-6" : "xl:grid-cols-5"}`}
           onSubmit={handleSearchSubmit}
         >
           <input
@@ -142,6 +205,20 @@ const CrmInteractionsPage = () => {
             onChange={(event) => setSearch(event.target.value)}
             className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 sm:col-span-2"
           />
+          {isCsrAdmin && (
+            <select
+              value={ownerFilter}
+              onChange={handleOwnerFilterChange}
+              className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+            >
+              <option value="">All CSRs</option>
+              {csrOptions.map((csr) => (
+                <option key={csr._id} value={csr._id}>
+                  {getCsrDisplayName(csr)}
+                </option>
+              ))}
+            </select>
+          )}
           <select
             value={stateFilter}
             onChange={(event) => {
@@ -183,7 +260,9 @@ const CrmInteractionsPage = () => {
           </select>
           <button
             type="submit"
-            className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 xl:col-span-5 xl:w-fit"
+            className={`inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 xl:w-fit ${
+              isCsrAdmin ? "xl:col-span-6" : "xl:col-span-5"
+            }`}
           >
             Apply filters
           </button>
@@ -236,7 +315,7 @@ const CrmInteractionsPage = () => {
                       {capitalizeWords(interaction.salesRep?.name) || "Unassigned"}
                     </td>
                     <td className="py-3 pr-4 text-slate-700">
-                      {getCsrDisplayName(interaction.owner, formatRoleLabel(user?.role))}
+                      {getCsrDisplayName(interaction.owner, "Unknown CSR")}
                     </td>
                     <td className="py-3 pr-4">
                       <span
@@ -254,19 +333,30 @@ const CrmInteractionsPage = () => {
                     </td>
                     <td className="py-3 text-right">
                       <div className="flex flex-wrap justify-end gap-2">
-                        <Link
-                          to={`${listPath}/${interaction._id}/edit`}
-                          className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
-                        >
-                          Edit
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => openSurveyModal(interaction)}
-                          className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
-                        >
-                          Trigger survey
-                        </button>
+                        {isCsrAdmin ? (
+                          <Link
+                            to={`${listPath}/${interaction._id}`}
+                            className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
+                          >
+                            View
+                          </Link>
+                        ) : (
+                          <>
+                            <Link
+                              to={`${listPath}/${interaction._id}/edit`}
+                              className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
+                            >
+                              Edit
+                            </Link>
+                            <button
+                              type="button"
+                              onClick={() => openSurveyModal(interaction)}
+                              className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
+                            >
+                              Trigger survey
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -301,13 +391,15 @@ const CrmInteractionsPage = () => {
         )}
       </div>
 
-      <SurveyDispatchModal
-        interaction={activeInteraction}
-        isOpen={surveyModalOpen}
-        onClose={closeSurveyModal}
-        onSubmit={handleSurveySubmit}
-        saving={sendingSurvey}
-      />
+      {!isCsrAdmin && (
+        <SurveyDispatchModal
+          interaction={activeInteraction}
+          isOpen={surveyModalOpen}
+          onClose={closeSurveyModal}
+          onSubmit={handleSurveySubmit}
+          saving={sendingSurvey}
+        />
+      )}
     </PanelLayout>
   );
 };

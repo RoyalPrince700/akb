@@ -279,8 +279,8 @@ export const createSurveyDispatch = async (payload) => {
   return response.data;
 };
 
-export const getCrmReports = async () => {
-  const response = await api.get("/crm/reports");
+export const getCrmReports = async (params = {}) => {
+  const response = await api.get("/crm/reports", { params });
   return response.data;
 };
 

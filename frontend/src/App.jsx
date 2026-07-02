@@ -24,6 +24,9 @@ import ProfilePage from "./pages/ProfilePage";
 import StaffCourseCompletionsPage from "./pages/StaffCourseCompletionsPage";
 import StaffManagementPage from "./pages/StaffManagementPage";
 import CrmCustomerHistoryPage from "./pages/crm/CrmCustomerHistoryPage";
+import CrmCsrSalesPage from "./pages/crm/CrmCsrSalesPage";
+import CrmCsrTicketsPage from "./pages/crm/CrmCsrTicketsPage";
+import CrmInteractionDetailPage from "./pages/crm/CrmInteractionDetailPage";
 import CrmInteractionFormPage from "./pages/crm/CrmInteractionFormPage";
 import CrmInteractionsPage from "./pages/crm/CrmInteractionsPage";
 import CrmReportsPage from "./pages/crm/CrmReportsPage";
@@ -159,9 +162,15 @@ const App = () => {
       <Route path="/csr/interactions" element={csrPanel(<CrmInteractionsPage />)} />
       <Route path="/csr/interactions/new" element={csrPanel(<CrmInteractionFormPage />)} />
       <Route
+        path="/csr/interactions/:id"
+        element={csrPanel(<CrmInteractionDetailPage />)}
+      />
+      <Route
         path="/csr/interactions/:id/edit"
         element={csrPanel(<CrmInteractionFormPage />)}
       />
+      <Route path="/csr/csr-tickets" element={csrAdminPanel(<CrmCsrTicketsPage />)} />
+      <Route path="/csr/csr-sales" element={csrAdminPanel(<CrmCsrSalesPage />)} />
       <Route path="/csr/sales-records" element={csrPanel(<CrmSalesRecordsPage />)} />
       <Route path="/csr/customers" element={csrPanel(<CrmCustomerHistoryPage />)} />
       <Route path="/csr/surveys" element={csrPanel(<CrmSurveysPage />)} />

@@ -448,6 +448,11 @@ const createInteraction = asyncHandler(async (req, res) => {
 });
 
 const updateInteraction = asyncHandler(async (req, res) => {
+  if (req.user?.role === "csrAdmin") {
+    res.status(403);
+    throw new Error("CSR admins have read-only access to tickets.");
+  }
+
   const interaction = await CrmInteraction.findOne({
     _id: req.params.id,
     ...buildInteractionAccessFilter(req.user),
@@ -1552,11 +1557,161 @@ const getDashboardSummary = asyncHandler(async (req, res) => {
   });
 });
 
-const getReportsSummary = asyncHandler(async (req, res) => {
-  const filter = buildInteractionAccessFilter(req.user);
-  const interactionIds = await CrmInteraction.find(filter).distinct("_id");
+const buildReportsInteractionFilter = (query, user) => {
+  const dateRange = parseDashboardDateRange(query);
+  const accessFilter = buildInteractionAccessFilter(user);
+  let filter = applyDateRange(accessFilter, "dateOfContact", dateRange);
 
-  const [byDirection, byCategory, byState, byOwner, bySalesRep, surveys] = await Promise.all([
+  if (
+    query.owner &&
+    canManageAllCrmRecords(user) &&
+    mongoose.Types.ObjectId.isValid(query.owner)
+  ) {
+    filter = { ...filter, owner: new mongoose.Types.ObjectId(query.owner) };
+  }
+
+  return { dateRange, filter };
+};
+
+const buildReportsSurveyFilter = (interactionIds, dateRange) => {
+  const surveyFilter = {
+    interaction: { $in: interactionIds },
+  };
+
+  if (dateRange) {
+    surveyFilter.createdAt = {
+      $gte: dateRange.startDate,
+      $lte: dateRange.endDate,
+    };
+  }
+
+  return surveyFilter;
+};
+
+const attachUserNameFields = (asField) => [
+  {
+    $lookup: {
+      from: "users",
+      localField: "_id",
+      foreignField: "_id",
+      as: asField,
+    },
+  },
+  {
+    $addFields: {
+      staffId: { $ifNull: [{ $arrayElemAt: [`$${asField}.staffId`, 0] }, ""] },
+      name: {
+        $ifNull: [
+          { $arrayElemAt: [`$${asField}.csrDisplayName`, 0] },
+          { $ifNull: [{ $arrayElemAt: [`$${asField}.name`, 0] }, "Unknown CSR"] },
+        ],
+      },
+    },
+  },
+  {
+    $project: {
+      [asField]: 0,
+    },
+  },
+];
+
+const mergeCsrPerformanceRows = (...sources) => {
+  const merged = new Map();
+
+  const ensureRow = (id, seed = {}) => {
+    const key = id?.toString?.() || "unknown";
+    if (!merged.has(key)) {
+      merged.set(key, {
+        _id: id,
+        name: "Unknown CSR",
+        staffId: "",
+        totalTickets: 0,
+        resolved: 0,
+        unresolved: 0,
+        inbound: 0,
+        outbound: 0,
+        enquiries: 0,
+        complaints: 0,
+        requests: 0,
+        otherCategories: 0,
+        surveysSent: 0,
+        surveysResponded: 0,
+        avgCsrRating: null,
+        avgResolutionRating: null,
+        salesRecords: 0,
+        booksSold: 0,
+        salesValue: 0,
+        ...seed,
+      });
+    }
+    return merged.get(key);
+  };
+
+  sources.forEach((rows) => {
+    rows.forEach((row) => {
+      const entry = ensureRow(row._id, {
+        name: row.name,
+        staffId: row.staffId,
+      });
+      Object.assign(entry, row);
+    });
+  });
+
+  return Array.from(merged.values())
+    .map((row) => ({
+      ...row,
+      resolutionRate: row.totalTickets
+        ? Math.round((row.resolved / row.totalTickets) * 100)
+        : 0,
+      surveyResponseRate: row.surveysSent
+        ? Math.round((row.surveysResponded / row.surveysSent) * 100)
+        : 0,
+      avgCsrRating:
+        row.avgCsrRating === null || row.avgCsrRating === undefined
+          ? null
+          : Number(row.avgCsrRating.toFixed(1)),
+      avgResolutionRating:
+        row.avgResolutionRating === null || row.avgResolutionRating === undefined
+          ? null
+          : Number(row.avgResolutionRating.toFixed(1)),
+      salesValue: roundMoney(row.salesValue),
+    }))
+    .sort((left, right) => right.totalTickets - left.totalTickets);
+};
+
+const getReportsSummary = asyncHandler(async (req, res) => {
+  const { dateRange, filter } = buildReportsInteractionFilter(req.query, req.user);
+  const interactionIds = await CrmInteraction.find(filter).distinct("_id");
+  const surveyFilter = buildReportsSurveyFilter(interactionIds, dateRange);
+  const salesRecordFilter = applyDateRange(
+    buildSalesRecordAccessFilter(req.user),
+    "saleDate",
+    dateRange
+  );
+
+  if (
+    req.query.owner &&
+    canManageAllCrmRecords(req.user) &&
+    mongoose.Types.ObjectId.isValid(req.query.owner)
+  ) {
+    salesRecordFilter.owner = new mongoose.Types.ObjectId(req.query.owner);
+  }
+
+  const [
+    byDirection,
+    byCategory,
+    byState,
+    byStatus,
+    byOwner,
+    bySalesRep,
+    surveys,
+    ticketMetricsByOwner,
+    surveyMetricsBySender,
+    surveyMetricsByTicketOwner,
+    salesMetricsByOwner,
+    overviewCounts,
+    salesOverview,
+  ] = await Promise.all([
     CrmInteraction.aggregate([
       { $match: filter },
       { $group: { _id: "$direction", count: { $sum: 1 } } },
@@ -1574,31 +1729,13 @@ const getReportsSummary = asyncHandler(async (req, res) => {
     ]),
     CrmInteraction.aggregate([
       { $match: filter },
-      {
-        $group: {
-          _id: "$owner",
-          count: { $sum: 1 },
-        },
-      },
-      {
-        $lookup: {
-          from: "users",
-          localField: "_id",
-          foreignField: "_id",
-          as: "owner",
-        },
-      },
-      {
-        $project: {
-          count: 1,
-          name: {
-            $ifNull: [
-              { $arrayElemAt: ["$owner.csrDisplayName", 0] },
-              { $ifNull: [{ $arrayElemAt: ["$owner.name", 0] }, "Unknown CSR"] },
-            ],
-          },
-        },
-      },
+      { $group: { _id: "$status", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+    ]),
+    CrmInteraction.aggregate([
+      { $match: filter },
+      { $group: { _id: "$owner", count: { $sum: 1 } } },
+      ...attachUserNameFields("owner"),
       { $sort: { count: -1 } },
     ]),
     CrmInteraction.aggregate([
@@ -1628,7 +1765,7 @@ const getReportsSummary = asyncHandler(async (req, res) => {
       { $sort: { count: -1 } },
     ]),
     SurveyDispatch.aggregate([
-      { $match: { interaction: { $in: interactionIds } } },
+      { $match: surveyFilter },
       {
         $group: {
           _id: "$status",
@@ -1636,40 +1773,136 @@ const getReportsSummary = asyncHandler(async (req, res) => {
         },
       },
     ]),
+    CrmInteraction.aggregate([
+      { $match: filter },
+      {
+        $group: {
+          _id: "$owner",
+          totalTickets: { $sum: 1 },
+          resolved: { $sum: { $cond: [{ $eq: ["$status", "resolved"] }, 1, 0] } },
+          unresolved: { $sum: { $cond: [{ $eq: ["$status", "unresolved"] }, 1, 0] } },
+          inbound: { $sum: { $cond: [{ $eq: ["$direction", "inbound"] }, 1, 0] } },
+          outbound: { $sum: { $cond: [{ $eq: ["$direction", "outbound"] }, 1, 0] } },
+          enquiries: { $sum: { $cond: [{ $eq: ["$category", "enquiry"] }, 1, 0] } },
+          complaints: { $sum: { $cond: [{ $eq: ["$category", "complaint"] }, 1, 0] } },
+          requests: { $sum: { $cond: [{ $eq: ["$category", "request"] }, 1, 0] } },
+          otherCategories: {
+            $sum: {
+              $cond: [
+                {
+                  $in: [
+                    "$category",
+                    ["enquiry", "complaint", "request"],
+                  ],
+                },
+                0,
+                1,
+              ],
+            },
+          },
+        },
+      },
+      ...attachUserNameFields("owner"),
+    ]),
+    SurveyDispatch.aggregate([
+      { $match: surveyFilter },
+      {
+        $group: {
+          _id: "$sentBy",
+          surveysSent: { $sum: 1 },
+          surveysResponded: {
+            $sum: { $cond: [{ $eq: ["$status", "responded"] }, 1, 0] },
+          },
+        },
+      },
+      ...attachUserNameFields("sender"),
+    ]),
+    SurveyDispatch.aggregate([
+      { $match: { ...surveyFilter, status: "responded" } },
+      {
+        $lookup: {
+          from: "crminteractions",
+          localField: "interaction",
+          foreignField: "_id",
+          as: "interaction",
+        },
+      },
+      { $unwind: "$interaction" },
+      {
+        $group: {
+          _id: "$interaction.owner",
+          avgCsrRating: { $avg: "$response.csrRating" },
+          avgResolutionRating: { $avg: "$response.resolutionRating" },
+        },
+      },
+      ...attachUserNameFields("owner"),
+    ]),
+    CrmSalesRecord.aggregate([
+      { $match: salesRecordFilter },
+      {
+        $group: {
+          _id: "$owner",
+          salesRecords: { $sum: 1 },
+          booksSold: { $sum: "$quantitySold" },
+          salesValue: { $sum: "$totalPrice" },
+        },
+      },
+      ...attachUserNameFields("owner"),
+    ]),
+    CrmInteraction.aggregate([
+      { $match: filter },
+      {
+        $group: {
+          _id: null,
+          totalTickets: { $sum: 1 },
+          resolved: { $sum: { $cond: [{ $eq: ["$status", "resolved"] }, 1, 0] } },
+          unresolved: { $sum: { $cond: [{ $eq: ["$status", "unresolved"] }, 1, 0] } },
+          inbound: { $sum: { $cond: [{ $eq: ["$direction", "inbound"] }, 1, 0] } },
+          outbound: { $sum: { $cond: [{ $eq: ["$direction", "outbound"] }, 1, 0] } },
+          pendingRequests: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ["$category", "request"] },
+                    { $eq: ["$status", "unresolved"] },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+        },
+      },
+    ]),
+    CrmSalesRecord.aggregate([
+      { $match: salesRecordFilter },
+      {
+        $group: {
+          _id: null,
+          salesRecords: { $sum: 1 },
+          booksSold: { $sum: "$quantitySold" },
+          salesValue: { $sum: "$totalPrice" },
+        },
+      },
+    ]),
   ]);
 
   const [surveyBySender, surveyByTicketOwner] = await Promise.all([
     SurveyDispatch.aggregate([
-      { $match: { interaction: { $in: interactionIds } } },
+      { $match: surveyFilter },
       {
         $group: {
           _id: "$sentBy",
           count: { $sum: 1 },
         },
       },
-      {
-        $lookup: {
-          from: "users",
-          localField: "_id",
-          foreignField: "_id",
-          as: "sender",
-        },
-      },
-      {
-        $project: {
-          count: 1,
-          name: {
-            $ifNull: [
-              { $arrayElemAt: ["$sender.csrDisplayName", 0] },
-              { $ifNull: [{ $arrayElemAt: ["$sender.name", 0] }, "Unknown sender"] },
-            ],
-          },
-        },
-      },
+      ...attachUserNameFields("sender"),
       { $sort: { count: -1 } },
     ]),
     SurveyDispatch.aggregate([
-      { $match: { interaction: { $in: interactionIds } } },
+      { $match: surveyFilter },
       {
         $lookup: {
           from: "crminteractions",
@@ -1685,25 +1918,7 @@ const getReportsSummary = asyncHandler(async (req, res) => {
           count: { $sum: 1 },
         },
       },
-      {
-        $lookup: {
-          from: "users",
-          localField: "_id",
-          foreignField: "_id",
-          as: "owner",
-        },
-      },
-      {
-        $project: {
-          count: 1,
-          name: {
-            $ifNull: [
-              { $arrayElemAt: ["$owner.csrDisplayName", 0] },
-              { $ifNull: [{ $arrayElemAt: ["$owner.name", 0] }, "Unknown CSR"] },
-            ],
-          },
-        },
-      },
+      ...attachUserNameFields("owner"),
       { $sort: { count: -1 } },
     ]),
   ]);
@@ -1711,12 +1926,60 @@ const getReportsSummary = asyncHandler(async (req, res) => {
   const surveySent = surveys.reduce((sum, item) => sum + item.count, 0);
   const surveyResponded =
     surveys.find((item) => item._id === "responded")?.count || 0;
+  const overviewRow = overviewCounts[0] || {
+    totalTickets: 0,
+    resolved: 0,
+    unresolved: 0,
+    inbound: 0,
+    outbound: 0,
+    pendingRequests: 0,
+  };
+  const salesRow = salesOverview[0] || {
+    salesRecords: 0,
+    booksSold: 0,
+    salesValue: 0,
+  };
+
+  const csrPerformance = mergeCsrPerformanceRows(
+    ticketMetricsByOwner,
+    surveyMetricsBySender,
+    surveyMetricsByTicketOwner,
+    salesMetricsByOwner
+  );
 
   res.json({
+    period: dateRange
+      ? {
+          type: dateRange.period,
+          startDate: formatDateOnly(dateRange.startDate),
+          endDate: formatDateOnly(dateRange.endDate),
+        }
+      : { type: "all" },
     reports: {
+      overview: {
+        totalTickets: overviewRow.totalTickets,
+        resolved: overviewRow.resolved,
+        unresolved: overviewRow.unresolved,
+        pendingRequests: overviewRow.pendingRequests,
+        inbound: overviewRow.inbound,
+        outbound: overviewRow.outbound,
+        resolutionRate: overviewRow.totalTickets
+          ? Math.round((overviewRow.resolved / overviewRow.totalTickets) * 100)
+          : 0,
+        surveySent,
+        surveyResponded,
+        surveyResponseRate: surveySent
+          ? Math.round((surveyResponded / surveySent) * 100)
+          : 0,
+        salesRecords: salesRow.salesRecords,
+        booksSold: salesRow.booksSold,
+        salesValue: roundMoney(salesRow.salesValue),
+      },
+      csrPerformance,
       byDirection,
       byCategory,
       byState,
+      byStatus,
       byOwner,
       bySalesRep,
       surveyBySender,

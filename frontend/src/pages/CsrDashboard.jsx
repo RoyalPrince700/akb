@@ -14,10 +14,13 @@ import {
   Users,
 } from "lucide-react";
 
+import CrmBarChartCard from "../components/crm/CrmBarChartCard";
+import CrmPieChartCard from "../components/crm/CrmPieChartCard";
 import { useAuth } from "../context/AuthContext";
 import { getCsrDisplayName } from "../constants/crm";
 import PanelLayout from "../layouts/PanelLayout";
 import { getCrmDashboardSummary } from "../services/api";
+import { mapDashboardDirectionData, mapDashboardResolutionData } from "../utils/crmChartData";
 import { panelSegmentPath } from "../utils/rolePaths";
 
 const emptySummary = {
@@ -205,12 +208,32 @@ const CsrDashboard = () => {
 
   const ticketsPath = panelSegmentPath(user?.role, "interactions");
   const surveysPath = panelSegmentPath(user?.role, "surveys");
-  const salesRecordsPath = panelSegmentPath(user?.role, "sales-records");
+  const salesRecordsPath = panelSegmentPath(
+    user?.role,
+    isCsrAdmin ? "csr-sales" : "sales-records"
+  );
   const reportsPath = panelSegmentPath(user?.role, "reports");
   const salesRepsPath = panelSegmentPath(user?.role, "sales-reps");
   const staffPath = panelSegmentPath(user?.role, "staff");
 
   const csrDisplayName = getCsrDisplayName(user, "CSR");
+
+  const directionChartData = useMemo(
+    () => mapDashboardDirectionData(summary),
+    [summary]
+  );
+  const resolutionChartData = useMemo(
+    () => mapDashboardResolutionData(summary),
+    [summary]
+  );
+  const activityChartData = useMemo(
+    () => [
+      { name: "Contacts", value: summary.totalContacts ?? 0 },
+      { name: "Surveys", value: summary.surveysSent ?? 0 },
+      { name: "Sales", value: summary.totalSalesRecords ?? 0 },
+    ],
+    [summary]
+  );
 
   return (
     <PanelLayout title={isCsrAdmin ? "CSR Admin Dashboard" : `${csrDisplayName}'s CSR Dashboard`}>
@@ -286,7 +309,27 @@ const CsrDashboard = () => {
           Loading overview...
         </p>
       ) : (
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <>
+          <div className="mb-6 grid gap-5 lg:grid-cols-3">
+            <CrmPieChartCard
+              title="Contact direction"
+              description="Inbound and outbound ticket split for the selected period."
+              data={directionChartData}
+            />
+            <CrmPieChartCard
+              title="Case resolution"
+              description="Resolved tickets compared with still-open cases."
+              data={resolutionChartData}
+            />
+            <CrmBarChartCard
+              title="Activity overview"
+              description="Contacts, surveys sent, and sales records logged in this period."
+              data={activityChartData}
+              color="#059669"
+            />
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           <OverviewCard
             label="Total contacts"
             value={summary.totalContacts ?? 0}
@@ -376,7 +419,8 @@ const CsrDashboard = () => {
               />
             </>
           )}
-        </div>
+          </div>
+        </>
       )}
     </PanelLayout>
   );

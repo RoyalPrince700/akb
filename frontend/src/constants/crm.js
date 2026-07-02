@@ -68,7 +68,20 @@ export const contactMedia = [
 export const phoneLineLabels = [
   { value: "landline", label: "Landline" },
   { value: "csrOfficialLine", label: "CSR Official Line" },
+  { value: "message", label: "Message" },
 ];
+
+export const getPhoneLineLabelsForMedium = (medium) => {
+  if (medium === "whatsapp") {
+    return phoneLineLabels.filter((item) => item.value === "message");
+  }
+
+  if (medium === "phone") {
+    return phoneLineLabels.filter((item) => item.value !== "message");
+  }
+
+  return [];
+};
 
 export const landlinePhoneNumber = "02012278139";
 
@@ -81,6 +94,7 @@ export const organizationTypes = [
   { value: "school", label: "School" },
   { value: "bookshop", label: "Bookshop" },
   { value: "individual", label: "Individual" },
+  { value: "marketer", label: "Marketer" },
 ];
 
 export const callerStatuses = [
@@ -147,11 +161,13 @@ export const formatOrganizationType = (value) =>
 export const getOrganizationNameLabel = (organizationType) => {
   if (organizationType === "bookshop") return "Bookshop name";
   if (organizationType === "individual") return "Individual name";
+  if (organizationType === "marketer") return "Marketer name";
   return "School name";
 };
 
 export const getOrganizationNamePlaceholder = (organizationType) => {
   if (organizationType === "bookshop") return "Enter bookshop name";
   if (organizationType === "individual") return "Enter individual name";
+  if (organizationType === "marketer") return "Enter marketer name";
   return "Search uploaded school name...";
 };
