@@ -65,6 +65,7 @@ export const crmDirections = [
   { value: "sms", label: "SMS" },
   { value: "inboundFollowUp", label: "Inbound follow-up" },
   { value: "outboundFollowUp", label: "Outbound follow-up" },
+  { value: "hoax", label: "Hoax call" },
 ];
 
 export const followUpDirections = ["inboundFollowUp", "outboundFollowUp"];

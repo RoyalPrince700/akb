@@ -4,8 +4,11 @@ const {
   createInteraction,
   createSalesRecord,
   createSalesRep,
+  createBookshop,
+  createIndividual,
   createSchool,
   createSurveyDispatch,
+  deleteInteraction,
   deleteSalesRep,
   getCustomerHistory,
   getCustomerLookup,
@@ -19,6 +22,8 @@ const {
   listInteractions,
   listSalesRecords,
   listSalesReps,
+  listBookshops,
+  listIndividuals,
   listSchools,
   listSurveyDispatches,
   listSurveyResponses,
@@ -50,6 +55,7 @@ router.get("/interactions", authorizeCsrOrAdmin, listInteractions);
 router.post("/interactions", authorizeCsrOrAdmin, createInteraction);
 router.get("/interactions/:id", authorizeCsrOrAdmin, getInteraction);
 router.put("/interactions/:id", authorizeCsrOrAdmin, updateInteraction);
+router.delete("/interactions/:id", authorizeCsrAdmin, deleteInteraction);
 
 router.get("/sales-records", authorizeCsrOrAdmin, listSalesRecords);
 router.post("/sales-records", authorizeCsrOrAdmin, createSalesRecord);
@@ -60,6 +66,10 @@ router.post("/sales-reps/import", authorizeCsrAdmin, importSalesReps);
 router.put("/sales-reps/:id", authorizeCsrAdmin, updateSalesRep);
 router.delete("/sales-reps/:id", authorizeCsrAdmin, deleteSalesRep);
 
+router.get("/bookshops", authorizeCsrOrAdmin, listBookshops);
+router.post("/bookshops", authorizeCsrOrAdmin, createBookshop);
+router.get("/individuals", authorizeCsrOrAdmin, listIndividuals);
+router.post("/individuals", authorizeCsrOrAdmin, createIndividual);
 router.get("/schools", authorizeCsrOrAdmin, listSchools);
 router.post("/schools", authorizeCsrOrAdmin, createSchool);
 router.post("/schools/import", authorizeCsrAdmin, importSchools);

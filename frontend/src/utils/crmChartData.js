@@ -42,6 +42,7 @@ export const mapOverviewDirectionData = (overview) => [
   { name: "SMS", value: overview.sms ?? 0 },
   { name: "Inbound follow-up", value: overview.inboundFollowUp ?? 0 },
   { name: "Outbound follow-up", value: overview.outboundFollowUp ?? 0 },
+  { name: "Hoax call", value: overview.hoax ?? 0 },
 ];
 
 export const mapOverviewResolutionData = (overview) => [
@@ -56,6 +57,7 @@ export const mapDashboardDirectionData = (summary) => [
   { name: "SMS", value: summary.smsCount ?? 0 },
   { name: "Inbound follow-up", value: summary.inboundFollowUpCount ?? 0 },
   { name: "Outbound follow-up", value: summary.outboundFollowUpCount ?? 0 },
+  { name: "Hoax call", value: summary.hoaxCount ?? 0 },
 ];
 
 export const mapDashboardResolutionData = (summary) => {

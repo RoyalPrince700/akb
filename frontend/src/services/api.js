@@ -173,6 +173,11 @@ export const updateCrmInteraction = async (id, payload) => {
   return response.data;
 };
 
+export const deleteCrmInteraction = async (id) => {
+  const response = await api.delete(`/crm/interactions/${id}`);
+  return response.data;
+};
+
 export const listCrmSalesRecords = async (params = {}) => {
   const response = await api.get("/crm/sales-records", { params });
   return response.data;
@@ -246,6 +251,44 @@ export const createSchool = async (payload) => {
     schoolId: response.data?.school?._id,
     schoolName: response.data?.school?.schoolName,
   });
+  return response.data;
+};
+
+export const listBookshops = async (params = {}) => {
+  const response = await api.get("/crm/bookshops", {
+    params: {
+      ...params,
+      _ts: Date.now(),
+    },
+    headers: {
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    },
+  });
+  return response.data;
+};
+
+export const createBookshop = async (payload) => {
+  const response = await api.post("/crm/bookshops", payload);
+  return response.data;
+};
+
+export const listIndividuals = async (params = {}) => {
+  const response = await api.get("/crm/individuals", {
+    params: {
+      ...params,
+      _ts: Date.now(),
+    },
+    headers: {
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    },
+  });
+  return response.data;
+};
+
+export const createIndividual = async (payload) => {
+  const response = await api.post("/crm/individuals", payload);
   return response.data;
 };
 

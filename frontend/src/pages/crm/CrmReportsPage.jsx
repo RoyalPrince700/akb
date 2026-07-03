@@ -29,6 +29,7 @@ const emptyReports = {
     sms: 0,
     inboundFollowUp: 0,
     outboundFollowUp: 0,
+    hoax: 0,
     resolutionRate: 0,
     surveySent: 0,
     surveyResponded: 0,
@@ -563,6 +564,11 @@ const CrmReportsPage = () => {
               helper="Outbound follow-up tickets in this period"
             />
             <MetricCard
+              label="Hoax calls"
+              value={overview.hoax ?? 0}
+              helper="Calls tagged as hoax in this period"
+            />
+            <MetricCard
               label="Sales records"
               value={overview.salesRecords ?? 0}
               helper={`${overview.booksSold ?? 0} books sold in this period`}
@@ -617,6 +623,7 @@ const CrmReportsPage = () => {
                       <th className="pb-3 pr-4 font-medium">SMS</th>
                       <th className="pb-3 pr-4 font-medium">Inbound F/U</th>
                       <th className="pb-3 pr-4 font-medium">Outbound F/U</th>
+                      <th className="pb-3 pr-4 font-medium">Hoax</th>
                       <th className="pb-3 pr-4 font-medium">Enquiries</th>
                       <th className="pb-3 pr-4 font-medium">Complaints</th>
                       <th className="pb-3 pr-4 font-medium">Requests</th>
@@ -648,6 +655,7 @@ const CrmReportsPage = () => {
                         <td className="py-3 pr-4 text-slate-700">{row.sms ?? 0}</td>
                         <td className="py-3 pr-4 text-slate-700">{row.inboundFollowUp ?? 0}</td>
                         <td className="py-3 pr-4 text-slate-700">{row.outboundFollowUp ?? 0}</td>
+                        <td className="py-3 pr-4 text-amber-700">{row.hoax ?? 0}</td>
                         <td className="py-3 pr-4 text-slate-700">{row.enquiries ?? 0}</td>
                         <td className="py-3 pr-4 text-slate-700">{row.complaints ?? 0}</td>
                         <td className="py-3 pr-4 text-slate-700">{row.requests ?? 0}</td>

@@ -15,6 +15,7 @@ import { useAuth } from "../../context/AuthContext";
 import PanelLayout from "../../layouts/PanelLayout";
 import {
   createSurveyDispatch,
+  deleteCrmInteraction,
   listCrmInteractions,
   listStaff,
 } from "../../services/api";
@@ -35,7 +36,7 @@ const CrmInteractionsPage = () => {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [stateFilter, setStateFilter] = useState("");
-  const [directionFilter, setDirectionFilter] = useState("");
+  const [directionFilter, setDirectionFilter] = useState(searchParams.get("direction") || "");
   const [statusFilter, setStatusFilter] = useState("");
   const [ownerFilter, setOwnerFilter] = useState(searchParams.get("owner") || "");
   const [csrOptions, setCsrOptions] = useState([]);
@@ -43,6 +44,7 @@ const CrmInteractionsPage = () => {
   const [surveyModalOpen, setSurveyModalOpen] = useState(false);
   const [activeInteraction, setActiveInteraction] = useState(null);
   const [sendingSurvey, setSendingSurvey] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
   const listPath = panelSegmentPath(user?.role, "interactions");
 
@@ -73,8 +75,8 @@ const CrmInteractionsPage = () => {
   }, [isCsrAdmin]);
 
   useEffect(() => {
-    const ownerFromUrl = searchParams.get("owner") || "";
-    setOwnerFilter(ownerFromUrl);
+    setOwnerFilter(searchParams.get("owner") || "");
+    setDirectionFilter(searchParams.get("direction") || "");
     setPage(1);
   }, [searchParams]);
 
@@ -111,6 +113,20 @@ const CrmInteractionsPage = () => {
     loadInteractions();
   };
 
+  const handleDirectionFilterChange = (event) => {
+    const nextDirection = event.target.value;
+    setDirectionFilter(nextDirection);
+    setPage(1);
+
+    const nextParams = new URLSearchParams(searchParams);
+    if (nextDirection) {
+      nextParams.set("direction", nextDirection);
+    } else {
+      nextParams.delete("direction");
+    }
+    setSearchParams(nextParams, { replace: true });
+  };
+
   const handleOwnerFilterChange = (event) => {
     const nextOwner = event.target.value;
     setOwnerFilter(nextOwner);
@@ -135,6 +151,35 @@ const CrmInteractionsPage = () => {
     setActiveInteraction(null);
   };
 
+  const handleDelete = async (interaction) => {
+    const ticketLabel = capitalizeWords(interaction.customer.schoolName) || "this ticket";
+
+    if (
+      !window.confirm(
+        `Delete the ticket for ${ticketLabel}? This will also remove any linked survey sends and cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    setDeletingId(interaction._id);
+    setError("");
+
+    try {
+      await deleteCrmInteraction(interaction._id);
+
+      if (interactions.length === 1 && page > 1) {
+        setPage((current) => current - 1);
+      } else {
+        loadInteractions();
+      }
+    } catch (apiError) {
+      setError(apiError.response?.data?.message || "Failed to delete ticket.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const handleSurveySubmit = async (formData) => {
     setSendingSurvey(true);
     setError("");
@@ -152,6 +197,7 @@ const CrmInteractionsPage = () => {
         );
       }
       closeSurveyModal();
+      loadInteractions();
     } catch (apiError) {
       setError(apiError.response?.data?.message || "Failed to create survey link.");
     } finally {
@@ -174,8 +220,8 @@ const CrmInteractionsPage = () => {
             <p className="mt-1 text-sm text-slate-600">
               {isCsrAdmin
                 ? selectedCsrLabel
-                  ? `${pagination.total} ticket${pagination.total !== 1 ? "s" : ""} for ${selectedCsrLabel} (read-only)`
-                  : `${pagination.total} ticket${pagination.total !== 1 ? "s" : ""} across the CSR team (read-only)`
+                  ? `${pagination.total} ticket${pagination.total !== 1 ? "s" : ""} for ${selectedCsrLabel}`
+                  : `${pagination.total} ticket${pagination.total !== 1 ? "s" : ""} across the CSR team`
                 : `${pagination.total} ticket${pagination.total !== 1 ? "s" : ""} logged`}
             </p>
           </div>
@@ -239,10 +285,7 @@ const CrmInteractionsPage = () => {
           </select>
           <select
             value={directionFilter}
-            onChange={(event) => {
-              setDirectionFilter(event.target.value);
-              setPage(1);
-            }}
+            onChange={handleDirectionFilterChange}
             className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
           >
             <option value="">All directions</option>
@@ -294,6 +337,7 @@ const CrmInteractionsPage = () => {
                   <th className="pb-3 pr-4 font-medium">Sales rep</th>
                   <th className="pb-3 pr-4 font-medium">CSR</th>
                   <th className="pb-3 pr-4 font-medium">Status</th>
+                  <th className="pb-3 pr-4 font-medium">Survey</th>
                   <th className="pb-3 pr-4 font-medium">Date</th>
                   <th className="pb-3 text-right font-medium">Actions</th>
                 </tr>
@@ -338,18 +382,44 @@ const CrmInteractionsPage = () => {
                         </span>
                       )}
                     </td>
+                    <td className="py-3 pr-4">
+                      {isFollowUpDirection(interaction.direction) ? (
+                        <span className="text-slate-500">—</span>
+                      ) : interaction.surveyTriggered ? (
+                        <span className="inline-flex rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-semibold text-sky-800">
+                          Sent
+                          {interaction.surveyDispatchCount > 1
+                            ? ` (${interaction.surveyDispatchCount}x)`
+                            : ""}
+                        </span>
+                      ) : (
+                        <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+                          Not sent
+                        </span>
+                      )}
+                    </td>
                     <td className="py-3 pr-4 text-slate-700">
                       {new Date(interaction.dateOfContact).toLocaleDateString()}
                     </td>
                     <td className="py-3 text-right">
                       <div className="flex flex-wrap justify-end gap-2">
                         {isCsrAdmin ? (
-                          <Link
-                            to={`${listPath}/${interaction._id}`}
-                            className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
-                          >
-                            View
-                          </Link>
+                          <>
+                            <Link
+                              to={`${listPath}/${interaction._id}`}
+                              className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
+                            >
+                              View
+                            </Link>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(interaction)}
+                              disabled={deletingId === interaction._id}
+                              className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              {deletingId === interaction._id ? "Deleting..." : "Delete"}
+                            </button>
+                          </>
                         ) : (
                           <>
                             <Link
@@ -358,13 +428,21 @@ const CrmInteractionsPage = () => {
                             >
                               Edit
                             </Link>
-                            <button
-                              type="button"
-                              onClick={() => openSurveyModal(interaction)}
-                              className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
-                            >
-                              Trigger survey
-                            </button>
+                            {!isFollowUpDirection(interaction.direction) && (
+                              <button
+                                type="button"
+                                onClick={() => openSurveyModal(interaction)}
+                                className={`rounded-full border bg-white px-3 py-1 text-xs font-semibold transition ${
+                                  interaction.surveyTriggered
+                                    ? "border-sky-200 text-sky-700 hover:bg-sky-50"
+                                    : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                                }`}
+                              >
+                                {interaction.surveyTriggered
+                                  ? "Resend trigger"
+                                  : "Trigger survey"}
+                              </button>
+                            )}
                           </>
                         )}
                       </div>

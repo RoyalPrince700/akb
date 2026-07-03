@@ -9,6 +9,7 @@ import {
   Headphones,
   MessageSquareShare,
   PhoneCall,
+  PhoneOff,
   Radio,
   ScrollText,
   Users,
@@ -31,6 +32,7 @@ const emptySummary = {
   smsCount: 0,
   inboundFollowUpCount: 0,
   outboundFollowUpCount: 0,
+  hoaxCount: 0,
   unresolvedCount: 0,
   pendingRequests: 0,
   surveysSent: 0,
@@ -211,6 +213,8 @@ const CsrDashboard = () => {
   };
 
   const ticketsPath = panelSegmentPath(user?.role, "interactions");
+  const ticketsPathForDirection = (direction) =>
+    direction ? `${ticketsPath}?direction=${direction}` : ticketsPath;
   const surveysPath = panelSegmentPath(user?.role, "surveys");
   const salesRecordsPath = panelSegmentPath(
     user?.role,
@@ -317,7 +321,7 @@ const CsrDashboard = () => {
           <div className="mb-6 grid gap-5 lg:grid-cols-3">
             <CrmPieChartCard
               title="Contact direction"
-              description="Ticket split across inbound, outbound, WhatsApp, SMS, and follow-ups."
+              description="Ticket split across inbound, outbound, WhatsApp, SMS, follow-ups, and hoax calls."
               data={directionChartData}
             />
             <CrmPieChartCard
@@ -401,6 +405,18 @@ const CsrDashboard = () => {
             description="Outbound follow-up tickets logged in this period"
             to={ticketsPath}
             icon={ArrowUpRight}
+            tone="amber"
+          />
+          <OverviewCard
+            label="Hoax calls"
+            value={summary.hoaxCount ?? 0}
+            description={
+              isCsrAdmin
+                ? "Hoax calls tagged across all CSRs in this period"
+                : "Hoax calls you tagged in this period"
+            }
+            to={ticketsPathForDirection("hoax")}
+            icon={PhoneOff}
             tone="amber"
           />
           <OverviewCard

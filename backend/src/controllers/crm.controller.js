@@ -4,6 +4,8 @@ const mongoose = require("mongoose");
 const CrmInteraction = require("../models/CrmInteraction");
 const CrmSalesRecord = require("../models/CrmSalesRecord");
 const SalesRep = require("../models/SalesRep");
+const Bookshop = require("../models/Bookshop");
+const Individual = require("../models/Individual");
 const School = require("../models/School");
 const SurveyDispatch = require("../models/SurveyDispatch");
 const { NIGERIAN_STATES, isFollowUpDirection } = require("../constants/crm");
@@ -286,6 +288,7 @@ const buildDirectionCountFields = () => ({
   sms: { $sum: { $cond: [{ $eq: ["$direction", "sms"] }, 1, 0] } },
   inboundFollowUp: { $sum: { $cond: [{ $eq: ["$direction", "inboundFollowUp"] }, 1, 0] } },
   outboundFollowUp: { $sum: { $cond: [{ $eq: ["$direction", "outboundFollowUp"] }, 1, 0] } },
+  hoax: { $sum: { $cond: [{ $eq: ["$direction", "hoax"] }, 1, 0] } },
 });
 
 const mapDirectionCounts = (rows = []) =>
@@ -446,8 +449,37 @@ const listInteractions = asyncHandler(async (req, res) => {
     CrmInteraction.countDocuments(filter),
   ]);
 
+  const interactionIds = interactions.map((interaction) => interaction._id);
+  const surveySummary =
+    interactionIds.length > 0
+      ? await SurveyDispatch.aggregate([
+          { $match: { interaction: { $in: interactionIds } } },
+          {
+            $group: {
+              _id: "$interaction",
+              count: { $sum: 1 },
+              lastSentAt: { $max: "$sentAt" },
+            },
+          },
+        ])
+      : [];
+  const surveyByInteraction = new Map(
+    surveySummary.map((row) => [row._id.toString(), row])
+  );
+
+  const enrichedInteractions = interactions.map((interaction) => {
+    const surveyInfo = surveyByInteraction.get(interaction._id.toString());
+
+    return {
+      ...interaction.toObject(),
+      surveyTriggered: Boolean(surveyInfo),
+      surveyDispatchCount: surveyInfo?.count ?? 0,
+      lastSurveySentAt: surveyInfo?.lastSentAt ?? null,
+    };
+  });
+
   res.json({
-    interactions,
+    interactions: enrichedInteractions,
     pagination: {
       page,
       limit,
@@ -503,6 +535,27 @@ const updateInteraction = asyncHandler(async (req, res) => {
     .populate("salesRep", "name state location");
 
   res.json({ interaction: populated });
+});
+
+const deleteInteraction = asyncHandler(async (req, res) => {
+  if (!canManageAllCrmRecords(req.user)) {
+    res.status(403);
+    throw new Error("Only CSR admins can delete tickets.");
+  }
+
+  const interaction = await CrmInteraction.findById(req.params.id);
+
+  if (!interaction) {
+    res.status(404);
+    throw new Error("CRM interaction not found");
+  }
+
+  await Promise.all([
+    SurveyDispatch.deleteMany({ interaction: interaction._id }),
+    interaction.deleteOne(),
+  ]);
+
+  res.json({ message: "CRM ticket deleted successfully" });
 });
 
 const listCustomers = asyncHandler(async (req, res) => {
@@ -966,6 +1019,427 @@ const createSchool = asyncHandler(async (req, res) => {
       result.action === "inserted"
         ? "School added to the directory"
         : "Existing school record updated",
+  });
+});
+
+const buildBookshopLookupFilter = (entry) => {
+  const phoneFields = getStoredPhoneFields(entry.phoneNumber);
+  const conditions = [
+    {
+      bookshopName: new RegExp(`^${escapeRegex(entry.bookshopName)}$`, "i"),
+      state: entry.state,
+      address: new RegExp(`^${escapeRegex(entry.address || "")}$`, "i"),
+    },
+  ];
+
+  if (phoneFields.normalizedPhoneNumber) {
+    conditions.unshift({ normalizedPhoneNumber: phoneFields.normalizedPhoneNumber });
+  }
+
+  return { $or: conditions };
+};
+
+const normalizeStoredBookshopPhones = async () => {
+  await Bookshop.updateMany(
+    { normalizedPhoneNumber: { $in: ["", null] } },
+    { $unset: { normalizedPhoneNumber: "" } }
+  );
+};
+
+const upsertBookshopEntry = async (entry, userId) => {
+  const phoneFields = getStoredPhoneFields(entry.phoneNumber);
+  const payload = {
+    bookshopName: entry.bookshopName,
+    address: entry.address,
+    state: entry.state,
+    phoneNumber: phoneFields.phoneNumber,
+    updatedBy: userId,
+  };
+
+  if (phoneFields.normalizedPhoneNumber) {
+    payload.normalizedPhoneNumber = phoneFields.normalizedPhoneNumber;
+  }
+
+  const applyPhoneFields = (document) => {
+    Object.assign(document, payload);
+
+    if (!phoneFields.normalizedPhoneNumber) {
+      document.normalizedPhoneNumber = undefined;
+    }
+  };
+
+  let existing = await Bookshop.findOne(buildBookshopLookupFilter(entry));
+
+  if (existing) {
+    if (
+      phoneFields.normalizedPhoneNumber &&
+      existing.normalizedPhoneNumber &&
+      existing.normalizedPhoneNumber !== phoneFields.normalizedPhoneNumber
+    ) {
+      const phoneOwner = await Bookshop.findOne({
+        normalizedPhoneNumber: phoneFields.normalizedPhoneNumber,
+        _id: { $ne: existing._id },
+      });
+
+      if (phoneOwner) {
+        return { action: "skipped", reason: "Duplicate record skipped (phone already exists)" };
+      }
+    }
+
+    applyPhoneFields(existing);
+    await existing.save();
+    return { action: "updated", bookshop: existing };
+  }
+
+  if (phoneFields.normalizedPhoneNumber) {
+    existing = await Bookshop.findOne({
+      normalizedPhoneNumber: phoneFields.normalizedPhoneNumber,
+    });
+
+    if (existing) {
+      applyPhoneFields(existing);
+      await existing.save();
+      return { action: "updated", bookshop: existing };
+    }
+  }
+
+  try {
+    const bookshop = await Bookshop.create({
+      ...payload,
+      createdBy: userId,
+    });
+    return { action: "inserted", bookshop };
+  } catch (error) {
+    if (error.code !== 11000) {
+      throw error;
+    }
+
+    existing =
+      (await Bookshop.findOne(buildBookshopLookupFilter(entry))) ||
+      (phoneFields.normalizedPhoneNumber
+        ? await Bookshop.findOne({ normalizedPhoneNumber: phoneFields.normalizedPhoneNumber })
+        : null);
+
+    if (!existing) {
+      return { action: "skipped", reason: "Duplicate record skipped" };
+    }
+
+    applyPhoneFields(existing);
+    await existing.save();
+    return { action: "updated", bookshop: existing };
+  }
+};
+
+const listBookshops = asyncHandler(async (req, res) => {
+  const { limit, page, skip } = parsePagination(req.query);
+  const filter = {};
+
+  if (req.query.state) {
+    filter.state = req.query.state;
+  }
+
+  if (req.query.search) {
+    const search = req.query.search.trim();
+    const phoneSearch = normalizePhoneNumber(search);
+    const searchPattern = new RegExp(escapeRegex(search), "i");
+    filter.$or = [
+      { bookshopName: searchPattern },
+      { address: searchPattern },
+      { phoneNumber: searchPattern },
+      ...(phoneSearch ? [{ normalizedPhoneNumber: phoneSearch }] : []),
+    ];
+  }
+
+  const [bookshops, total] = await Promise.all([
+    Bookshop.find(filter).sort({ bookshopName: 1, createdAt: -1 }).skip(skip).limit(limit),
+    Bookshop.countDocuments(filter),
+  ]);
+
+  res.set({
+    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+    Pragma: "no-cache",
+    Expires: "0",
+  });
+
+  res.status(200).json({
+    bookshops,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit) || 1,
+    },
+  });
+});
+
+const createBookshop = asyncHandler(async (req, res) => {
+  await normalizeStoredBookshopPhones();
+
+  const bookshopName = (req.body.bookshopName || "").trim();
+  const state = resolveNigerianState(req.body.state || "");
+
+  if (!bookshopName) {
+    res.status(400);
+    throw new Error("Bookshop name is required");
+  }
+
+  if (!state) {
+    res.status(400);
+    throw new Error("A valid Nigerian state is required");
+  }
+
+  const entry = {
+    bookshopName: capitalizeWords(bookshopName),
+    address: capitalizeWords(req.body.address || ""),
+    state,
+    phoneNumber: (req.body.phoneNumber || "").trim(),
+  };
+
+  const result = await upsertBookshopEntry(entry, req.user._id);
+
+  if (result.action === "skipped") {
+    res.status(409);
+    throw new Error(result.reason || "Could not add bookshop");
+  }
+
+  const bookshop =
+    result.bookshop || (await Bookshop.findOne(buildBookshopLookupFilter(entry)));
+
+  if (!bookshop) {
+    res.status(500);
+    throw new Error("Bookshop was saved but could not be loaded");
+  }
+
+  res.set({
+    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+    Pragma: "no-cache",
+    Expires: "0",
+  });
+
+  res.status(result.action === "inserted" ? 201 : 200).json({
+    bookshop,
+    action: result.action,
+    message:
+      result.action === "inserted"
+        ? "Bookshop added to the directory"
+        : "Existing bookshop record updated",
+  });
+});
+
+const buildIndividualLookupFilter = (entry) => {
+  const phoneFields = getStoredPhoneFields(entry.phoneNumber);
+  const nameAddressFilter = {
+    individualName: new RegExp(`^${escapeRegex(entry.individualName)}$`, "i"),
+    address: new RegExp(`^${escapeRegex(entry.address || "")}$`, "i"),
+  };
+
+  if (entry.state) {
+    nameAddressFilter.state = entry.state;
+  }
+
+  const conditions = [nameAddressFilter];
+
+  if (phoneFields.normalizedPhoneNumber) {
+    conditions.unshift({ normalizedPhoneNumber: phoneFields.normalizedPhoneNumber });
+  }
+
+  return { $or: conditions };
+};
+
+const normalizeStoredIndividualPhones = async () => {
+  await Individual.updateMany(
+    { normalizedPhoneNumber: { $in: ["", null] } },
+    { $unset: { normalizedPhoneNumber: "" } }
+  );
+};
+
+const upsertIndividualEntry = async (entry, userId) => {
+  const phoneFields = getStoredPhoneFields(entry.phoneNumber);
+  const payload = {
+    individualName: entry.individualName,
+    address: entry.address,
+    phoneNumber: phoneFields.phoneNumber,
+    updatedBy: userId,
+  };
+
+  if (entry.state) {
+    payload.state = entry.state;
+  }
+
+  if (phoneFields.normalizedPhoneNumber) {
+    payload.normalizedPhoneNumber = phoneFields.normalizedPhoneNumber;
+  }
+
+  const applyPhoneFields = (document) => {
+    Object.assign(document, payload);
+
+    if (!entry.state) {
+      document.state = undefined;
+    }
+
+    if (!phoneFields.normalizedPhoneNumber) {
+      document.normalizedPhoneNumber = undefined;
+    }
+  };
+
+  let existing = await Individual.findOne(buildIndividualLookupFilter(entry));
+
+  if (existing) {
+    if (
+      phoneFields.normalizedPhoneNumber &&
+      existing.normalizedPhoneNumber &&
+      existing.normalizedPhoneNumber !== phoneFields.normalizedPhoneNumber
+    ) {
+      const phoneOwner = await Individual.findOne({
+        normalizedPhoneNumber: phoneFields.normalizedPhoneNumber,
+        _id: { $ne: existing._id },
+      });
+
+      if (phoneOwner) {
+        return { action: "skipped", reason: "Duplicate record skipped (phone already exists)" };
+      }
+    }
+
+    applyPhoneFields(existing);
+    await existing.save();
+    return { action: "updated", individual: existing };
+  }
+
+  if (phoneFields.normalizedPhoneNumber) {
+    existing = await Individual.findOne({
+      normalizedPhoneNumber: phoneFields.normalizedPhoneNumber,
+    });
+
+    if (existing) {
+      applyPhoneFields(existing);
+      await existing.save();
+      return { action: "updated", individual: existing };
+    }
+  }
+
+  try {
+    const individual = await Individual.create({
+      ...payload,
+      createdBy: userId,
+    });
+    return { action: "inserted", individual };
+  } catch (error) {
+    if (error.code !== 11000) {
+      throw error;
+    }
+
+    existing =
+      (await Individual.findOne(buildIndividualLookupFilter(entry))) ||
+      (phoneFields.normalizedPhoneNumber
+        ? await Individual.findOne({ normalizedPhoneNumber: phoneFields.normalizedPhoneNumber })
+        : null);
+
+    if (!existing) {
+      return { action: "skipped", reason: "Duplicate record skipped" };
+    }
+
+    applyPhoneFields(existing);
+    await existing.save();
+    return { action: "updated", individual: existing };
+  }
+};
+
+const listIndividuals = asyncHandler(async (req, res) => {
+  const { limit, page, skip } = parsePagination(req.query);
+  const filter = {};
+
+  if (req.query.state) {
+    filter.state = req.query.state;
+  }
+
+  if (req.query.search) {
+    const search = req.query.search.trim();
+    const phoneSearch = normalizePhoneNumber(search);
+    const searchPattern = new RegExp(escapeRegex(search), "i");
+    filter.$or = [
+      { individualName: searchPattern },
+      { address: searchPattern },
+      { phoneNumber: searchPattern },
+      ...(phoneSearch ? [{ normalizedPhoneNumber: phoneSearch }] : []),
+    ];
+  }
+
+  const [individuals, total] = await Promise.all([
+    Individual.find(filter).sort({ individualName: 1, createdAt: -1 }).skip(skip).limit(limit),
+    Individual.countDocuments(filter),
+  ]);
+
+  res.set({
+    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+    Pragma: "no-cache",
+    Expires: "0",
+  });
+
+  res.status(200).json({
+    individuals,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit) || 1,
+    },
+  });
+});
+
+const createIndividual = asyncHandler(async (req, res) => {
+  await normalizeStoredIndividualPhones();
+
+  const individualName = (req.body.individualName || "").trim();
+  const state = resolveNigerianState(req.body.state || "");
+
+  if (!individualName) {
+    res.status(400);
+    throw new Error("Individual name is required");
+  }
+
+  if (req.body.state && !state) {
+    res.status(400);
+    throw new Error("Provide a valid Nigerian state or leave state blank");
+  }
+
+  const entry = {
+    individualName: capitalizeWords(individualName),
+    address: capitalizeWords(req.body.address || ""),
+    phoneNumber: (req.body.phoneNumber || "").trim(),
+  };
+
+  if (state) {
+    entry.state = state;
+  }
+
+  const result = await upsertIndividualEntry(entry, req.user._id);
+
+  if (result.action === "skipped") {
+    res.status(409);
+    throw new Error(result.reason || "Could not add individual");
+  }
+
+  const individual =
+    result.individual || (await Individual.findOne(buildIndividualLookupFilter(entry)));
+
+  if (!individual) {
+    res.status(500);
+    throw new Error("Individual was saved but could not be loaded");
+  }
+
+  res.set({
+    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+    Pragma: "no-cache",
+    Expires: "0",
+  });
+
+  res.status(result.action === "inserted" ? 201 : 200).json({
+    individual,
+    action: result.action,
+    message:
+      result.action === "inserted"
+        ? "Individual added to the directory"
+        : "Existing individual record updated",
   });
 });
 
@@ -1577,6 +2051,7 @@ const getDashboardSummary = asyncHandler(async (req, res) => {
       smsCount: directionCounts.sms || 0,
       inboundFollowUpCount: directionCounts.inboundFollowUp || 0,
       outboundFollowUpCount: directionCounts.outboundFollowUp || 0,
+      hoaxCount: directionCounts.hoax || 0,
       unresolvedCount,
       pendingRequests,
       surveysSent,
@@ -1672,6 +2147,7 @@ const mergeCsrPerformanceRows = (...sources) => {
         sms: 0,
         inboundFollowUp: 0,
         outboundFollowUp: 0,
+        hoax: 0,
         enquiries: 0,
         complaints: 0,
         requests: 0,
@@ -1974,6 +2450,7 @@ const getReportsSummary = asyncHandler(async (req, res) => {
     sms: 0,
     inboundFollowUp: 0,
     outboundFollowUp: 0,
+    hoax: 0,
     pendingRequests: 0,
   };
   const salesRow = salesOverview[0] || {
@@ -2009,6 +2486,7 @@ const getReportsSummary = asyncHandler(async (req, res) => {
         sms: overviewRow.sms,
         inboundFollowUp: overviewRow.inboundFollowUp,
         outboundFollowUp: overviewRow.outboundFollowUp,
+        hoax: overviewRow.hoax,
         resolutionRate: calcResolutionRate(overviewRow.resolved, overviewRow.unresolved),
         surveySent,
         surveyResponded,
@@ -2036,11 +2514,14 @@ const getReportsSummary = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  createBookshop,
+  createIndividual,
   createInteraction,
   createSalesRecord,
   createSalesRep,
   createSchool,
   createSurveyDispatch,
+  deleteInteraction,
   deleteSalesRep,
   getCustomerHistory,
   getCustomerLookup,
@@ -2050,6 +2531,8 @@ module.exports = {
   getReportsSummary,
   importSalesReps,
   importSchools,
+  listBookshops,
+  listIndividuals,
   listCustomers,
   listInteractions,
   listSalesRecords,

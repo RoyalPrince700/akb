@@ -45,6 +45,7 @@ const CRM_DIRECTIONS = [
   "sms",
   "inboundFollowUp",
   "outboundFollowUp",
+  "hoax",
 ];
 const FOLLOW_UP_DIRECTIONS = ["inboundFollowUp", "outboundFollowUp"];
 const OUTBOUND_DIRECTIONS = ["outbound", "outboundFollowUp"];

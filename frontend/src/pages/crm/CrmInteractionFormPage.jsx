@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import SurveyDispatchModal from "../../components/crm/SurveyDispatchModal";
+import BookshopSearchSelect from "../../components/crm/BookshopSearchSelect";
+import IndividualSearchSelect from "../../components/crm/IndividualSearchSelect";
 import SchoolSearchSelect from "../../components/crm/SchoolSearchSelect";
 import {
   callerStatuses,
@@ -314,15 +316,24 @@ const CrmInteractionFormPage = () => {
     }
   };
 
-  const handleSchoolSelect = (school) => {
-    setFormData((current) => ({
-      ...current,
-      schoolName: school.schoolName || current.schoolName,
-      address: school.address || current.address,
-      state: school.state || current.state,
-      phoneNumber: school.phoneNumber || current.phoneNumber,
-    }));
-    setAutofillMessage("School details loaded from the uploaded directory.");
+  const handleSchoolSelect = (organization) => {
+    setFormData((current) => {
+      const directoryLabels = {
+        bookshop: "Bookshop",
+        individual: "Individual",
+        school: "School",
+      };
+      const directoryLabel = directoryLabels[current.organizationType] || "School";
+      setAutofillMessage(`${directoryLabel} details loaded from the directory.`);
+
+      return {
+        ...current,
+        schoolName: organization.schoolName || current.schoolName,
+        address: organization.address || current.address,
+        state: organization.state || current.state,
+        phoneNumber: organization.phoneNumber || current.phoneNumber,
+      };
+    });
   };
 
   const handleSchoolNameChange = (value) => {
@@ -335,7 +346,7 @@ const CrmInteractionFormPage = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    // Ignore submit events bubbled from portaled modals (e.g. AddSchoolModal).
+    // Ignore submit events bubbled from portaled modals (e.g. AddSchoolModal, AddBookshopModal, AddIndividualModal).
     if (event.target !== event.currentTarget && !event.currentTarget.contains(event.target)) {
       return;
     }
@@ -510,6 +521,24 @@ const CrmInteractionFormPage = () => {
                     onChange={handleSchoolNameChange}
                     onSchoolSelect={handleSchoolSelect}
                     placeholder="Search uploaded school name..."
+                  />
+                ) : formData.organizationType === "bookshop" ? (
+                  <BookshopSearchSelect
+                    id="schoolName"
+                    name="schoolName"
+                    value={formData.schoolName}
+                    onChange={handleSchoolNameChange}
+                    onSchoolSelect={handleSchoolSelect}
+                    placeholder="Search bookshop name..."
+                  />
+                ) : formData.organizationType === "individual" ? (
+                  <IndividualSearchSelect
+                    id="schoolName"
+                    name="schoolName"
+                    value={formData.schoolName}
+                    onChange={handleSchoolNameChange}
+                    onSchoolSelect={handleSchoolSelect}
+                    placeholder="Search individual name..."
                   />
                 ) : (
                   <input
