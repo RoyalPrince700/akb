@@ -38,6 +38,12 @@ const CrmCsrTicketsPage = () => {
           resolved: metrics.resolved ?? 0,
           unresolved: metrics.unresolved ?? 0,
           resolutionRate: metrics.resolutionRate ?? 0,
+          inbound: metrics.inbound ?? 0,
+          outbound: metrics.outbound ?? 0,
+          whatsapp: metrics.whatsapp ?? 0,
+          sms: metrics.sms ?? 0,
+          inboundFollowUp: metrics.inboundFollowUp ?? 0,
+          outboundFollowUp: metrics.outboundFollowUp ?? 0,
         };
       });
 
@@ -107,7 +113,7 @@ const CrmCsrTicketsPage = () => {
           ) : filteredCsrs.length === 0 ? (
             <p className="py-8 text-center text-sm text-slate-600">No CSRs found.</p>
           ) : (
-            <table className="w-full min-w-[760px] text-left text-sm">
+            <table className="w-full min-w-[1100px] text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-500">
                   <th className="pb-3 pr-4 font-medium">CSR</th>
@@ -117,6 +123,12 @@ const CrmCsrTicketsPage = () => {
                   <th className="pb-3 pr-4 font-medium">Resolved</th>
                   <th className="pb-3 pr-4 font-medium">Unresolved</th>
                   <th className="pb-3 pr-4 font-medium">Resolution %</th>
+                  <th className="pb-3 pr-4 font-medium">Inbound</th>
+                  <th className="pb-3 pr-4 font-medium">Outbound</th>
+                  <th className="pb-3 pr-4 font-medium">WhatsApp</th>
+                  <th className="pb-3 pr-4 font-medium">SMS</th>
+                  <th className="pb-3 pr-4 font-medium">Inbound F/U</th>
+                  <th className="pb-3 pr-4 font-medium">Outbound F/U</th>
                   <th className="pb-3 text-right font-medium">Actions</th>
                 </tr>
               </thead>
@@ -140,6 +152,12 @@ const CrmCsrTicketsPage = () => {
                     <td className="py-3 pr-4 text-emerald-700">{csr.resolved}</td>
                     <td className="py-3 pr-4 text-amber-700">{csr.unresolved}</td>
                     <td className="py-3 pr-4 text-slate-700">{csr.resolutionRate}%</td>
+                    <td className="py-3 pr-4 text-slate-700">{csr.inbound}</td>
+                    <td className="py-3 pr-4 text-slate-700">{csr.outbound}</td>
+                    <td className="py-3 pr-4 text-slate-700">{csr.whatsapp}</td>
+                    <td className="py-3 pr-4 text-slate-700">{csr.sms}</td>
+                    <td className="py-3 pr-4 text-slate-700">{csr.inboundFollowUp}</td>
+                    <td className="py-3 pr-4 text-slate-700">{csr.outboundFollowUp}</td>
                     <td className="py-3 text-right">
                       <Link
                         to={`/csr/interactions?owner=${csr._id}`}

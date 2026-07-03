@@ -296,7 +296,7 @@ const CrmSalesRecordsPage = () => {
       const bookItems = formData.bookItems
         .map((item) => ({
           title: item.title.trim(),
-          bookClass: item.bookClass,
+          bookClass: item.bookClass.trim(),
           quantity: parseQuantity(item.quantity),
           price: parseMoney(item.price),
           discountPercent: clampPercent(item.discountPercent),
@@ -311,10 +311,10 @@ const CrmSalesRecordsPage = () => {
       if (
         bookItems.some(
           (item) =>
-            !item.title || !item.bookClass || item.quantity < 1 || !item.hasPrice || item.price < 0
+            !item.title || item.quantity < 1 || !item.hasPrice || item.price < 0
         )
       ) {
-        throw new Error("Each book row must include a title, class, quantity, and valid price.");
+        throw new Error("Each book row must include a title, quantity, and valid price.");
       }
 
       await createCrmSalesRecord({
@@ -463,7 +463,7 @@ const CrmSalesRecordsPage = () => {
                       className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
                       aria-label={`Book class ${index + 1}`}
                     >
-                      <option value="">Select class</option>
+                      <option value="">Select class (optional)</option>
                       {bookSaleClassOptions.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}

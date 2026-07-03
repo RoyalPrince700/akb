@@ -5,7 +5,7 @@ import CrmBarChartCard from "../../components/crm/CrmBarChartCard";
 import CrmCsrPerformanceChart from "../../components/crm/CrmCsrPerformanceChart";
 import CrmPieChartCard from "../../components/crm/CrmPieChartCard";
 import { useAuth } from "../../context/AuthContext";
-import { formatCrmCategory } from "../../constants/crm";
+import { formatCrmCategory, formatCrmDirection } from "../../constants/crm";
 import PanelLayout from "../../layouts/PanelLayout";
 import { getCrmReports, listStaff } from "../../services/api";
 import {
@@ -25,6 +25,10 @@ const emptyReports = {
     pendingRequests: 0,
     inbound: 0,
     outbound: 0,
+    whatsapp: 0,
+    sms: 0,
+    inboundFollowUp: 0,
+    outboundFollowUp: 0,
     resolutionRate: 0,
     surveySent: 0,
     surveyResponded: 0,
@@ -102,12 +106,10 @@ const formatBreakdownLabel = (value) => {
     return "Unknown";
   }
 
-  if (value === "inbound") return "Inbound";
-  if (value === "outbound") return "Outbound";
   if (value === "resolved") return "Resolved";
   if (value === "unresolved") return "Unresolved";
 
-  return formatCrmCategory(value) || value;
+  return formatCrmDirection(value) || formatCrmCategory(value) || value;
 };
 
 const MetricCard = ({ label, value, helper }) => (
@@ -541,6 +543,26 @@ const CrmReportsPage = () => {
               helper="CSR-initiated contacts"
             />
             <MetricCard
+              label="WhatsApp tickets"
+              value={overview.whatsapp ?? 0}
+              helper="Tickets logged via WhatsApp"
+            />
+            <MetricCard
+              label="SMS tickets"
+              value={overview.sms ?? 0}
+              helper="Tickets logged via SMS"
+            />
+            <MetricCard
+              label="Inbound follow-up"
+              value={overview.inboundFollowUp ?? 0}
+              helper="Inbound follow-up tickets in this period"
+            />
+            <MetricCard
+              label="Outbound follow-up"
+              value={overview.outboundFollowUp ?? 0}
+              helper="Outbound follow-up tickets in this period"
+            />
+            <MetricCard
               label="Sales records"
               value={overview.salesRecords ?? 0}
               helper={`${overview.booksSold ?? 0} books sold in this period`}
@@ -591,6 +613,10 @@ const CrmReportsPage = () => {
                       <th className="pb-3 pr-4 font-medium">Resolution %</th>
                       <th className="pb-3 pr-4 font-medium">Inbound</th>
                       <th className="pb-3 pr-4 font-medium">Outbound</th>
+                      <th className="pb-3 pr-4 font-medium">WhatsApp</th>
+                      <th className="pb-3 pr-4 font-medium">SMS</th>
+                      <th className="pb-3 pr-4 font-medium">Inbound F/U</th>
+                      <th className="pb-3 pr-4 font-medium">Outbound F/U</th>
                       <th className="pb-3 pr-4 font-medium">Enquiries</th>
                       <th className="pb-3 pr-4 font-medium">Complaints</th>
                       <th className="pb-3 pr-4 font-medium">Requests</th>
@@ -618,6 +644,10 @@ const CrmReportsPage = () => {
                         <td className="py-3 pr-4 text-slate-700">{row.resolutionRate ?? 0}%</td>
                         <td className="py-3 pr-4 text-slate-700">{row.inbound ?? 0}</td>
                         <td className="py-3 pr-4 text-slate-700">{row.outbound ?? 0}</td>
+                        <td className="py-3 pr-4 text-slate-700">{row.whatsapp ?? 0}</td>
+                        <td className="py-3 pr-4 text-slate-700">{row.sms ?? 0}</td>
+                        <td className="py-3 pr-4 text-slate-700">{row.inboundFollowUp ?? 0}</td>
+                        <td className="py-3 pr-4 text-slate-700">{row.outboundFollowUp ?? 0}</td>
                         <td className="py-3 pr-4 text-slate-700">{row.enquiries ?? 0}</td>
                         <td className="py-3 pr-4 text-slate-700">{row.complaints ?? 0}</td>
                         <td className="py-3 pr-4 text-slate-700">{row.requests ?? 0}</td>
@@ -667,7 +697,7 @@ const CrmReportsPage = () => {
             />
             <CrmPieChartCard
               title="Contact direction"
-              description="Inbound customer contacts compared with outbound CSR outreach."
+              description="Inbound, outbound, WhatsApp, SMS, and follow-up ticket split."
               data={directionChartData}
             />
             <CrmBarChartCard

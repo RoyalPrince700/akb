@@ -66,7 +66,6 @@ const crmSalesRecordSchema = new mongoose.Schema(
         },
         bookClass: {
           type: String,
-          required: true,
           enum: BOOK_SALE_CLASSES,
         },
       },

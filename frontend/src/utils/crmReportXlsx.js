@@ -1,19 +1,17 @@
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
-import { formatCrmCategory } from "../constants/crm";
+import { formatCrmCategory, formatCrmDirection } from "../constants/crm";
 
 const formatLabel = (value) => {
   if (!value) {
     return "Unknown";
   }
 
-  if (value === "inbound") return "Inbound";
-  if (value === "outbound") return "Outbound";
   if (value === "resolved") return "Resolved";
   if (value === "unresolved") return "Unresolved";
 
-  return formatCrmCategory(value) || value;
+  return formatCrmDirection(value) || formatCrmCategory(value) || value;
 };
 
 const formatPeriodLabel = (period) => {
@@ -56,6 +54,10 @@ const CSR_PERFORMANCE_HEADERS = [
   "Resolution %",
   "Inbound",
   "Outbound",
+  "WhatsApp",
+  "SMS",
+  "Inbound F/U",
+  "Outbound F/U",
   "Enquiries",
   "Complaints",
   "Requests",
@@ -78,6 +80,10 @@ const mapCsrPerformanceRow = (row) => [
   formatPercent(row.resolutionRate),
   row.inbound ?? 0,
   row.outbound ?? 0,
+  row.whatsapp ?? 0,
+  row.sms ?? 0,
+  row.inboundFollowUp ?? 0,
+  row.outboundFollowUp ?? 0,
   row.enquiries ?? 0,
   row.complaints ?? 0,
   row.requests ?? 0,
@@ -108,6 +114,10 @@ const buildOverviewRows = (overview) => [
   ["Pending requests", overview.pendingRequests ?? 0],
   ["Inbound tickets", overview.inbound ?? 0],
   ["Outbound tickets", overview.outbound ?? 0],
+  ["WhatsApp tickets", overview.whatsapp ?? 0],
+  ["SMS tickets", overview.sms ?? 0],
+  ["Inbound follow-up tickets", overview.inboundFollowUp ?? 0],
+  ["Outbound follow-up tickets", overview.outboundFollowUp ?? 0],
   ["Surveys sent", overview.surveySent ?? 0],
   ["Surveys responded", overview.surveyResponded ?? 0],
   ["Survey response rate", formatPercent(overview.surveyResponseRate)],

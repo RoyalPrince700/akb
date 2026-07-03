@@ -7,9 +7,11 @@ import {
   crmStatuses,
   customerTypes,
   formatCrmCategory,
+  formatCrmDirection,
   formatOrganizationType,
   getCsrDisplayName,
   getOrganizationNameLabel,
+  isFollowUpDirection,
   phoneLineLabels,
 } from "../../constants/crm";
 import { useAuth } from "../../context/AuthContext";
@@ -105,7 +107,7 @@ const CrmInteractionDetailPage = () => {
           <p className="py-10 text-center text-sm text-slate-600">Ticket not found.</p>
         ) : (
           <div className="mt-6 grid gap-5 md:grid-cols-2">
-            <DetailField label="Direction" value={capitalizeWords(interaction.direction)} />
+            <DetailField label="Direction" value={formatCrmDirection(interaction.direction)} />
             <DetailField label="Category" value={formatCrmCategory(interaction.category)} />
             <DetailField
               label="Customer type"
@@ -130,10 +132,12 @@ const CrmInteractionDetailPage = () => {
               label="Caller status"
               value={getOptionLabel(callerStatuses, interaction.callerStatus)}
             />
-            <DetailField
-              label="Status"
-              value={getOptionLabel(crmStatuses, interaction.status, interaction.status)}
-            />
+            {!isFollowUpDirection(interaction.direction) && (
+              <DetailField
+                label="Status"
+                value={getOptionLabel(crmStatuses, interaction.status, interaction.status)}
+              />
+            )}
             <DetailField
               label="CSR"
               value={getCsrDisplayName(interaction.owner, "Unknown CSR")}

@@ -58,11 +58,27 @@ export const crmStatuses = [
   { value: "unresolved", label: "Unresolved" },
 ];
 
+export const crmDirections = [
+  { value: "inbound", label: "Inbound" },
+  { value: "outbound", label: "Outbound" },
+  { value: "whatsapp", label: "WhatsApp" },
+  { value: "sms", label: "SMS" },
+  { value: "inboundFollowUp", label: "Inbound follow-up" },
+  { value: "outboundFollowUp", label: "Outbound follow-up" },
+];
+
+export const followUpDirections = ["inboundFollowUp", "outboundFollowUp"];
+
+export const outboundDirections = ["outbound", "outboundFollowUp"];
+
+export const isFollowUpDirection = (direction) => followUpDirections.includes(direction);
+
+export const isOutboundDirection = (direction) => outboundDirections.includes(direction);
+
 export const contactMedia = [
   { value: "website", label: "Website" },
   { value: "mail", label: "Mail" },
   { value: "phone", label: "Phone" },
-  { value: "whatsapp", label: "WhatsApp" },
 ];
 
 export const phoneLineLabels = [
@@ -71,8 +87,8 @@ export const phoneLineLabels = [
   { value: "message", label: "Message" },
 ];
 
-export const getPhoneLineLabelsForMedium = (medium) => {
-  if (medium === "whatsapp") {
+export const getPhoneLineLabelsForMedium = (medium, direction) => {
+  if (direction === "whatsapp" || medium === "whatsapp") {
     return phoneLineLabels.filter((item) => item.value === "message");
   }
 
@@ -82,6 +98,9 @@ export const getPhoneLineLabelsForMedium = (medium) => {
 
   return [];
 };
+
+export const formatCrmDirection = (value) =>
+  crmDirections.find((item) => item.value === value)?.label || value;
 
 export const landlinePhoneNumber = "02012278139";
 

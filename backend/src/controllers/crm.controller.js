@@ -6,7 +6,7 @@ const CrmSalesRecord = require("../models/CrmSalesRecord");
 const SalesRep = require("../models/SalesRep");
 const School = require("../models/School");
 const SurveyDispatch = require("../models/SurveyDispatch");
-const { NIGERIAN_STATES } = require("../constants/crm");
+const { NIGERIAN_STATES, isFollowUpDirection } = require("../constants/crm");
 const asyncHandler = require("../utils/asyncHandler");
 const { sendSurveyEmail } = require("../mailtrap/email");
 const { sendSurveySms } = require("../sms/xwireless");
@@ -274,6 +274,28 @@ const roundMoney = (value) => Number((Number(value) || 0).toFixed(2));
 
 const clampPercent = (value) => Math.min(100, Math.max(0, roundMoney(value)));
 
+const calcResolutionRate = (resolved = 0, unresolved = 0) => {
+  const eligible = resolved + unresolved;
+  return eligible ? Math.round((resolved / eligible) * 100) : 0;
+};
+
+const buildDirectionCountFields = () => ({
+  inbound: { $sum: { $cond: [{ $eq: ["$direction", "inbound"] }, 1, 0] } },
+  outbound: { $sum: { $cond: [{ $eq: ["$direction", "outbound"] }, 1, 0] } },
+  whatsapp: { $sum: { $cond: [{ $eq: ["$direction", "whatsapp"] }, 1, 0] } },
+  sms: { $sum: { $cond: [{ $eq: ["$direction", "sms"] }, 1, 0] } },
+  inboundFollowUp: { $sum: { $cond: [{ $eq: ["$direction", "inboundFollowUp"] }, 1, 0] } },
+  outboundFollowUp: { $sum: { $cond: [{ $eq: ["$direction", "outboundFollowUp"] }, 1, 0] } },
+});
+
+const mapDirectionCounts = (rows = []) =>
+  rows.reduce((counts, row) => {
+    if (row._id) {
+      counts[row._id] = row.count;
+    }
+    return counts;
+  }, {});
+
 const CSR_USER_FIELDS = "name csrDisplayName staffId role";
 
 const getCsrDisplayName = (user) => user?.csrDisplayName || user?.name || "";
@@ -291,9 +313,11 @@ const buildSalesRecordBookPayload = (body) => {
       const discountAmount = roundMoney((subtotalPrice * discountPercent) / 100);
       const totalPrice = roundMoney(Math.max(0, subtotalPrice - discountAmount));
 
+      const bookClass = (item.bookClass || body.bookClass || "").trim();
+
       return {
         title: capitalizeWords(item.title || ""),
-        bookClass: item.bookClass || body.bookClass,
+        ...(bookClass ? { bookClass } : {}),
         price,
         quantity,
         discountPercent,
@@ -344,8 +368,11 @@ const buildInteractionPayload = async (body, user, existingInteraction = null) =
   const existingCustomer = existingInteraction?.customer || {};
   const existingRequestQty = existingInteraction?.requestQuantity;
 
+  const direction = body.direction ?? existingInteraction?.direction;
+  const isFollowUp = isFollowUpDirection(direction);
+
   return {
-    direction: body.direction ?? existingInteraction?.direction,
+    direction,
     category: body.category ?? existingInteraction?.category,
     customer: {
       organizationType:
@@ -366,7 +393,9 @@ const buildInteractionPayload = async (body, user, existingInteraction = null) =
       body.requestQuantity === null || body.requestQuantity === undefined || body.requestQuantity === ""
         ? (existingRequestQty ?? null)
         : Number(body.requestQuantity),
-    status: body.status ?? existingInteraction?.status,
+    status: isFollowUp
+      ? null
+      : body.status ?? existingInteraction?.status ?? "resolved",
     remark: (body.remark || existingInteraction?.remark || "").trim(),
     salesRep: resolveSalesRepId(body, existingInteraction),
     owner,
@@ -383,7 +412,9 @@ const buildSalesRecordPayload = (body, user) => ({
   schoolName: capitalizeWords(body.schoolName || ""),
   location: capitalizeWords(body.location || ""),
   ...buildSalesRecordBookPayload(body),
-  bookClass: body.bookClass || body.bookItems?.[0]?.bookClass,
+  ...((body.bookClass || body.bookItems?.[0]?.bookClass || "").trim()
+    ? { bookClass: (body.bookClass || body.bookItems?.[0]?.bookClass || "").trim() }
+    : {}),
   saleDate: body.saleDate || new Date(),
   owner: user._id,
   createdBy: user._id,
@@ -1497,8 +1528,7 @@ const getDashboardSummary = asyncHandler(async (req, res) => {
 
   const [
     totalContacts,
-    inboundCount,
-    outboundCount,
+    directionBreakdown,
     unresolvedCount,
     pendingRequests,
     surveysSent,
@@ -1506,8 +1536,10 @@ const getDashboardSummary = asyncHandler(async (req, res) => {
     salesRecordTotals,
   ] = await Promise.all([
     CrmInteraction.countDocuments(filter),
-    CrmInteraction.countDocuments({ ...filter, direction: "inbound" }),
-    CrmInteraction.countDocuments({ ...filter, direction: "outbound" }),
+    CrmInteraction.aggregate([
+      { $match: filter },
+      { $group: { _id: "$direction", count: { $sum: 1 } } },
+    ]),
     CrmInteraction.countDocuments({ ...filter, status: "unresolved" }),
     CrmInteraction.countDocuments({
       ...filter,
@@ -1528,6 +1560,8 @@ const getDashboardSummary = asyncHandler(async (req, res) => {
     ]),
   ]);
 
+  const directionCounts = mapDirectionCounts(directionBreakdown);
+
   const recentInteractions = await CrmInteraction.find(filter)
     .populate("owner", CSR_USER_FIELDS)
     .populate("salesRep", "name state location")
@@ -1537,8 +1571,12 @@ const getDashboardSummary = asyncHandler(async (req, res) => {
   res.json({
     summary: {
       totalContacts,
-      inboundCount,
-      outboundCount,
+      inboundCount: directionCounts.inbound || 0,
+      outboundCount: directionCounts.outbound || 0,
+      whatsappCount: directionCounts.whatsapp || 0,
+      smsCount: directionCounts.sms || 0,
+      inboundFollowUpCount: directionCounts.inboundFollowUp || 0,
+      outboundFollowUpCount: directionCounts.outboundFollowUp || 0,
       unresolvedCount,
       pendingRequests,
       surveysSent,
@@ -1630,6 +1668,10 @@ const mergeCsrPerformanceRows = (...sources) => {
         unresolved: 0,
         inbound: 0,
         outbound: 0,
+        whatsapp: 0,
+        sms: 0,
+        inboundFollowUp: 0,
+        outboundFollowUp: 0,
         enquiries: 0,
         complaints: 0,
         requests: 0,
@@ -1660,9 +1702,7 @@ const mergeCsrPerformanceRows = (...sources) => {
   return Array.from(merged.values())
     .map((row) => ({
       ...row,
-      resolutionRate: row.totalTickets
-        ? Math.round((row.resolved / row.totalTickets) * 100)
-        : 0,
+      resolutionRate: calcResolutionRate(row.resolved, row.unresolved),
       surveyResponseRate: row.surveysSent
         ? Math.round((row.surveysResponded / row.surveysSent) * 100)
         : 0,
@@ -1781,8 +1821,7 @@ const getReportsSummary = asyncHandler(async (req, res) => {
           totalTickets: { $sum: 1 },
           resolved: { $sum: { $cond: [{ $eq: ["$status", "resolved"] }, 1, 0] } },
           unresolved: { $sum: { $cond: [{ $eq: ["$status", "unresolved"] }, 1, 0] } },
-          inbound: { $sum: { $cond: [{ $eq: ["$direction", "inbound"] }, 1, 0] } },
-          outbound: { $sum: { $cond: [{ $eq: ["$direction", "outbound"] }, 1, 0] } },
+          ...buildDirectionCountFields(),
           enquiries: { $sum: { $cond: [{ $eq: ["$category", "enquiry"] }, 1, 0] } },
           complaints: { $sum: { $cond: [{ $eq: ["$category", "complaint"] }, 1, 0] } },
           requests: { $sum: { $cond: [{ $eq: ["$category", "request"] }, 1, 0] } },
@@ -1857,8 +1896,7 @@ const getReportsSummary = asyncHandler(async (req, res) => {
           totalTickets: { $sum: 1 },
           resolved: { $sum: { $cond: [{ $eq: ["$status", "resolved"] }, 1, 0] } },
           unresolved: { $sum: { $cond: [{ $eq: ["$status", "unresolved"] }, 1, 0] } },
-          inbound: { $sum: { $cond: [{ $eq: ["$direction", "inbound"] }, 1, 0] } },
-          outbound: { $sum: { $cond: [{ $eq: ["$direction", "outbound"] }, 1, 0] } },
+          ...buildDirectionCountFields(),
           pendingRequests: {
             $sum: {
               $cond: [
@@ -1932,6 +1970,10 @@ const getReportsSummary = asyncHandler(async (req, res) => {
     unresolved: 0,
     inbound: 0,
     outbound: 0,
+    whatsapp: 0,
+    sms: 0,
+    inboundFollowUp: 0,
+    outboundFollowUp: 0,
     pendingRequests: 0,
   };
   const salesRow = salesOverview[0] || {
@@ -1963,9 +2005,11 @@ const getReportsSummary = asyncHandler(async (req, res) => {
         pendingRequests: overviewRow.pendingRequests,
         inbound: overviewRow.inbound,
         outbound: overviewRow.outbound,
-        resolutionRate: overviewRow.totalTickets
-          ? Math.round((overviewRow.resolved / overviewRow.totalTickets) * 100)
-          : 0,
+        whatsapp: overviewRow.whatsapp,
+        sms: overviewRow.sms,
+        inboundFollowUp: overviewRow.inboundFollowUp,
+        outboundFollowUp: overviewRow.outboundFollowUp,
+        resolutionRate: calcResolutionRate(overviewRow.resolved, overviewRow.unresolved),
         surveySent,
         surveyResponded,
         surveyResponseRate: surveySent

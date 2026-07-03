@@ -12,19 +12,17 @@ import {
 } from "docx";
 import { saveAs } from "file-saver";
 
-import { formatCrmCategory } from "../constants/crm";
+import { formatCrmCategory, formatCrmDirection } from "../constants/crm";
 
 const formatLabel = (value) => {
   if (!value) {
     return "Unknown";
   }
 
-  if (value === "inbound") return "Inbound";
-  if (value === "outbound") return "Outbound";
   if (value === "resolved") return "Resolved";
   if (value === "unresolved") return "Unresolved";
 
-  return formatCrmCategory(value) || value;
+  return formatCrmDirection(value) || formatCrmCategory(value) || value;
 };
 
 const formatPeriodLabel = (period) => {
@@ -144,6 +142,10 @@ export const downloadCrmReportDocx = async ({ period, reports, csrFilterLabel })
         dataRow(["Pending requests", overview.pendingRequests ?? 0]),
         dataRow(["Inbound tickets", overview.inbound ?? 0]),
         dataRow(["Outbound tickets", overview.outbound ?? 0]),
+        dataRow(["WhatsApp tickets", overview.whatsapp ?? 0]),
+        dataRow(["SMS tickets", overview.sms ?? 0]),
+        dataRow(["Inbound follow-up tickets", overview.inboundFollowUp ?? 0]),
+        dataRow(["Outbound follow-up tickets", overview.outboundFollowUp ?? 0]),
         dataRow(["Surveys sent", overview.surveySent ?? 0]),
         dataRow(["Surveys responded", overview.surveyResponded ?? 0]),
         dataRow(["Survey response rate", `${overview.surveyResponseRate ?? 0}%`]),
@@ -175,6 +177,10 @@ export const downloadCrmReportDocx = async ({ period, reports, csrFilterLabel })
             "Resolution %",
             "Inbound",
             "Outbound",
+            "WhatsApp",
+            "SMS",
+            "Inbound F/U",
+            "Outbound F/U",
             "Enquiries",
             "Complaints",
             "Requests",
@@ -197,6 +203,10 @@ export const downloadCrmReportDocx = async ({ period, reports, csrFilterLabel })
               `${row.resolutionRate ?? 0}%`,
               row.inbound ?? 0,
               row.outbound ?? 0,
+              row.whatsapp ?? 0,
+              row.sms ?? 0,
+              row.inboundFollowUp ?? 0,
+              row.outboundFollowUp ?? 0,
               row.enquiries ?? 0,
               row.complaints ?? 0,
               row.requests ?? 0,

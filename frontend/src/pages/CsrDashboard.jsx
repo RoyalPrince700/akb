@@ -27,6 +27,10 @@ const emptySummary = {
   totalContacts: 0,
   inboundCount: 0,
   outboundCount: 0,
+  whatsappCount: 0,
+  smsCount: 0,
+  inboundFollowUpCount: 0,
+  outboundFollowUpCount: 0,
   unresolvedCount: 0,
   pendingRequests: 0,
   surveysSent: 0,
@@ -313,7 +317,7 @@ const CsrDashboard = () => {
           <div className="mb-6 grid gap-5 lg:grid-cols-3">
             <CrmPieChartCard
               title="Contact direction"
-              description="Inbound and outbound ticket split for the selected period."
+              description="Ticket split across inbound, outbound, WhatsApp, SMS, and follow-ups."
               data={directionChartData}
             />
             <CrmPieChartCard
@@ -354,19 +358,50 @@ const CsrDashboard = () => {
             icon={CheckCircle2}
           />
           <OverviewCard
-            label="Inbound calls"
+            label="Inbound"
             value={summary.inboundCount ?? 0}
-            description="Tickets initiated by customers in this period"
+            description="Inbound tickets logged in this period"
             to={ticketsPath}
             icon={PhoneCall}
             tone="blue"
           />
           <OverviewCard
-            label="Outbound calls"
+            label="Outbound"
             value={summary.outboundCount ?? 0}
-            description="Tickets created from outbound calls in this period"
+            description="Outbound tickets logged in this period"
             to={ticketsPath}
             icon={ArrowUpRight}
+          />
+          <OverviewCard
+            label="WhatsApp"
+            value={summary.whatsappCount ?? 0}
+            description="WhatsApp tickets logged in this period"
+            to={ticketsPath}
+            icon={MessageSquareShare}
+            tone="blue"
+          />
+          <OverviewCard
+            label="SMS"
+            value={summary.smsCount ?? 0}
+            description="SMS tickets logged in this period"
+            to={ticketsPath}
+            icon={MessageSquareShare}
+          />
+          <OverviewCard
+            label="Inbound follow-up"
+            value={summary.inboundFollowUpCount ?? 0}
+            description="Inbound follow-up tickets logged in this period"
+            to={ticketsPath}
+            icon={Headphones}
+            tone="amber"
+          />
+          <OverviewCard
+            label="Outbound follow-up"
+            value={summary.outboundFollowUpCount ?? 0}
+            description="Outbound follow-up tickets logged in this period"
+            to={ticketsPath}
+            icon={ArrowUpRight}
+            tone="amber"
           />
           <OverviewCard
             label="Surveys sent"

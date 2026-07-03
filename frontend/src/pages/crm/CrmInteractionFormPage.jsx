@@ -6,12 +6,15 @@ import SchoolSearchSelect from "../../components/crm/SchoolSearchSelect";
 import {
   callerStatuses,
   contactMedia,
+  crmDirections,
   crmStatuses,
   customerTypes,
   formatCrmCategory,
   getOrganizationNameLabel,
   getOrganizationNamePlaceholder,
   inboundCategories,
+  isFollowUpDirection,
+  isOutboundDirection,
   landlinePhoneNumber,
   nigerianStates,
   organizationTypes,
@@ -121,16 +124,19 @@ const CrmInteractionFormPage = () => {
   };
 
   const categoryOptions = useMemo(
-    () => (formData.direction === "outbound" ? outboundCategories : inboundCategories),
+    () => (isOutboundDirection(formData.direction) ? outboundCategories : inboundCategories),
     [formData.direction]
   );
 
   const lineLabelOptions = useMemo(
-    () => getPhoneLineLabelsForMedium(formData.medium),
-    [formData.medium]
+    () => getPhoneLineLabelsForMedium(formData.medium, formData.direction),
+    [formData.direction, formData.medium]
   );
 
-  const showLineLabelFields = formData.medium === "phone" || formData.medium === "whatsapp";
+  const showLineLabelFields =
+    formData.medium === "phone" || formData.direction === "whatsapp";
+
+  const hideResolutionStatus = isFollowUpDirection(formData.direction);
 
   useEffect(() => {
     const loadSalesReps = async () => {
@@ -166,7 +172,11 @@ const CrmInteractionFormPage = () => {
         let phoneLineLabel = phoneLineLabels.some((item) => item.value === interaction.phoneLineLabel)
           ? interaction.phoneLineLabel
           : "";
-        if (interaction.medium === "whatsapp") {
+        const direction =
+          interaction.medium === "whatsapp" ? "whatsapp" : interaction.direction;
+        const medium =
+          interaction.medium === "whatsapp" ? "phone" : interaction.medium || "phone";
+        if (direction === "whatsapp") {
           phoneLineLabel = "message";
         }
         const savedCsrPhone = interaction.csrPhoneNumber || "";
@@ -185,7 +195,7 @@ const CrmInteractionFormPage = () => {
         }
 
         setFormData({
-          direction: interaction.direction,
+          direction,
           category: interaction.category,
           organizationType: interaction.customer.organizationType || "school",
           schoolName: capitalizeWords(interaction.customer.schoolName || ""),
@@ -193,13 +203,13 @@ const CrmInteractionFormPage = () => {
           state: interaction.customer.state || "",
           phoneNumber: interaction.customer.phoneNumber || "",
           dateOfContact: new Date(interaction.dateOfContact).toISOString().slice(0, 16),
-          medium: interaction.medium || "phone",
+          medium,
           customerType: interaction.customerType || "newCustomer",
           callerStatus: interaction.callerStatus || "firstCaller",
           complaintNature: capitalizeWords(interaction.complaintNature || ""),
           requestQuantity: interaction.requestQuantity || "",
           bookTitles: capitalizeWords(interaction.bookTitles || ""),
-          status: interaction.status || "resolved",
+          status: isFollowUpDirection(direction) ? "" : interaction.status || "resolved",
           remark: interaction.remark || "",
           salesRep: interaction.salesRep?._id || "",
           phoneLineLabel,
@@ -234,14 +244,25 @@ const CrmInteractionFormPage = () => {
       };
 
       if (name === "direction") {
-        next.category = value === "outbound" ? "enquiry" : "enquiry";
-      }
-
-      if (name === "medium") {
+        next.category = "enquiry";
+        if (isFollowUpDirection(value)) {
+          next.status = "";
+        } else if (!current.status) {
+          next.status = "resolved";
+        }
         if (value === "whatsapp") {
           next.phoneLineLabel = "message";
           next.csrPhoneNumber = "";
-        } else if (value === "phone") {
+        } else if (current.direction === "whatsapp" && value !== "whatsapp") {
+          if (current.phoneLineLabel === "message") {
+            next.phoneLineLabel = "";
+            next.csrPhoneNumber = "";
+          }
+        }
+      }
+
+      if (name === "medium") {
+        if (value === "phone") {
           if (current.phoneLineLabel === "message") {
             next.phoneLineLabel = "";
             next.csrPhoneNumber = "";
@@ -331,6 +352,7 @@ const CrmInteractionFormPage = () => {
             : "",
         complaintNature: formData.category === "complaint" ? formData.complaintNature : "",
         salesRep: formData.salesRep || null,
+        status: hideResolutionStatus ? null : formData.status,
       };
 
       const response = isEdit
@@ -427,8 +449,11 @@ const CrmInteractionFormPage = () => {
                   onChange={handleChange}
                   className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
                 >
-                  <option value="inbound">Inbound</option>
-                  <option value="outbound">Outbound</option>
+                  {crmDirections.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -629,24 +654,26 @@ const CrmInteractionFormPage = () => {
                 </select>
               </div>
 
-              <div>
-                <label htmlFor="status" className="text-sm font-medium text-slate-700">
-                  Resolution status
-                </label>
-                <select
-                  id="status"
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-                >
-                  {crmStatuses.map((status) => (
-                    <option key={status.value} value={status.value}>
-                      {status.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {!hideResolutionStatus && (
+                <div>
+                  <label htmlFor="status" className="text-sm font-medium text-slate-700">
+                    Resolution status
+                  </label>
+                  <select
+                    id="status"
+                    name="status"
+                    value={formData.status}
+                    onChange={handleChange}
+                    className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                  >
+                    {crmStatuses.map((status) => (
+                      <option key={status.value} value={status.value}>
+                        {status.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label htmlFor="salesRep" className="text-sm font-medium text-slate-700">

@@ -101,7 +101,7 @@ const crmInteractionSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: CRM_STATUSES,
-      required: [true, "Resolution status is required"],
+      default: null,
     },
     remark: {
       type: String,

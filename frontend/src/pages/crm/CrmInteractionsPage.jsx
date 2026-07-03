@@ -3,9 +3,12 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import SurveyDispatchModal from "../../components/crm/SurveyDispatchModal";
 import {
+  crmDirections,
   formatCrmCategory,
+  formatCrmDirection,
   formatOrganizationType,
   getCsrDisplayName,
+  isFollowUpDirection,
   nigerianStates,
 } from "../../constants/crm";
 import { useAuth } from "../../context/AuthContext";
@@ -243,8 +246,11 @@ const CrmInteractionsPage = () => {
             className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
           >
             <option value="">All directions</option>
-            <option value="inbound">Inbound</option>
-            <option value="outbound">Outbound</option>
+            {crmDirections.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
           <select
             value={statusFilter}
@@ -301,8 +307,8 @@ const CrmInteractionsPage = () => {
                     <td className="py-3 pr-4 font-medium text-slate-950">
                       {capitalizeWords(interaction.customer.schoolName)}
                     </td>
-                    <td className="py-3 pr-4 capitalize text-slate-700">
-                      {interaction.direction}
+                    <td className="py-3 pr-4 text-slate-700">
+                      {formatCrmDirection(interaction.direction)}
                     </td>
                     <td className="py-3 pr-4 text-slate-700">
                       {formatCrmCategory(interaction.category)}
@@ -318,15 +324,19 @@ const CrmInteractionsPage = () => {
                       {getCsrDisplayName(interaction.owner, "Unknown CSR")}
                     </td>
                     <td className="py-3 pr-4">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                          interaction.status === "resolved"
-                            ? "bg-emerald-100 text-emerald-800"
-                            : "bg-amber-100 text-amber-800"
-                        }`}
-                      >
-                        {interaction.status}
-                      </span>
+                      {isFollowUpDirection(interaction.direction) ? (
+                        <span className="text-slate-500">—</span>
+                      ) : (
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                            interaction.status === "resolved"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-amber-100 text-amber-800"
+                          }`}
+                        >
+                          {interaction.status}
+                        </span>
+                      )}
                     </td>
                     <td className="py-3 pr-4 text-slate-700">
                       {new Date(interaction.dateOfContact).toLocaleDateString()}

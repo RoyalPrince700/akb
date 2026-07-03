@@ -38,7 +38,16 @@ const NIGERIAN_STATES = [
   "Zamfara",
 ];
 
-const CRM_DIRECTIONS = ["inbound", "outbound"];
+const CRM_DIRECTIONS = [
+  "inbound",
+  "outbound",
+  "whatsapp",
+  "sms",
+  "inboundFollowUp",
+  "outboundFollowUp",
+];
+const FOLLOW_UP_DIRECTIONS = ["inboundFollowUp", "outboundFollowUp"];
+const OUTBOUND_DIRECTIONS = ["outbound", "outboundFollowUp"];
 const OUTBOUND_CATEGORIES = [
   "enquiry",
   "complaint",
@@ -51,6 +60,7 @@ const INBOUND_CATEGORIES = ["enquiry", "complaint", "request"];
 const CRM_CATEGORIES = [...new Set([...OUTBOUND_CATEGORIES, ...INBOUND_CATEGORIES])];
 const CRM_STATUSES = ["resolved", "unresolved"];
 const CONTACT_MEDIA = ["website", "mail", "phone", "whatsapp"];
+const CONTACT_MEDIA_OPTIONS = ["website", "mail", "phone"];
 const PHONE_LINE_LABELS = ["landline", "csrOfficialLine", "message"];
 const CUSTOMER_TYPES = ["newCustomer", "existingCustomer"];
 const ORGANIZATION_TYPES = ["school", "bookshop", "individual", "marketer"];
@@ -77,18 +87,24 @@ const BOOK_SALE_CLASSES = [
   "other",
 ];
 
+const isFollowUpDirection = (direction) => FOLLOW_UP_DIRECTIONS.includes(direction);
+
 module.exports = {
   CALLER_STATUSES,
   CONTACT_MEDIA,
+  CONTACT_MEDIA_OPTIONS,
   CRM_CATEGORIES,
   CRM_DIRECTIONS,
   CRM_STATUSES,
   CUSTOMER_TYPES,
+  FOLLOW_UP_DIRECTIONS,
   INBOUND_CATEGORIES,
+  isFollowUpDirection,
   NIGERIAN_STATES,
   BOOK_SALE_CLASSES,
   ORGANIZATION_TYPES,
   OUTBOUND_CATEGORIES,
+  OUTBOUND_DIRECTIONS,
   PHONE_LINE_LABELS,
   SURVEY_CHANNELS,
 };

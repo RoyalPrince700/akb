@@ -38,6 +38,10 @@ export const mapCsrPerformanceChart = (rows, limit = 8) =>
 export const mapOverviewDirectionData = (overview) => [
   { name: "Inbound", value: overview.inbound ?? 0 },
   { name: "Outbound", value: overview.outbound ?? 0 },
+  { name: "WhatsApp", value: overview.whatsapp ?? 0 },
+  { name: "SMS", value: overview.sms ?? 0 },
+  { name: "Inbound follow-up", value: overview.inboundFollowUp ?? 0 },
+  { name: "Outbound follow-up", value: overview.outboundFollowUp ?? 0 },
 ];
 
 export const mapOverviewResolutionData = (overview) => [
@@ -48,6 +52,10 @@ export const mapOverviewResolutionData = (overview) => [
 export const mapDashboardDirectionData = (summary) => [
   { name: "Inbound", value: summary.inboundCount ?? 0 },
   { name: "Outbound", value: summary.outboundCount ?? 0 },
+  { name: "WhatsApp", value: summary.whatsappCount ?? 0 },
+  { name: "SMS", value: summary.smsCount ?? 0 },
+  { name: "Inbound follow-up", value: summary.inboundFollowUpCount ?? 0 },
+  { name: "Outbound follow-up", value: summary.outboundFollowUpCount ?? 0 },
 ];
 
 export const mapDashboardResolutionData = (summary) => {
