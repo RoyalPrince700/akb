@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 
+import StarRatingDisplay from "../../components/crm/StarRatingDisplay";
 import { getCsrDisplayName } from "../../constants/crm";
 import PanelLayout from "../../layouts/PanelLayout";
 import { listSurveyResponses } from "../../services/api";
 import { capitalizeWords } from "../../utils/textFormat";
 
-const formatRating = (value) => (value ? `${value}/5` : "-");
-
 const averageRating = (response) => {
   if (!response) {
-    return "-";
+    return null;
   }
 
   const ratings = [
@@ -18,14 +17,13 @@ const averageRating = (response) => {
     response.csrRating ?? response.responseSpeedRating,
     response.resolutionRating,
     response.recommendRating,
-  ].filter((rating) => typeof rating === "number");
+  ].filter((rating) => typeof rating === "number" && rating > 0);
 
   if (!ratings.length) {
-    return "-";
+    return null;
   }
 
-  const average = ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length;
-  return `${average.toFixed(1)}/5`;
+  return ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length;
 };
 
 const SummaryCard = ({ label, value, helper }) => (
@@ -99,27 +97,27 @@ const CrmSurveyResponsesPage = () => {
         />
         <SummaryCard
           label="Avg. service"
-          value={formatRating(summary.avgService)}
+          value={<StarRatingDisplay value={summary.avgService} size={18} showValue />}
           helper="Overall service satisfaction"
         />
         <SummaryCard
           label="Avg. marketer"
-          value={formatRating(summary.avgMarketer)}
+          value={<StarRatingDisplay value={summary.avgMarketer} size={18} showValue />}
           helper="Marketer who attended the customer"
         />
         <SummaryCard
           label="Avg. CSR"
-          value={formatRating(summary.avgCsr)}
+          value={<StarRatingDisplay value={summary.avgCsr} size={18} showValue />}
           helper="CSR who handled the call"
         />
         <SummaryCard
           label="Avg. resolution"
-          value={formatRating(summary.avgResolution)}
+          value={<StarRatingDisplay value={summary.avgResolution} size={18} showValue />}
           helper="Resolution satisfaction"
         />
         <SummaryCard
           label="Avg. recommend"
-          value={formatRating(summary.avgRecommend)}
+          value={<StarRatingDisplay value={summary.avgRecommend} size={18} showValue />}
           helper="Likelihood to recommend"
         />
       </div>
@@ -183,24 +181,26 @@ const CrmSurveyResponsesPage = () => {
                     </td>
                     <td className="py-3 pr-4 text-slate-700">{entry.customerPhoneNumber}</td>
                     <td className="py-3 pr-4 text-slate-700">
-                      {formatRating(entry.response?.serviceRating)}
+                      <StarRatingDisplay value={entry.response?.serviceRating} />
                     </td>
                     <td className="py-3 pr-4 text-slate-700">
-                      {formatRating(entry.response?.marketerRating)}
+                      <StarRatingDisplay value={entry.response?.marketerRating} />
                     </td>
                     <td className="py-3 pr-4 text-slate-700">
-                      {formatRating(
-                        entry.response?.csrRating ?? entry.response?.responseSpeedRating
-                      )}
+                      <StarRatingDisplay
+                        value={
+                          entry.response?.csrRating ?? entry.response?.responseSpeedRating
+                        }
+                      />
                     </td>
                     <td className="py-3 pr-4 text-slate-700">
-                      {formatRating(entry.response?.resolutionRating)}
+                      <StarRatingDisplay value={entry.response?.resolutionRating} />
                     </td>
                     <td className="py-3 pr-4 text-slate-700">
-                      {formatRating(entry.response?.recommendRating)}
+                      <StarRatingDisplay value={entry.response?.recommendRating} />
                     </td>
                     <td className="py-3 pr-4 font-semibold text-emerald-700">
-                      {averageRating(entry.response)}
+                      <StarRatingDisplay value={averageRating(entry.response)} showValue />
                     </td>
                     <td className="max-w-[220px] py-3 pr-4 text-slate-700">
                       {entry.response?.feedback ? (
