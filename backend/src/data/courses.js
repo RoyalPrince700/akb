@@ -28,6 +28,13 @@ module.exports = [
     source: "frontend",
   },
   {
+    id: "consultative-selling",
+    title: "Consultative Selling",
+    category: "Professional Development",
+    chapterCount: 10,
+    source: "frontend",
+  },
+  {
     id: "critical-thinking",
     title: "Critical Thinking for Staff",
     category: "Professional Development",

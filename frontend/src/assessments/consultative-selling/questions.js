@@ -1,0 +1,263 @@
+export default [
+  // Easy questions (1-10)
+  {
+    id: "q1",
+    type: "multiple_choice",
+    question: "What is the main purpose of consultative selling?",
+    options: [
+      "To understand needs and recommend relevant solutions",
+      "To force the customer to buy quickly",
+      "To talk more than the customer",
+      "To reduce price before the customer asks",
+    ],
+    correctAnswer: "To understand needs and recommend relevant solutions",
+    difficulty: "easy",
+  },
+  {
+    id: "q2",
+    type: "multiple_choice",
+    question: "Which question best uncovers customer pain?",
+    options: [
+      "Can you pay today?",
+      "What challenge are you trying to solve?",
+      "How many copies do you want?",
+      "Do you know our company?",
+    ],
+    correctAnswer: "What challenge are you trying to solve?",
+    difficulty: "easy",
+  },
+  {
+    id: "q3",
+    type: "multiple_choice",
+    question: "In the 5D model, what comes before designing the solution?",
+    options: ["Deliver", "Deepen", "Diagnose", "Discount"],
+    correctAnswer: "Diagnose",
+    difficulty: "easy",
+  },
+  {
+    id: "q4",
+    type: "multiple_choice",
+    question: "A government education buyer is most likely concerned about:",
+    options: [
+      "Personal discount only",
+      "School uniform colour",
+      "Retail margin",
+      "Scale, compliance, impact, and accountability",
+    ],
+    correctAnswer: "Scale, compliance, impact, and accountability",
+    difficulty: "easy",
+  },
+  {
+    id: "q5",
+    type: "multiple_choice",
+    question: "When a customer says price is high, the first response should be to:",
+    options: [
+      "Clarify the concern and restate value",
+      "Argue with the customer",
+      "Reduce the price immediately",
+      "End the conversation",
+    ],
+    correctAnswer: "Clarify the concern and restate value",
+    difficulty: "easy",
+  },
+  {
+    id: "q6",
+    type: "multiple_choice",
+    question: "Which response shows active listening?",
+    options: [
+      "Let me explain everything we sell",
+      "So your key concern is teacher adoption and parent confidence",
+      "Our product is the best in Nigeria",
+      "You should buy now",
+    ],
+    correctAnswer: "So your key concern is teacher adoption and parent confidence",
+    difficulty: "easy",
+  },
+  {
+    id: "q7",
+    type: "multiple_choice",
+    question: "Why is follow-up important in consultative selling?",
+    options: [
+      "It replaces product quality",
+      "It avoids customer service",
+      "It turns interest into action and relationship growth",
+      "It removes the need for proposals",
+    ],
+    correctAnswer: "It turns interest into action and relationship growth",
+    difficulty: "easy",
+  },
+  {
+    id: "q8",
+    type: "multiple_choice",
+    question: 'What is the best way to handle "We already have a supplier"?',
+    options: [
+      "Attack the current supplier",
+      "Walk away immediately",
+      "Offer free products",
+      "Acknowledge, clarify gaps, and position additional value",
+    ],
+    correctAnswer: "Acknowledge, clarify gaps, and position additional value",
+    difficulty: "easy",
+  },
+  {
+    id: "q9",
+    type: "multiple_choice",
+    question: "What should every good sales meeting end with?",
+    options: [
+      "A clear next step and follow-up date",
+      "A general promise to talk later",
+      "A long speech",
+      "No record",
+    ],
+    correctAnswer: "A clear next step and follow-up date",
+    difficulty: "easy",
+  },
+  {
+    id: "q10",
+    type: "multiple_choice",
+    question:
+      "Which APL solution fits school reporting and academic tracking pain points?",
+    options: [
+      "Only posters",
+      "SmartEdu Hub management tools",
+      "Only caps and T-shirts",
+      "Only delivery service",
+    ],
+    correctAnswer: "SmartEdu Hub management tools",
+    difficulty: "easy",
+  },
+
+  // Difficult questions (11-20)
+  {
+    id: "q11",
+    type: "multiple_choice",
+    question:
+      "In the 5D model, which step comes immediately after Design?",
+    options: ["Discover", "Deepen", "Deliver", "Diagnose"],
+    correctAnswer: "Deliver",
+    difficulty: "hard",
+  },
+  {
+    id: "q12",
+    type: "multiple_choice",
+    question:
+      "According to the CARC objection-handling standard, what is the first step?",
+    options: [
+      "Confirm whether the concern is resolved",
+      "Acknowledge that you heard them",
+      "Respond by linking value to the concern",
+      "Clarify the real concern",
+    ],
+    correctAnswer: "Clarify the real concern",
+    difficulty: "hard",
+  },
+  {
+    id: "q13",
+    type: "multiple_choice",
+    question: "A private school owner is most likely focused on:",
+    options: [
+      "Learning quality, parent trust, and enrolment",
+      "Scale, compliance, and national rollout only",
+      "Wholesale margin and stock turnover",
+      "Brand sponsorship and event logistics",
+    ],
+    correctAnswer: "Learning quality, parent trust, and enrolment",
+    difficulty: "hard",
+  },
+  {
+    id: "q14",
+    type: "multiple_choice",
+    question: "What should you know before a consultative sales meeting?",
+    options: [
+      "Only the cheapest APL product in the catalogue",
+      "Customer segment, decision-makers, relevant solution, and proof",
+      "How to reduce price on the first objection",
+      "Every product line regardless of customer need",
+    ],
+    correctAnswer:
+      "Customer segment, decision-makers, relevant solution, and proof",
+    difficulty: "hard",
+  },
+  {
+    id: "q15",
+    type: "multiple_choice",
+    question: "During diagnosis, which four factors should you listen for?",
+    options: [
+      "Colour, size, shipping, and invoice date",
+      "Social media likes, hashtags, and viral content",
+      "Priority, impact, budget, and decision",
+      "Office location, staff count, and parking space",
+    ],
+    correctAnswer: "Priority, impact, budget, and decision",
+    difficulty: "hard",
+  },
+  {
+    id: "q16",
+    type: "multiple_choice",
+    question:
+      "A school administrator struggles with reports, attendance, and CBT. Which solution best fits?",
+    options: [
+      "Only printed posters",
+      "Generic office stationery",
+      "A one-size catalogue of every APL product",
+      "SmartEdu Hub with CBT and report card features",
+    ],
+    correctAnswer: "SmartEdu Hub with CBT and report card features",
+    difficulty: "hard",
+  },
+  {
+    id: "q17",
+    type: "multiple_choice",
+    question: "What should you do before recommending a solution?",
+    options: [
+      "Diagnose needs and summarise what you heard",
+      "Present every product before asking questions",
+      "Lead with price to save time",
+      "Skip discovery if you know the catalogue",
+    ],
+    correctAnswer: "Diagnose needs and summarise what you heard",
+    difficulty: "hard",
+  },
+  {
+    id: "q18",
+    type: "multiple_choice",
+    question:
+      'When a customer says "Our teachers may not use it," the best response focuses on:',
+    options: [
+      "Tell them other schools already bought it",
+      "Training, support, and evidence of adoption",
+      "Offer the lowest discount immediately",
+      "Stop the conversation because adoption is unlikely",
+    ],
+    correctAnswer: "Training, support, and evidence of adoption",
+    difficulty: "hard",
+  },
+  {
+    id: "q19",
+    type: "multiple_choice",
+    question:
+      "Which documentation discipline should follow every serious sales conversation?",
+    options: [
+      "Only the customer's phone number",
+      "A long product brochure with no next step",
+      "Pain point, solution discussed, objection, and next action",
+      "Nothing; good salespeople rely on memory",
+    ],
+    correctAnswer: "Pain point, solution discussed, objection, and next action",
+    difficulty: "hard",
+  },
+  {
+    id: "q20",
+    type: "multiple_choice",
+    question: "Why should you avoid listing every APL product in one meeting?",
+    options: [
+      "Because APL has too few products to mention",
+      "Because customers prefer price before value",
+      "Because discovery should be skipped in large meetings",
+      "Because it overwhelms the customer instead of matching one diagnosed need",
+    ],
+    correctAnswer:
+      "Because it overwhelms the customer instead of matching one diagnosed need",
+    difficulty: "hard",
+  },
+];

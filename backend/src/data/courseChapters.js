@@ -27,6 +27,18 @@ module.exports = {
     "handling-complaints",
     "service-recovery-and-improvement",
   ],
+  "consultative-selling": [
+    "foundations",
+    "market-reality",
+    "customer-landscape",
+    "the-5d-model",
+    "prepare-for-meetings",
+    "discover-needs",
+    "diagnose-and-listen",
+    "apl-solutions",
+    "value-and-objections",
+    "close-follow-up",
+  ],
   "human-resource-management": [
     "introduction-to-hrm",
     "historical-perspectives",

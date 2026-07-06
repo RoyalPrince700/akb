@@ -206,7 +206,7 @@ const TakeAssessmentPage = () => {
   };
 
   const handleCancelStart = () => {
-    navigate(`/courses/${courseId}`);
+    navigate("/assessments");
   };
 
   return (

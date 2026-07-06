@@ -1,6 +1,7 @@
 import aiAssessment from "./ai-for-staff";
 import companyHistoryAssessment from "./company-history";
 import conflictResolutionAssessment from "./conflict-resolution";
+import consultativeSellingAssessment from "./consultative-selling";
 import criticalThinkingAssessment from "./critical-thinking";
 import customerServiceAssessment from "./customer-service";
 import financeAssessment from "./finance";
@@ -11,6 +12,7 @@ const assessmentRegistry = [
   aiAssessment,
   companyHistoryAssessment,
   conflictResolutionAssessment,
+  consultativeSellingAssessment,
   criticalThinkingAssessment,
   customerServiceAssessment,
   financeAssessment,
