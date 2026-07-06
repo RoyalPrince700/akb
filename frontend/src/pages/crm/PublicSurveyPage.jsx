@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Star } from "lucide-react";
 import { useParams } from "react-router-dom";
 
 import Navbar from "../../components/Navbar";
@@ -7,11 +8,11 @@ import { getPublicSurvey, submitPublicSurvey } from "../../services/api";
 const ratingOptions = [1, 2, 3, 4, 5];
 
 const emptyForm = {
-  serviceRating: 5,
-  marketerRating: 5,
-  csrRating: 5,
-  resolutionRating: 5,
-  recommendRating: 5,
+  serviceRating: 0,
+  marketerRating: 0,
+  csrRating: 0,
+  resolutionRating: 0,
+  recommendRating: 0,
   feedback: "",
 };
 
@@ -25,22 +26,35 @@ const surveyFields = [
 
 const RatingField = ({ id, label, value, onChange }) => (
   <div>
-    <label htmlFor={id} className="text-sm font-medium text-slate-700">
+    <p id={id} className="text-sm font-medium text-slate-700">
       {label}
-    </label>
-    <select
-      id={id}
-      name={id}
-      value={value}
-      onChange={onChange}
-      className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+    </p>
+    <div
+      className="mt-2 flex items-center gap-1"
+      role="radiogroup"
+      aria-labelledby={id}
     >
       {ratingOptions.map((rating) => (
-        <option key={rating} value={rating}>
-          {rating} / 5
-        </option>
+        <button
+          key={rating}
+          type="button"
+          role="radio"
+          aria-checked={value === rating}
+          aria-label={`${rating} star${rating === 1 ? "" : "s"}`}
+          onClick={() => onChange(id, rating)}
+          className="rounded p-0.5 transition hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+        >
+          <Star
+            size={28}
+            className={
+              value > 0 && rating <= value
+                ? "fill-amber-400 text-amber-400"
+                : "fill-none text-slate-300"
+            }
+          />
+        </button>
       ))}
-    </select>
+    </div>
   </div>
 );
 
@@ -52,6 +66,7 @@ const PublicSurveyPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+  const [formError, setFormError] = useState("");
 
   useEffect(() => {
     const loadSurvey = async () => {
@@ -76,20 +91,35 @@ const PublicSurveyPage = () => {
     const { name, value } = event.target;
     setFormData((current) => ({
       ...current,
-      [name]: name === "feedback" ? value : Number(value),
+      [name]: value,
+    }));
+  };
+
+  const handleRatingChange = (name, rating) => {
+    setFormError("");
+    setFormData((current) => ({
+      ...current,
+      [name]: rating,
     }));
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    const hasUnrated = surveyFields.some(({ id }) => !formData[id]);
+    if (hasUnrated) {
+      setFormError("Please rate all questions before submitting.");
+      return;
+    }
+
     setSubmitting(true);
-    setError("");
+    setFormError("");
 
     try {
       await submitPublicSurvey(token, formData);
       setSubmitted(true);
     } catch (apiError) {
-      setError(apiError.response?.data?.message || "Unable to submit survey.");
+      setFormError(apiError.response?.data?.message || "Unable to submit survey.");
     } finally {
       setSubmitting(false);
     }
@@ -130,13 +160,19 @@ const PublicSurveyPage = () => {
               </p>
 
               <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
+                {formError ? (
+                  <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                    {formError}
+                  </p>
+                ) : null}
+
                 {surveyFields.map(({ id, questionIndex }) => (
                   <RatingField
                     key={id}
                     id={id}
                     label={`${questionIndex + 1}. ${survey?.questions?.[questionIndex] || ""}`}
                     value={formData[id]}
-                    onChange={handleChange}
+                    onChange={handleRatingChange}
                   />
                 ))}
 
