@@ -3,6 +3,7 @@ import {
   BookOpenCheck,
   ClipboardList,
   ContactRound,
+  GraduationCap,
   Globe,
   LayoutDashboard,
   ListChecks,
@@ -104,6 +105,11 @@ const PanelSidebar = ({ accent, onNavigate, className = "" }) => {
                 to: panelSegmentPath(role, "upload-data"),
                 label: "Upload Data",
                 icon: Upload,
+              },
+              {
+                to: panelSegmentPath(role, "directory"),
+                label: "Customer Directory",
+                icon: GraduationCap,
               },
               {
                 to: panelSegmentPath(role, "reports"),

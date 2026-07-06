@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 
 import {
   callerStatuses,
@@ -47,11 +47,14 @@ const formatDateTime = (value) => {
 const CrmInteractionDetailPage = () => {
   const { user } = useAuth();
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const [interaction, setInteraction] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const ticketsPath = panelSegmentPath(user?.role, "interactions");
+  const filterQuery = searchParams.toString();
+  const backToTicketsPath = filterQuery ? `${ticketsPath}?${filterQuery}` : ticketsPath;
   const isCsrAdmin = user?.role === "csrAdmin";
 
   useEffect(() => {
@@ -94,7 +97,7 @@ const CrmInteractionDetailPage = () => {
             </p>
           </div>
           <Link
-            to={ticketsPath}
+            to={backToTicketsPath}
             className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
           >
             Back to ticket log

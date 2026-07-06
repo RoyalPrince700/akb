@@ -62,7 +62,24 @@ const getPeriodDescription = (period) => {
     return `Showing sales from this year (${start} – ${end})`;
   }
 
-  return `Showing sales from ${start} to ${end}`;
+  if (period.type === "custom") {
+    const start = period.startDate ? formatDisplayDate(period.startDate) : "";
+    const end = period.endDate ? formatDisplayDate(period.endDate) : "";
+
+    if (start && end) {
+      return `Showing sales from ${start} to ${end}`;
+    }
+
+    if (start) {
+      return `Showing sales from ${start} onwards`;
+    }
+
+    if (end) {
+      return `Showing sales up to ${end}`;
+    }
+  }
+
+  return "Showing all sales logged by the CSR team";
 };
 
 const SummaryCard = ({ label, value, helper }) => (
@@ -72,6 +89,9 @@ const SummaryCard = ({ label, value, helper }) => (
     <p className="mt-2 text-sm text-slate-500">{helper}</p>
   </div>
 );
+
+const getPageFromSearchParams = (searchParams) =>
+  Math.max(1, Number.parseInt(searchParams.get("page") || "1", 10) || 1);
 
 const CrmCsrSalesPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -84,16 +104,18 @@ const CrmCsrSalesPage = () => {
     totalSalesValue: 0,
   });
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
-  const [period, setPeriod] = useState("month");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [appliedCustomRange, setAppliedCustomRange] = useState({ startDate: "", endDate: "" });
-  const [activePeriod, setActivePeriod] = useState({ type: "month" });
-  const [ownerFilter, setOwnerFilter] = useState(searchParams.get("owner") || "");
+  const period = searchParams.get("period") || "month";
+  const startDateFilter = searchParams.get("startDate") || "";
+  const endDateFilter = searchParams.get("endDate") || "";
+  const [customStartDraft, setCustomStartDraft] = useState(startDateFilter);
+  const [customEndDraft, setCustomEndDraft] = useState(endDateFilter);
+  const [activePeriod, setActivePeriod] = useState({ type: period });
+  const ownerFilter = searchParams.get("owner") || "";
+  const appliedSearch = searchParams.get("search") || "";
+  const [searchDraft, setSearchDraft] = useState(appliedSearch);
+  const bookClassFilter = searchParams.get("bookClass") || "";
+  const page = getPageFromSearchParams(searchParams);
   const [csrSearch, setCsrSearch] = useState("");
-  const [search, setSearch] = useState("");
-  const [bookClassFilter, setBookClassFilter] = useState("");
-  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -102,6 +124,36 @@ const CrmCsrSalesPage = () => {
     totalQuantitySold: 0,
     totalSalesValue: 0,
   };
+
+  const updateFilterParams = useCallback(
+    (updates, { resetPage = false } = {}) => {
+      const nextParams = new URLSearchParams(searchParams);
+
+      if (resetPage) {
+        nextParams.delete("page");
+      }
+
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value) {
+          nextParams.set(key, String(value));
+        } else {
+          nextParams.delete(key);
+        }
+      });
+
+      setSearchParams(nextParams, { replace: true });
+    },
+    [searchParams, setSearchParams]
+  );
+
+  const buildCsrSalesLink = useCallback(
+    (ownerId) => {
+      const params = new URLSearchParams(searchParams);
+      params.set("owner", ownerId);
+      return `/csr/csr-sales?${params.toString()}`;
+    },
+    [searchParams]
+  );
 
   useEffect(() => {
     const loadCsrs = async () => {
@@ -117,25 +169,38 @@ const CrmCsrSalesPage = () => {
   }, []);
 
   useEffect(() => {
-    const ownerFromUrl = searchParams.get("owner") || "";
-    setOwnerFilter(ownerFromUrl);
-    setPage(1);
-  }, [searchParams]);
+    setCustomStartDraft(startDateFilter);
+    setCustomEndDraft(endDateFilter);
+  }, [endDateFilter, startDateFilter]);
+
+  useEffect(() => {
+    setSearchDraft(appliedSearch);
+  }, [appliedSearch]);
 
   const buildPeriodParams = useCallback(() => {
     const params = { period };
 
     if (period === "custom") {
-      if (!appliedCustomRange.startDate || !appliedCustomRange.endDate) {
+      if (!startDateFilter || !endDateFilter) {
         return null;
       }
 
-      params.startDate = appliedCustomRange.startDate;
-      params.endDate = appliedCustomRange.endDate;
+      params.startDate = startDateFilter;
+      params.endDate = endDateFilter;
+      return params;
+    }
+
+    if (period === "all" && (startDateFilter || endDateFilter)) {
+      if (startDateFilter) {
+        params.startDate = startDateFilter;
+      }
+      if (endDateFilter) {
+        params.endDate = endDateFilter;
+      }
     }
 
     return params;
-  }, [appliedCustomRange.endDate, appliedCustomRange.startDate, period]);
+  }, [endDateFilter, period, startDateFilter]);
 
   const loadSalesData = useCallback(async () => {
     setLoading(true);
@@ -158,9 +223,15 @@ const CrmCsrSalesPage = () => {
         ...periodParams,
         page,
         limit: 12,
-        search: search.trim() || undefined,
-        bookClass: bookClassFilter || undefined,
       };
+
+      if (appliedSearch.trim()) {
+        salesParams.search = appliedSearch.trim();
+      }
+
+      if (bookClassFilter) {
+        salesParams.bookClass = bookClassFilter;
+      }
 
       if (ownerFilter) {
         salesParams.owner = ownerFilter;
@@ -204,13 +275,13 @@ const CrmCsrSalesPage = () => {
       setLoading(false);
     }
   }, [
+    appliedSearch,
     bookClassFilter,
     buildPeriodParams,
     csrOptions,
     ownerFilter,
     page,
     period,
-    search,
   ]);
 
   useEffect(() => {
@@ -246,50 +317,86 @@ const CrmCsrSalesPage = () => {
 
   const handlePeriodChange = (event) => {
     const nextPeriod = event.target.value;
-    setPeriod(nextPeriod);
-    setPage(1);
 
-    if (nextPeriod !== "custom") {
-      setAppliedCustomRange({ startDate: "", endDate: "" });
+    if (nextPeriod === "custom") {
+      updateFilterParams({ period: nextPeriod }, { resetPage: true });
+      return;
     }
+
+    updateFilterParams(
+      { period: nextPeriod, startDate: "", endDate: "" },
+      { resetPage: true }
+    );
   };
 
   const handleApplyCustomRange = (event) => {
     event.preventDefault();
 
-    if (!startDate || !endDate) {
+    if (!customStartDraft || !customEndDraft) {
       setError("Choose both a start date and an end date for the custom range.");
       return;
     }
 
-    if (startDate > endDate) {
+    if (customStartDraft > customEndDraft) {
       setError("Start date must be before or equal to the end date.");
       return;
     }
 
     setError("");
-    setPage(1);
-    setAppliedCustomRange({ startDate, endDate });
+    updateFilterParams(
+      {
+        period: "custom",
+        startDate: customStartDraft,
+        endDate: customEndDraft,
+      },
+      { resetPage: true }
+    );
+  };
+
+  const handleDateFilterChange = (key, value) => {
+    const nextStartDate = key === "startDate" ? value : startDateFilter;
+    const nextEndDate = key === "endDate" ? value : endDateFilter;
+
+    if (nextStartDate && nextEndDate && nextStartDate > nextEndDate) {
+      setError("Start date must be before or equal to end date.");
+      return;
+    }
+
+    setError("");
+
+    if (nextStartDate && nextEndDate) {
+      updateFilterParams(
+        {
+          period: "custom",
+          startDate: nextStartDate,
+          endDate: nextEndDate,
+        },
+        { resetPage: true }
+      );
+      return;
+    }
+
+    updateFilterParams(
+      {
+        period: "all",
+        startDate: nextStartDate,
+        endDate: nextEndDate,
+      },
+      { resetPage: true }
+    );
   };
 
   const handleOwnerFilterChange = (event) => {
-    const nextOwner = event.target.value;
-    setOwnerFilter(nextOwner);
-    setPage(1);
-
-    const nextParams = new URLSearchParams(searchParams);
-    if (nextOwner) {
-      nextParams.set("owner", nextOwner);
-    } else {
-      nextParams.delete("owner");
-    }
-    setSearchParams(nextParams, { replace: true });
+    updateFilterParams({ owner: event.target.value }, { resetPage: true });
   };
 
   const handleSearchSubmit = (event) => {
     event.preventDefault();
-    setPage(1);
-    loadSalesData();
+    updateFilterParams({ search: searchDraft.trim() }, { resetPage: true });
+  };
+
+  const handlePageChange = (nextPage) => {
+    updateFilterParams({ page: nextPage > 1 ? String(nextPage) : "" });
   };
 
   return (
@@ -335,8 +442,8 @@ const CrmCsrSalesPage = () => {
                   <span className="text-sm font-medium text-slate-700">Start date</span>
                   <input
                     type="date"
-                    value={startDate}
-                    onChange={(event) => setStartDate(event.target.value)}
+                    value={customStartDraft}
+                    onChange={(event) => setCustomStartDraft(event.target.value)}
                     className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
                   />
                 </label>
@@ -344,8 +451,8 @@ const CrmCsrSalesPage = () => {
                   <span className="text-sm font-medium text-slate-700">End date</span>
                   <input
                     type="date"
-                    value={endDate}
-                    onChange={(event) => setEndDate(event.target.value)}
+                    value={customEndDraft}
+                    onChange={(event) => setCustomEndDraft(event.target.value)}
                     className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
                   />
                 </label>
@@ -449,7 +556,7 @@ const CrmCsrSalesPage = () => {
                     </td>
                     <td className="py-3 text-right">
                       <Link
-                        to={`/csr/csr-sales?owner=${csr._id}`}
+                        to={buildCsrSalesLink(csr._id)}
                         className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
                       >
                         View sales
@@ -474,15 +581,15 @@ const CrmCsrSalesPage = () => {
         </div>
 
         <form
-          className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_auto]"
+          className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
           onSubmit={handleSearchSubmit}
         >
           <input
             type="search"
             placeholder="Search school, bookshop, location, or title..."
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+            value={searchDraft}
+            onChange={(event) => setSearchDraft(event.target.value)}
+            className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 sm:col-span-2"
           />
           <select
             value={ownerFilter}
@@ -499,8 +606,7 @@ const CrmCsrSalesPage = () => {
           <select
             value={bookClassFilter}
             onChange={(event) => {
-              setBookClassFilter(event.target.value);
-              setPage(1);
+              updateFilterParams({ bookClass: event.target.value }, { resetPage: true });
             }}
             className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
           >
@@ -511,11 +617,29 @@ const CrmCsrSalesPage = () => {
               </option>
             ))}
           </select>
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-slate-600">From date</span>
+            <input
+              type="date"
+              value={startDateFilter}
+              onChange={(event) => handleDateFilterChange("startDate", event.target.value)}
+              className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-slate-600">To date</span>
+            <input
+              type="date"
+              value={endDateFilter}
+              onChange={(event) => handleDateFilterChange("endDate", event.target.value)}
+              className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+            />
+          </label>
           <button
             type="submit"
-            className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
+            className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 sm:col-span-2 xl:col-span-4 xl:w-fit"
           >
-            Search
+            Apply filters
           </button>
         </form>
 
@@ -619,7 +743,7 @@ const CrmCsrSalesPage = () => {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setPage((current) => Math.max(1, current - 1))}
+                onClick={() => handlePageChange(page - 1)}
                 disabled={page <= 1}
                 className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
@@ -627,7 +751,7 @@ const CrmCsrSalesPage = () => {
               </button>
               <button
                 type="button"
-                onClick={() => setPage((current) => Math.min(pagination.pages, current + 1))}
+                onClick={() => handlePageChange(page + 1)}
                 disabled={page >= pagination.pages}
                 className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >

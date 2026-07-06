@@ -17,10 +17,10 @@ const emptyForm = {
 
 const surveyFields = [
   { id: "serviceRating", questionIndex: 0 },
-  { id: "marketerRating", questionIndex: 1 },
-  { id: "csrRating", questionIndex: 2 },
-  { id: "resolutionRating", questionIndex: 3 },
-  { id: "recommendRating", questionIndex: 4 },
+  { id: "csrRating", questionIndex: 1 },
+  { id: "resolutionRating", questionIndex: 2 },
+  { id: "recommendRating", questionIndex: 3 },
+  { id: "marketerRating", questionIndex: 4 },
 ];
 
 const RatingField = ({ id, label, value, onChange }) => (
@@ -123,9 +123,10 @@ const PublicSurveyPage = () => {
                 Tell us about your experience
               </h1>
               <p className="mt-3 text-sm leading-6 text-slate-600">
-                Thank you for engaging with <strong>{survey?.schoolName}</strong>. Please
-                rate your experience with Accessible Publishers Ltd. Marketer and CSR
-                ratings are separate so we can review each role accurately.
+                Thank you <strong>{survey?.schoolName}</strong> for engaging the customer
+                service representative of Accessible Publishers Ltd. Please rate your
+                experience with the CSR that attended to you. Marketer and CSR ratings are
+                separate so we can review each role accurately.
               </p>
 
               <form className="mt-8 space-y-5" onSubmit={handleSubmit}>

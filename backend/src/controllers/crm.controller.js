@@ -197,16 +197,57 @@ const buildInteractionFilter = (query, user) => {
     ];
   }
 
+  const startDate = parseDateBoundary(query.startDate, false);
+  const endDate = parseDateBoundary(query.endDate, true);
+
+  if (startDate && endDate && startDate > endDate) {
+    const error = new Error("startDate must be before or equal to endDate");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (startDate || endDate) {
+    filter.dateOfContact = {};
+    if (startDate) {
+      filter.dateOfContact.$gte = startDate;
+    }
+    if (endDate) {
+      filter.dateOfContact.$lte = endDate;
+    }
+  }
+
   return filter;
 };
 
 const buildSalesRecordFilter = (query, user) => {
   const dateRange = parseDashboardDateRange(query);
-  const filter = applyDateRange(
+  let filter = applyDateRange(
     { ...buildSalesRecordAccessFilter(user) },
     "saleDate",
     dateRange
   );
+
+  if (!dateRange) {
+    const startDate = parseDateBoundary(query.startDate, false);
+    const endDate = parseDateBoundary(query.endDate, true);
+
+    if (startDate && endDate && startDate > endDate) {
+      const error = new Error("startDate must be before or equal to endDate");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (startDate || endDate) {
+      filter.saleDate = {};
+      if (startDate) {
+        filter.saleDate.$gte = startDate;
+      }
+      if (endDate) {
+        filter.saleDate.$lte = endDate;
+      }
+    }
+  }
+
   const conditions = [];
 
   if (query.bookClass) {
@@ -1612,7 +1653,20 @@ const listSalesRecords = asyncHandler(async (req, res) => {
           startDate: formatDateOnly(dateRange.startDate),
           endDate: formatDateOnly(dateRange.endDate),
         }
-      : { type: "all" },
+      : (() => {
+          const standaloneStart = parseDateBoundary(req.query.startDate, false);
+          const standaloneEnd = parseDateBoundary(req.query.endDate, true);
+
+          if (!standaloneStart && !standaloneEnd) {
+            return { type: "all" };
+          }
+
+          return {
+            type: "custom",
+            ...(standaloneStart ? { startDate: formatDateOnly(standaloneStart) } : {}),
+            ...(standaloneEnd ? { endDate: formatDateOnly(standaloneEnd) } : {}),
+          };
+        })(),
     pagination: {
       page,
       limit,
@@ -1947,10 +2001,10 @@ const getPublicSurvey = asyncHandler(async (req, res) => {
       responded: Boolean(dispatch.response?.respondedAt),
       questions: [
         "How satisfied were you with our service?",
-        marketerLabel,
         csrLabel,
         "How satisfied are you with the resolution provided?",
         "How likely are you to recommend Accessible Publishers Ltd?",
+        marketerLabel,
       ],
     },
   });

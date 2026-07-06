@@ -26,6 +26,9 @@ import {
 import { panelSegmentPath } from "../../utils/rolePaths";
 import { capitalizeWords } from "../../utils/textFormat";
 
+const getPageFromSearchParams = (searchParams) =>
+  Math.max(1, Number.parseInt(searchParams.get("page") || "1", 10) || 1);
+
 const CrmInteractionsPage = () => {
   const { user } = useAuth();
   const isCsrAdmin = user?.role === "csrAdmin";
@@ -34,19 +37,43 @@ const CrmInteractionsPage = () => {
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [search, setSearch] = useState("");
-  const [stateFilter, setStateFilter] = useState("");
-  const [directionFilter, setDirectionFilter] = useState(searchParams.get("direction") || "");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [ownerFilter, setOwnerFilter] = useState(searchParams.get("owner") || "");
+  const appliedSearch = searchParams.get("search") || "";
+  const [searchDraft, setSearchDraft] = useState(appliedSearch);
+  const stateFilter = searchParams.get("state") || "";
+  const directionFilter = searchParams.get("direction") || "";
+  const statusFilter = searchParams.get("status") || "";
+  const ownerFilter = searchParams.get("owner") || "";
+  const startDateFilter = searchParams.get("startDate") || "";
+  const endDateFilter = searchParams.get("endDate") || "";
+  const page = getPageFromSearchParams(searchParams);
   const [csrOptions, setCsrOptions] = useState([]);
-  const [page, setPage] = useState(1);
   const [surveyModalOpen, setSurveyModalOpen] = useState(false);
   const [activeInteraction, setActiveInteraction] = useState(null);
   const [sendingSurvey, setSendingSurvey] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
 
   const listPath = panelSegmentPath(user?.role, "interactions");
+
+  const updateFilterParams = useCallback(
+    (updates, { resetPage = false } = {}) => {
+      const nextParams = new URLSearchParams(searchParams);
+
+      if (resetPage) {
+        nextParams.delete("page");
+      }
+
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value) {
+          nextParams.set(key, String(value));
+        } else {
+          nextParams.delete(key);
+        }
+      });
+
+      setSearchParams(nextParams, { replace: true });
+    },
+    [searchParams, setSearchParams]
+  );
 
   const selectedCsrLabel = useMemo(() => {
     if (!ownerFilter) {
@@ -75,10 +102,8 @@ const CrmInteractionsPage = () => {
   }, [isCsrAdmin]);
 
   useEffect(() => {
-    setOwnerFilter(searchParams.get("owner") || "");
-    setDirectionFilter(searchParams.get("direction") || "");
-    setPage(1);
-  }, [searchParams]);
+    setSearchDraft(appliedSearch);
+  }, [appliedSearch]);
 
   const loadInteractions = useCallback(async () => {
     setLoading(true);
@@ -86,11 +111,13 @@ const CrmInteractionsPage = () => {
 
     try {
       const params = { page, limit: 10 };
-      if (search.trim()) params.search = search.trim();
+      if (appliedSearch.trim()) params.search = appliedSearch.trim();
       if (stateFilter) params.state = stateFilter;
       if (directionFilter) params.direction = directionFilter;
       if (statusFilter) params.status = statusFilter;
       if (isCsrAdmin && ownerFilter) params.owner = ownerFilter;
+      if (startDateFilter) params.startDate = startDateFilter;
+      if (endDateFilter) params.endDate = endDateFilter;
 
       const data = await listCrmInteractions(params);
       setInteractions(data.interactions || []);
@@ -101,7 +128,17 @@ const CrmInteractionsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [directionFilter, isCsrAdmin, ownerFilter, page, search, stateFilter, statusFilter]);
+  }, [
+    appliedSearch,
+    directionFilter,
+    isCsrAdmin,
+    ownerFilter,
+    page,
+    startDateFilter,
+    endDateFilter,
+    stateFilter,
+    statusFilter,
+  ]);
 
   useEffect(() => {
     loadInteractions();
@@ -109,36 +146,32 @@ const CrmInteractionsPage = () => {
 
   const handleSearchSubmit = (event) => {
     event.preventDefault();
-    setPage(1);
-    loadInteractions();
+    updateFilterParams({ search: searchDraft.trim() }, { resetPage: true });
   };
 
   const handleDirectionFilterChange = (event) => {
-    const nextDirection = event.target.value;
-    setDirectionFilter(nextDirection);
-    setPage(1);
-
-    const nextParams = new URLSearchParams(searchParams);
-    if (nextDirection) {
-      nextParams.set("direction", nextDirection);
-    } else {
-      nextParams.delete("direction");
-    }
-    setSearchParams(nextParams, { replace: true });
+    updateFilterParams({ direction: event.target.value }, { resetPage: true });
   };
 
   const handleOwnerFilterChange = (event) => {
-    const nextOwner = event.target.value;
-    setOwnerFilter(nextOwner);
-    setPage(1);
+    updateFilterParams({ owner: event.target.value }, { resetPage: true });
+  };
 
-    const nextParams = new URLSearchParams(searchParams);
-    if (nextOwner) {
-      nextParams.set("owner", nextOwner);
-    } else {
-      nextParams.delete("owner");
+  const handlePageChange = (nextPage) => {
+    updateFilterParams({ page: nextPage > 1 ? String(nextPage) : "" });
+  };
+
+  const handleDateFilterChange = (key, value) => {
+    const nextStartDate = key === "startDate" ? value : startDateFilter;
+    const nextEndDate = key === "endDate" ? value : endDateFilter;
+
+    if (nextStartDate && nextEndDate && nextStartDate > nextEndDate) {
+      setError("Start date must be before or equal to end date.");
+      return;
     }
-    setSearchParams(nextParams, { replace: true });
+
+    setError("");
+    updateFilterParams({ [key]: value }, { resetPage: true });
   };
 
   const openSurveyModal = (interaction) => {
@@ -169,7 +202,7 @@ const CrmInteractionsPage = () => {
       await deleteCrmInteraction(interaction._id);
 
       if (interactions.length === 1 && page > 1) {
-        setPage((current) => current - 1);
+        handlePageChange(page - 1);
       } else {
         loadInteractions();
       }
@@ -244,14 +277,14 @@ const CrmInteractionsPage = () => {
         </div>
 
         <form
-          className={`mt-5 grid gap-3 sm:grid-cols-2 ${isCsrAdmin ? "xl:grid-cols-6" : "xl:grid-cols-5"}`}
+          className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
           onSubmit={handleSearchSubmit}
         >
           <input
             type="search"
             placeholder="Search school, bookshop, phone, address..."
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            value={searchDraft}
+            onChange={(event) => setSearchDraft(event.target.value)}
             className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 sm:col-span-2"
           />
           {isCsrAdmin && (
@@ -271,8 +304,7 @@ const CrmInteractionsPage = () => {
           <select
             value={stateFilter}
             onChange={(event) => {
-              setStateFilter(event.target.value);
-              setPage(1);
+              updateFilterParams({ state: event.target.value }, { resetPage: true });
             }}
             className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
           >
@@ -298,8 +330,7 @@ const CrmInteractionsPage = () => {
           <select
             value={statusFilter}
             onChange={(event) => {
-              setStatusFilter(event.target.value);
-              setPage(1);
+              updateFilterParams({ status: event.target.value }, { resetPage: true });
             }}
             className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
           >
@@ -307,11 +338,27 @@ const CrmInteractionsPage = () => {
             <option value="resolved">Resolved</option>
             <option value="unresolved">Unresolved</option>
           </select>
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-slate-600">From date</span>
+            <input
+              type="date"
+              value={startDateFilter}
+              onChange={(event) => handleDateFilterChange("startDate", event.target.value)}
+              className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-slate-600">To date</span>
+            <input
+              type="date"
+              value={endDateFilter}
+              onChange={(event) => handleDateFilterChange("endDate", event.target.value)}
+              className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+            />
+          </label>
           <button
             type="submit"
-            className={`inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 xl:w-fit ${
-              isCsrAdmin ? "xl:col-span-6" : "xl:col-span-5"
-            }`}
+            className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 sm:col-span-2 xl:col-span-4 xl:w-fit"
           >
             Apply filters
           </button>
@@ -406,7 +453,9 @@ const CrmInteractionsPage = () => {
                         {isCsrAdmin ? (
                           <>
                             <Link
-                              to={`${listPath}/${interaction._id}`}
+                              to={`${listPath}/${interaction._id}${
+                                searchParams.toString() ? `?${searchParams.toString()}` : ""
+                              }`}
                               className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
                             >
                               View
@@ -459,7 +508,7 @@ const CrmInteractionsPage = () => {
             <button
               type="button"
               disabled={page <= 1}
-              onClick={() => setPage((current) => current - 1)}
+              onClick={() => handlePageChange(page - 1)}
               className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 disabled:opacity-40"
             >
               Previous
@@ -470,7 +519,7 @@ const CrmInteractionsPage = () => {
             <button
               type="button"
               disabled={page >= pagination.pages}
-              onClick={() => setPage((current) => current + 1)}
+              onClick={() => handlePageChange(page + 1)}
               className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 disabled:opacity-40"
             >
               Next

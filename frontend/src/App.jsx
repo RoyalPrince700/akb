@@ -23,6 +23,7 @@ import LeaderboardPage from "./pages/LeaderboardPage";
 import ProfilePage from "./pages/ProfilePage";
 import StaffCourseCompletionsPage from "./pages/StaffCourseCompletionsPage";
 import StaffManagementPage from "./pages/StaffManagementPage";
+import CrmCustomerDirectoryPage from "./pages/crm/CrmCustomerDirectoryPage";
 import CrmCustomerHistoryPage from "./pages/crm/CrmCustomerHistoryPage";
 import CrmCsrSalesPage from "./pages/crm/CrmCsrSalesPage";
 import CrmCsrTicketsPage from "./pages/crm/CrmCsrTicketsPage";
@@ -179,6 +180,7 @@ const App = () => {
       <Route path="/csr/staff" element={csrAdminPanel(<StaffManagementPage />)} />
       <Route path="/csr/sales-reps" element={csrAdminPanel(<CrmSalesRepPage />)} />
       <Route path="/csr/upload-data" element={csrAdminPanel(<CrmUploadDataPage />)} />
+      <Route path="/csr/directory" element={csrAdminPanel(<CrmCustomerDirectoryPage />)} />
       <Route path="/csr/reports" element={csrAdminPanel(<CrmReportsPage />)} />
     </Routes>
   );
