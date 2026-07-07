@@ -11,7 +11,7 @@ const SurveyDispatch = require("../models/SurveyDispatch");
 const { NIGERIAN_STATES, isFollowUpDirection } = require("../constants/crm");
 const asyncHandler = require("../utils/asyncHandler");
 const { sendSurveyEmail } = require("../mailtrap/email");
-const { sendSurveySms } = require("../sms/xwireless");
+const { sendSurveyReminderSms, sendSurveySms } = require("../sms/xwireless");
 
 const normalizePhoneNumber = (value = "") => value.replace(/\D/g, "");
 
@@ -317,8 +317,8 @@ const roundMoney = (value) => Number((Number(value) || 0).toFixed(2));
 
 const clampPercent = (value) => Math.min(100, Math.max(0, roundMoney(value)));
 
-const calcResolutionRate = (resolved = 0, unresolved = 0) => {
-  const eligible = resolved + unresolved;
+const calcResolutionRate = (resolved = 0, unresolved = 0, pending = 0) => {
+  const eligible = resolved + unresolved + pending;
   return eligible ? Math.round((resolved / eligible) * 100) : 0;
 };
 
@@ -495,11 +495,15 @@ const listInteractions = asyncHandler(async (req, res) => {
     interactionIds.length > 0
       ? await SurveyDispatch.aggregate([
           { $match: { interaction: { $in: interactionIds } } },
+          { $sort: { createdAt: -1 } },
           {
             $group: {
               _id: "$interaction",
               count: { $sum: 1 },
               lastSentAt: { $max: "$sentAt" },
+              latestSurveyDispatchId: { $first: "$_id" },
+              latestSurveyDispatchStatus: { $first: "$status" },
+              latestSurveyDispatchPhone: { $first: "$customerPhoneNumber" },
             },
           },
         ])
@@ -516,6 +520,9 @@ const listInteractions = asyncHandler(async (req, res) => {
       surveyTriggered: Boolean(surveyInfo),
       surveyDispatchCount: surveyInfo?.count ?? 0,
       lastSurveySentAt: surveyInfo?.lastSentAt ?? null,
+      latestSurveyDispatchId: surveyInfo?.latestSurveyDispatchId ?? null,
+      latestSurveyDispatchStatus: surveyInfo?.latestSurveyDispatchStatus ?? null,
+      latestSurveyDispatchPhone: surveyInfo?.latestSurveyDispatchPhone ?? null,
     };
   });
 
@@ -1828,6 +1835,67 @@ const createSurveyDispatch = asyncHandler(async (req, res) => {
   res.status(201).json({ dispatch: populated, email: emailDelivery, sms: smsDelivery });
 });
 
+const sendSurveyReminder = asyncHandler(async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    res.status(404);
+    throw new Error("Survey dispatch not found");
+  }
+
+  const dispatch = await SurveyDispatch.findById(req.params.id);
+
+  if (!dispatch) {
+    res.status(404);
+    throw new Error("Survey dispatch not found");
+  }
+
+  const interaction = await CrmInteraction.findOne({
+    _id: dispatch.interaction,
+    ...buildInteractionAccessFilter(req.user),
+  });
+
+  if (!interaction) {
+    res.status(404);
+    throw new Error("Survey dispatch not found");
+  }
+
+  if (dispatch.status === "responded") {
+    res.status(400);
+    throw new Error("This survey has already been completed");
+  }
+
+  const customerPhoneNumber =
+    (req.body.customerPhoneNumber || "").trim() ||
+    dispatch.customerPhoneNumber?.trim() ||
+    interaction.customer?.phoneNumber?.trim();
+
+  if (!customerPhoneNumber) {
+    res.status(400);
+    throw new Error("Customer phone number is required to send an SMS reminder");
+  }
+
+  const dispatchForSms = dispatch.toObject();
+  dispatchForSms.customerPhoneNumber = customerPhoneNumber;
+
+  try {
+    const smsResult = await sendSurveyReminderSms({ dispatch: dispatchForSms });
+    res.json({
+      sms: {
+        messageId: smsResult.messageId,
+        sent: true,
+      },
+    });
+  } catch (error) {
+    console.error("[crm] Survey reminder SMS send failed", {
+      dispatchId: dispatch._id?.toString(),
+      phoneNumber: customerPhoneNumber,
+      message: error.message,
+    });
+    error.statusCode = error.statusCode || 502;
+    error.message = `Failed to send survey reminder SMS: ${error.message}`;
+    throw error;
+  }
+});
+
 const listSurveyDispatches = asyncHandler(async (req, res) => {
   const { limit, page, skip } = parsePagination(req.query);
   const interactionFilter = buildInteractionAccessFilter(req.user);
@@ -2195,6 +2263,7 @@ const mergeCsrPerformanceRows = (...sources) => {
         totalTickets: 0,
         resolved: 0,
         unresolved: 0,
+        pending: 0,
         inbound: 0,
         outbound: 0,
         whatsapp: 0,
@@ -2232,7 +2301,7 @@ const mergeCsrPerformanceRows = (...sources) => {
   return Array.from(merged.values())
     .map((row) => ({
       ...row,
-      resolutionRate: calcResolutionRate(row.resolved, row.unresolved),
+      resolutionRate: calcResolutionRate(row.resolved, row.unresolved, row.pending),
       surveyResponseRate: row.surveysSent
         ? Math.round((row.surveysResponded / row.surveysSent) * 100)
         : 0,
@@ -2351,6 +2420,7 @@ const getReportsSummary = asyncHandler(async (req, res) => {
           totalTickets: { $sum: 1 },
           resolved: { $sum: { $cond: [{ $eq: ["$status", "resolved"] }, 1, 0] } },
           unresolved: { $sum: { $cond: [{ $eq: ["$status", "unresolved"] }, 1, 0] } },
+          pending: { $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] } },
           ...buildDirectionCountFields(),
           enquiries: { $sum: { $cond: [{ $eq: ["$category", "enquiry"] }, 1, 0] } },
           complaints: { $sum: { $cond: [{ $eq: ["$category", "complaint"] }, 1, 0] } },
@@ -2426,6 +2496,7 @@ const getReportsSummary = asyncHandler(async (req, res) => {
           totalTickets: { $sum: 1 },
           resolved: { $sum: { $cond: [{ $eq: ["$status", "resolved"] }, 1, 0] } },
           unresolved: { $sum: { $cond: [{ $eq: ["$status", "unresolved"] }, 1, 0] } },
+          pending: { $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] } },
           ...buildDirectionCountFields(),
           pendingRequests: {
             $sum: {
@@ -2498,6 +2569,7 @@ const getReportsSummary = asyncHandler(async (req, res) => {
     totalTickets: 0,
     resolved: 0,
     unresolved: 0,
+    pending: 0,
     inbound: 0,
     outbound: 0,
     whatsapp: 0,
@@ -2533,6 +2605,7 @@ const getReportsSummary = asyncHandler(async (req, res) => {
         totalTickets: overviewRow.totalTickets,
         resolved: overviewRow.resolved,
         unresolved: overviewRow.unresolved,
+        pending: overviewRow.pending,
         pendingRequests: overviewRow.pendingRequests,
         inbound: overviewRow.inbound,
         outbound: overviewRow.outbound,
@@ -2541,7 +2614,11 @@ const getReportsSummary = asyncHandler(async (req, res) => {
         inboundFollowUp: overviewRow.inboundFollowUp,
         outboundFollowUp: overviewRow.outboundFollowUp,
         hoax: overviewRow.hoax,
-        resolutionRate: calcResolutionRate(overviewRow.resolved, overviewRow.unresolved),
+        resolutionRate: calcResolutionRate(
+          overviewRow.resolved,
+          overviewRow.unresolved,
+          overviewRow.pending
+        ),
         surveySent,
         surveyResponded,
         surveyResponseRate: surveySent
@@ -2594,6 +2671,7 @@ module.exports = {
   listSchools,
   listSurveyDispatches,
   listSurveyResponses,
+  sendSurveyReminder,
   submitPublicSurveyResponse,
   updateInteraction,
   updateSalesRep,

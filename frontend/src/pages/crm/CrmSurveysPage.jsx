@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { getCsrDisplayName, surveyChannels } from "../../constants/crm";
+import SurveyReminderModal from "../../components/crm/SurveyReminderModal";
 import PanelLayout from "../../layouts/PanelLayout";
-import { listSurveyDispatches } from "../../services/api";
+import { listSurveyDispatches, sendSurveyReminder } from "../../services/api";
 import { handleSurveyDispatchShare } from "../../utils/crmSurvey";
 
 const CrmSurveysPage = () => {
@@ -12,6 +13,9 @@ const CrmSurveysPage = () => {
   const [search, setSearch] = useState("");
   const [channelFilter, setChannelFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [reminderModalOpen, setReminderModalOpen] = useState(false);
+  const [activeReminder, setActiveReminder] = useState(null);
+  const [sendingReminder, setSendingReminder] = useState(false);
 
   const loadDispatches = useCallback(async () => {
     setLoading(true);
@@ -40,6 +44,39 @@ const CrmSurveysPage = () => {
   const handleCopy = async (dispatch) => {
     await handleSurveyDispatchShare(dispatch);
     window.alert("Survey link prepared for sending.");
+  };
+
+  const openReminderModal = (dispatch) => {
+    setActiveReminder({
+      dispatchId: dispatch._id,
+      customerName: dispatch.customerName || "",
+      schoolName: dispatch.interaction?.customer?.schoolName || "",
+      defaultPhoneNumber:
+        dispatch.customerPhoneNumber ||
+        dispatch.interaction?.customer?.phoneNumber ||
+        "",
+    });
+    setReminderModalOpen(true);
+  };
+
+  const closeReminderModal = () => {
+    setReminderModalOpen(false);
+    setActiveReminder(null);
+  };
+
+  const handleReminderSubmit = async ({ dispatchId, customerPhoneNumber }) => {
+    setSendingReminder(true);
+    setError("");
+
+    try {
+      await sendSurveyReminder(dispatchId, { customerPhoneNumber });
+      window.alert("Survey reminder SMS sent successfully.");
+      closeReminderModal();
+    } catch (apiError) {
+      setError(apiError.response?.data?.message || "Failed to send survey reminder.");
+    } finally {
+      setSendingReminder(false);
+    }
   };
 
   return (
@@ -150,13 +187,24 @@ const CrmSurveysPage = () => {
                       {new Date(dispatch.sentAt).toLocaleString()}
                     </td>
                     <td className="py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(dispatch)}
-                        className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
-                      >
-                        Send again
-                      </button>
+                      <div className="flex flex-wrap justify-end gap-2">
+                        {dispatch.status !== "responded" && (
+                          <button
+                            type="button"
+                            onClick={() => openReminderModal(dispatch)}
+                            className="rounded-full border border-amber-200 bg-white px-3 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-50"
+                          >
+                            Send reminder
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(dispatch)}
+                          className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
+                        >
+                          Send again
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -165,6 +213,17 @@ const CrmSurveysPage = () => {
           )}
         </div>
       </div>
+
+      <SurveyReminderModal
+        isOpen={reminderModalOpen}
+        onClose={closeReminderModal}
+        onSubmit={handleReminderSubmit}
+        saving={sendingReminder}
+        dispatchId={activeReminder?.dispatchId}
+        customerName={activeReminder?.customerName}
+        schoolName={activeReminder?.schoolName}
+        defaultPhoneNumber={activeReminder?.defaultPhoneNumber}
+      />
     </PanelLayout>
   );
 };

@@ -2,13 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Search } from "lucide-react";
 
-import { getCsrDisplayName } from "../../constants/crm";
+import { crmStatuses, getCsrDisplayName } from "../../constants/crm";
 import PanelLayout from "../../layouts/PanelLayout";
 import { getCrmReports, listStaff } from "../../services/api";
 
 const CrmCsrTicketsPage = () => {
   const [csrs, setCsrs] = useState([]);
   const [csrSearch, setCsrSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -37,6 +38,7 @@ const CrmCsrTicketsPage = () => {
           totalTickets: metrics.totalTickets ?? 0,
           resolved: metrics.resolved ?? 0,
           unresolved: metrics.unresolved ?? 0,
+          pending: metrics.pending ?? 0,
           resolutionRate: metrics.resolutionRate ?? 0,
           inbound: metrics.inbound ?? 0,
           outbound: metrics.outbound ?? 0,
@@ -64,16 +66,29 @@ const CrmCsrTicketsPage = () => {
   const filteredCsrs = useMemo(() => {
     const term = csrSearch.trim().toLowerCase();
 
-    if (!term) {
-      return csrs;
-    }
-
-    return csrs.filter(
-      (csr) =>
+    return csrs.filter((csr) => {
+      const matchesSearch =
+        !term ||
         csr.name?.toLowerCase().includes(term) ||
-        csr.staffId?.toLowerCase().includes(term)
-    );
-  }, [csrSearch, csrs]);
+        csr.staffId?.toLowerCase().includes(term);
+
+      const matchesStatus =
+        !statusFilter || (csr[statusFilter] ?? 0) > 0;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [csrSearch, csrs, statusFilter]);
+
+  const buildTicketsLink = (csrId, { status = "", direction = "" } = {}) => {
+    const params = new URLSearchParams({ owner: csrId });
+    if (status) {
+      params.set("status", status);
+    }
+    if (direction) {
+      params.set("direction", direction);
+    }
+    return `/csr/interactions?${params.toString()}`;
+  };
 
   return (
     <PanelLayout title="CSR Tickets">
@@ -93,19 +108,37 @@ const CrmCsrTicketsPage = () => {
             </p>
           </div>
 
-          <label className="block w-full lg:max-w-sm">
-            <span className="text-sm font-medium text-slate-700">Search CSR</span>
-            <div className="relative mt-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                type="search"
-                value={csrSearch}
-                onChange={(event) => setCsrSearch(event.target.value)}
-                placeholder="Search by name or staff ID"
-                className="w-full rounded-xl border border-slate-300 py-2.5 pl-10 pr-4 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-              />
-            </div>
-          </label>
+          <div className="flex w-full flex-col gap-3 sm:flex-row lg:max-w-2xl">
+            <label className="block flex-1">
+              <span className="text-sm font-medium text-slate-700">Search CSR</span>
+              <div className="relative mt-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="search"
+                  value={csrSearch}
+                  onChange={(event) => setCsrSearch(event.target.value)}
+                  placeholder="Search by name or staff ID"
+                  className="w-full rounded-xl border border-slate-300 py-2.5 pl-10 pr-4 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                />
+              </div>
+            </label>
+
+            <label className="block sm:w-48">
+              <span className="text-sm font-medium text-slate-700">Ticket status</span>
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+                className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+              >
+                <option value="">All statuses</option>
+                {crmStatuses.map((status) => (
+                  <option key={status.value} value={status.value}>
+                    {status.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
 
         <div className="mt-6 overflow-x-auto">
@@ -114,7 +147,7 @@ const CrmCsrTicketsPage = () => {
           ) : filteredCsrs.length === 0 ? (
             <p className="py-8 text-center text-sm text-slate-600">No CSRs found.</p>
           ) : (
-            <table className="w-full min-w-[1200px] text-left text-sm">
+            <table className="w-full min-w-[1280px] text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-500">
                   <th className="pb-3 pr-4 font-medium">CSR</th>
@@ -123,6 +156,7 @@ const CrmCsrTicketsPage = () => {
                   <th className="pb-3 pr-4 font-medium">Tickets</th>
                   <th className="pb-3 pr-4 font-medium">Resolved</th>
                   <th className="pb-3 pr-4 font-medium">Unresolved</th>
+                  <th className="pb-3 pr-4 font-medium">Pending</th>
                   <th className="pb-3 pr-4 font-medium">Resolution %</th>
                   <th className="pb-3 pr-4 font-medium">Inbound</th>
                   <th className="pb-3 pr-4 font-medium">Outbound</th>
@@ -153,6 +187,7 @@ const CrmCsrTicketsPage = () => {
                     <td className="py-3 pr-4 text-slate-700">{csr.totalTickets}</td>
                     <td className="py-3 pr-4 text-emerald-700">{csr.resolved}</td>
                     <td className="py-3 pr-4 text-amber-700">{csr.unresolved}</td>
+                    <td className="py-3 pr-4 text-sky-700">{csr.pending}</td>
                     <td className="py-3 pr-4 text-slate-700">{csr.resolutionRate}%</td>
                     <td className="py-3 pr-4 text-slate-700">{csr.inbound}</td>
                     <td className="py-3 pr-4 text-slate-700">{csr.outbound}</td>
@@ -163,14 +198,28 @@ const CrmCsrTicketsPage = () => {
                     <td className="py-3 pr-4 text-amber-700">{csr.hoax}</td>
                     <td className="py-3 text-right">
                       <div className="flex flex-wrap items-center justify-end gap-2">
+                        {csr.pending > 0 && (
+                          <Link
+                            to={buildTicketsLink(csr._id, { status: "pending" })}
+                            className="rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-semibold text-sky-700 transition hover:bg-sky-50"
+                          >
+                            Pending
+                          </Link>
+                        )}
                         <Link
-                          to={`/csr/interactions?owner=${csr._id}&direction=hoax`}
+                          to={buildTicketsLink(csr._id, { status: "unresolved" })}
+                          className="rounded-full border border-amber-200 bg-white px-3 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-50"
+                        >
+                          Unresolved
+                        </Link>
+                        <Link
+                          to={buildTicketsLink(csr._id, { direction: "hoax" })}
                           className="rounded-full border border-amber-200 bg-white px-3 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-50"
                         >
                           Hoax calls
                         </Link>
                         <Link
-                          to={`/csr/interactions?owner=${csr._id}`}
+                          to={buildTicketsLink(csr._id, { status: statusFilter })}
                           className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
                         >
                           View tickets

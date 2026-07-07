@@ -322,6 +322,11 @@ export const createSurveyDispatch = async (payload) => {
   return response.data;
 };
 
+export const sendSurveyReminder = async (dispatchId, payload = {}) => {
+  const response = await api.post(`/crm/survey-dispatches/${dispatchId}/reminder`, payload);
+  return response.data;
+};
+
 export const getCrmReports = async (params = {}) => {
   const response = await api.get("/crm/reports", { params });
   return response.data;

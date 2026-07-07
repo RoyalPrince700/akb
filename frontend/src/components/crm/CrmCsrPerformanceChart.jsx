@@ -19,7 +19,8 @@ const chartTooltipStyle = {
 
 const CrmCsrPerformanceChart = ({ title, description, data, emptyMessage }) => {
   const isEmpty =
-    !data?.length || !data.some((item) => item.resolved > 0 || item.unresolved > 0);
+    !data?.length ||
+    !data.some((item) => item.resolved > 0 || item.unresolved > 0 || item.pending > 0);
 
   return (
     <CrmChartCard title={title} description={description} empty={isEmpty} emptyMessage={emptyMessage}>
@@ -42,6 +43,13 @@ const CrmCsrPerformanceChart = ({ title, description, data, emptyMessage }) => {
             dataKey="unresolved"
             name="Unresolved"
             fill="#f59e0b"
+            radius={[8, 8, 0, 0]}
+            maxBarSize={40}
+          />
+          <Bar
+            dataKey="pending"
+            name="Pending"
+            fill="#0284c7"
             radius={[8, 8, 0, 0]}
             maxBarSize={40}
           />

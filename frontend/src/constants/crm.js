@@ -56,7 +56,17 @@ export const inboundCategories = [
 export const crmStatuses = [
   { value: "resolved", label: "Resolved" },
   { value: "unresolved", label: "Unresolved" },
+  { value: "pending", label: "Pending" },
 ];
+
+export const getCrmStatusLabel = (value) =>
+  crmStatuses.find((item) => item.value === value)?.label || value;
+
+export const getCrmStatusBadgeClass = (status) => {
+  if (status === "resolved") return "bg-emerald-100 text-emerald-800";
+  if (status === "pending") return "bg-sky-100 text-sky-800";
+  return "bg-amber-100 text-amber-800";
+};
 
 export const crmDirections = [
   { value: "inbound", label: "Inbound" },

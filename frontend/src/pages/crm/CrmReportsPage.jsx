@@ -22,6 +22,7 @@ const emptyReports = {
     totalTickets: 0,
     resolved: 0,
     unresolved: 0,
+    pending: 0,
     pendingRequests: 0,
     inbound: 0,
     outbound: 0,
@@ -109,6 +110,7 @@ const formatBreakdownLabel = (value) => {
 
   if (value === "resolved") return "Resolved";
   if (value === "unresolved") return "Unresolved";
+  if (value === "pending") return "Pending";
 
   return formatCrmDirection(value) || formatCrmCategory(value) || value;
 };
@@ -526,6 +528,11 @@ const CrmReportsPage = () => {
             <MetricCard
               label="Unresolved tickets"
               value={overview.unresolved ?? 0}
+              helper={`Pending tickets: ${overview.pending ?? 0}`}
+            />
+            <MetricCard
+              label="Pending tickets"
+              value={overview.pending ?? 0}
               helper={`Pending requests: ${overview.pendingRequests ?? 0}`}
             />
             <MetricCard
@@ -616,6 +623,7 @@ const CrmReportsPage = () => {
                       <th className="pb-3 pr-4 font-medium">Tickets</th>
                       <th className="pb-3 pr-4 font-medium">Resolved</th>
                       <th className="pb-3 pr-4 font-medium">Unresolved</th>
+                      <th className="pb-3 pr-4 font-medium">Pending</th>
                       <th className="pb-3 pr-4 font-medium">Resolution %</th>
                       <th className="pb-3 pr-4 font-medium">Inbound</th>
                       <th className="pb-3 pr-4 font-medium">Outbound</th>
@@ -648,6 +656,7 @@ const CrmReportsPage = () => {
                         <td className="py-3 pr-4 text-slate-700">{row.totalTickets ?? 0}</td>
                         <td className="py-3 pr-4 text-emerald-700">{row.resolved ?? 0}</td>
                         <td className="py-3 pr-4 text-amber-700">{row.unresolved ?? 0}</td>
+                        <td className="py-3 pr-4 text-sky-700">{row.pending ?? 0}</td>
                         <td className="py-3 pr-4 text-slate-700">{row.resolutionRate ?? 0}%</td>
                         <td className="py-3 pr-4 text-slate-700">{row.inbound ?? 0}</td>
                         <td className="py-3 pr-4 text-slate-700">{row.outbound ?? 0}</td>
@@ -700,7 +709,7 @@ const CrmReportsPage = () => {
           <div className="grid gap-5 lg:grid-cols-2">
             <CrmPieChartCard
               title="Ticket resolution"
-              description="Resolved vs unresolved tickets in the selected period."
+              description="Resolved, unresolved, and pending tickets in the selected period."
               data={resolutionChartData}
             />
             <CrmPieChartCard
@@ -740,7 +749,7 @@ const CrmReportsPage = () => {
           <div className="mt-6">
             <CrmCsrPerformanceChart
               title="CSR resolution comparison"
-              description="Resolved and unresolved ticket counts for the top CSRs in this view."
+              description="Resolved, unresolved, and pending ticket counts for the top CSRs in this view."
               data={csrPerformanceChartData}
               emptyMessage="No CSR performance data available for charting."
             />

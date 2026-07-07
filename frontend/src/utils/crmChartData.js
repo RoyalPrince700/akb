@@ -32,6 +32,7 @@ export const mapCsrPerformanceChart = (rows, limit = 8) =>
       name: row.name || row.staffId || "Unknown",
       resolved: row.resolved ?? 0,
       unresolved: row.unresolved ?? 0,
+      pending: row.pending ?? 0,
       totalTickets: row.totalTickets ?? 0,
     }));
 
@@ -48,6 +49,7 @@ export const mapOverviewDirectionData = (overview) => [
 export const mapOverviewResolutionData = (overview) => [
   { name: "Resolved", value: overview.resolved ?? 0 },
   { name: "Unresolved", value: overview.unresolved ?? 0 },
+  { name: "Pending", value: overview.pending ?? 0 },
 ];
 
 export const mapDashboardDirectionData = (summary) => [

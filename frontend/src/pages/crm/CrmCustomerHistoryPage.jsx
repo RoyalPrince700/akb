@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { getCsrDisplayName } from "../../constants/crm";
+import { getCrmStatusBadgeClass, getCrmStatusLabel, getCsrDisplayName } from "../../constants/crm";
 import PanelLayout from "../../layouts/PanelLayout";
 import {
   getCrmCustomerHistory,
@@ -180,15 +180,11 @@ const CrmCustomerHistoryPage = () => {
                         {interaction.category}
                       </span>
                       <span
-                        className={`rounded-full px-2 py-1 ${
-                          interaction.status === "resolved"
-                            ? "bg-emerald-100 text-emerald-800"
-                            : "bg-amber-100 text-amber-800"
-                        }`}
+                        className={`rounded-full px-2 py-1 ${getCrmStatusBadgeClass(interaction.status)}`}
                       >
-                        {interaction.status}
+                        {getCrmStatusLabel(interaction.status)}
                       </span>
-                      {interaction.status === "unresolved" && (
+                      {(interaction.status === "unresolved" || interaction.status === "pending") && (
                         <button
                           type="button"
                           onClick={() => handleMarkResolved(interaction)}

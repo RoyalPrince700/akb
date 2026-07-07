@@ -2,11 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import SurveyDispatchModal from "../../components/crm/SurveyDispatchModal";
+import SurveyReminderModal from "../../components/crm/SurveyReminderModal";
 import {
   crmDirections,
+  crmStatuses,
   formatCrmCategory,
   formatCrmDirection,
   formatOrganizationType,
+  getCrmStatusBadgeClass,
+  getCrmStatusLabel,
   getCsrDisplayName,
   isFollowUpDirection,
   nigerianStates,
@@ -18,6 +22,7 @@ import {
   deleteCrmInteraction,
   listCrmInteractions,
   listStaff,
+  sendSurveyReminder,
 } from "../../services/api";
 import {
   handleSurveyDispatchShare,
@@ -48,8 +53,11 @@ const CrmInteractionsPage = () => {
   const page = getPageFromSearchParams(searchParams);
   const [csrOptions, setCsrOptions] = useState([]);
   const [surveyModalOpen, setSurveyModalOpen] = useState(false);
+  const [reminderModalOpen, setReminderModalOpen] = useState(false);
   const [activeInteraction, setActiveInteraction] = useState(null);
+  const [activeReminder, setActiveReminder] = useState(null);
   const [sendingSurvey, setSendingSurvey] = useState(false);
+  const [sendingReminder, setSendingReminder] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
 
   const listPath = panelSegmentPath(user?.role, "interactions");
@@ -184,6 +192,23 @@ const CrmInteractionsPage = () => {
     setActiveInteraction(null);
   };
 
+  const openReminderModal = (interaction) => {
+    setActiveReminder({
+      dispatchId: interaction.latestSurveyDispatchId,
+      schoolName: capitalizeWords(interaction.customer?.schoolName) || "",
+      defaultPhoneNumber:
+        interaction.latestSurveyDispatchPhone ||
+        interaction.customer?.phoneNumber ||
+        "",
+    });
+    setReminderModalOpen(true);
+  };
+
+  const closeReminderModal = () => {
+    setReminderModalOpen(false);
+    setActiveReminder(null);
+  };
+
   const handleDelete = async (interaction) => {
     const ticketLabel = capitalizeWords(interaction.customer.schoolName) || "this ticket";
 
@@ -235,6 +260,26 @@ const CrmInteractionsPage = () => {
       setError(apiError.response?.data?.message || "Failed to create survey link.");
     } finally {
       setSendingSurvey(false);
+    }
+  };
+
+  const canSendSurveyReminder = (interaction) =>
+    interaction.surveyTriggered &&
+    interaction.latestSurveyDispatchStatus !== "responded" &&
+    interaction.latestSurveyDispatchId;
+
+  const handleReminderSubmit = async ({ dispatchId, customerPhoneNumber }) => {
+    setSendingReminder(true);
+    setError("");
+
+    try {
+      await sendSurveyReminder(dispatchId, { customerPhoneNumber });
+      window.alert("Survey reminder SMS sent successfully.");
+      closeReminderModal();
+    } catch (apiError) {
+      setError(apiError.response?.data?.message || "Failed to send survey reminder.");
+    } finally {
+      setSendingReminder(false);
     }
   };
 
@@ -335,8 +380,11 @@ const CrmInteractionsPage = () => {
             className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
           >
             <option value="">All statuses</option>
-            <option value="resolved">Resolved</option>
-            <option value="unresolved">Unresolved</option>
+            {crmStatuses.map((status) => (
+              <option key={status.value} value={status.value}>
+                {status.label}
+              </option>
+            ))}
           </select>
           <label className="block">
             <span className="mb-1 block text-xs font-medium text-slate-600">From date</span>
@@ -419,13 +467,11 @@ const CrmInteractionsPage = () => {
                         <span className="text-slate-500">—</span>
                       ) : (
                         <span
-                          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                            interaction.status === "resolved"
-                              ? "bg-emerald-100 text-emerald-800"
-                              : "bg-amber-100 text-amber-800"
-                          }`}
+                          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${getCrmStatusBadgeClass(
+                            interaction.status
+                          )}`}
                         >
-                          {interaction.status}
+                          {getCrmStatusLabel(interaction.status)}
                         </span>
                       )}
                     </td>
@@ -478,19 +524,30 @@ const CrmInteractionsPage = () => {
                               Edit
                             </Link>
                             {!isFollowUpDirection(interaction.direction) && (
-                              <button
-                                type="button"
-                                onClick={() => openSurveyModal(interaction)}
-                                className={`rounded-full border bg-white px-3 py-1 text-xs font-semibold transition ${
-                                  interaction.surveyTriggered
-                                    ? "border-sky-200 text-sky-700 hover:bg-sky-50"
-                                    : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-                                }`}
-                              >
-                                {interaction.surveyTriggered
-                                  ? "Resend trigger"
-                                  : "Trigger survey"}
-                              </button>
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => openSurveyModal(interaction)}
+                                  className={`rounded-full border bg-white px-3 py-1 text-xs font-semibold transition ${
+                                    interaction.surveyTriggered
+                                      ? "border-sky-200 text-sky-700 hover:bg-sky-50"
+                                      : "border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                                  }`}
+                                >
+                                  {interaction.surveyTriggered
+                                    ? "Resend trigger"
+                                    : "Trigger survey"}
+                                </button>
+                                {canSendSurveyReminder(interaction) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => openReminderModal(interaction)}
+                                    className="rounded-full border border-amber-200 bg-white px-3 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-50"
+                                  >
+                                    Send reminder
+                                  </button>
+                                )}
+                              </>
                             )}
                           </>
                         )}
@@ -529,13 +586,25 @@ const CrmInteractionsPage = () => {
       </div>
 
       {!isCsrAdmin && (
-        <SurveyDispatchModal
-          interaction={activeInteraction}
-          isOpen={surveyModalOpen}
-          onClose={closeSurveyModal}
-          onSubmit={handleSurveySubmit}
-          saving={sendingSurvey}
-        />
+        <>
+          <SurveyDispatchModal
+            interaction={activeInteraction}
+            isOpen={surveyModalOpen}
+            onClose={closeSurveyModal}
+            onSubmit={handleSurveySubmit}
+            saving={sendingSurvey}
+          />
+          <SurveyReminderModal
+            isOpen={reminderModalOpen}
+            onClose={closeReminderModal}
+            onSubmit={handleReminderSubmit}
+            saving={sendingReminder}
+            dispatchId={activeReminder?.dispatchId}
+            customerName={activeReminder?.customerName}
+            schoolName={activeReminder?.schoolName}
+            defaultPhoneNumber={activeReminder?.defaultPhoneNumber}
+          />
+        </>
       )}
     </PanelLayout>
   );

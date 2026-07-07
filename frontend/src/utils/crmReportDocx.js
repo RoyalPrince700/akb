@@ -21,6 +21,7 @@ const formatLabel = (value) => {
 
   if (value === "resolved") return "Resolved";
   if (value === "unresolved") return "Unresolved";
+  if (value === "pending") return "Pending";
 
   return formatCrmDirection(value) || formatCrmCategory(value) || value;
 };
@@ -138,6 +139,7 @@ export const downloadCrmReportDocx = async ({ period, reports, csrFilterLabel })
         dataRow(["Total tickets", overview.totalTickets ?? 0]),
         dataRow(["Resolved tickets", overview.resolved ?? 0]),
         dataRow(["Unresolved tickets", overview.unresolved ?? 0]),
+        dataRow(["Pending tickets", overview.pending ?? 0]),
         dataRow(["Resolution rate", `${overview.resolutionRate ?? 0}%`]),
         dataRow(["Pending requests", overview.pendingRequests ?? 0]),
         dataRow(["Inbound tickets", overview.inbound ?? 0]),
@@ -175,6 +177,7 @@ export const downloadCrmReportDocx = async ({ period, reports, csrFilterLabel })
             "Tickets",
             "Resolved",
             "Unresolved",
+            "Pending",
             "Resolution %",
             "Inbound",
             "Outbound",
@@ -202,6 +205,7 @@ export const downloadCrmReportDocx = async ({ period, reports, csrFilterLabel })
               row.totalTickets ?? 0,
               row.resolved ?? 0,
               row.unresolved ?? 0,
+              row.pending ?? 0,
               `${row.resolutionRate ?? 0}%`,
               row.inbound ?? 0,
               row.outbound ?? 0,

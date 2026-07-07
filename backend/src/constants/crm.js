@@ -59,7 +59,7 @@ const OUTBOUND_CATEGORIES = [
 ];
 const INBOUND_CATEGORIES = ["enquiry", "complaint", "request"];
 const CRM_CATEGORIES = [...new Set([...OUTBOUND_CATEGORIES, ...INBOUND_CATEGORIES])];
-const CRM_STATUSES = ["resolved", "unresolved"];
+const CRM_STATUSES = ["resolved", "unresolved", "pending"];
 const CONTACT_MEDIA = ["website", "mail", "phone", "whatsapp"];
 const CONTACT_MEDIA_OPTIONS = ["website", "mail", "phone"];
 const PHONE_LINE_LABELS = ["landline", "csrOfficialLine", "message"];

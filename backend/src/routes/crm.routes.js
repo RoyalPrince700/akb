@@ -27,6 +27,7 @@ const {
   listSchools,
   listSurveyDispatches,
   listSurveyResponses,
+  sendSurveyReminder,
   submitPublicSurveyResponse,
   updateInteraction,
   updateSalesRep,
@@ -76,6 +77,7 @@ router.post("/schools/import", authorizeCsrAdmin, importSchools);
 
 router.get("/survey-dispatches", authorizeCsrOrAdmin, listSurveyDispatches);
 router.post("/survey-dispatches", authorizeCsrOrAdmin, createSurveyDispatch);
+router.post("/survey-dispatches/:id/reminder", authorizeCsrOrAdmin, sendSurveyReminder);
 router.get("/survey-responses", authorizeCsrAdmin, listSurveyResponses);
 
 module.exports = router;

@@ -10,6 +10,7 @@ const formatLabel = (value) => {
 
   if (value === "resolved") return "Resolved";
   if (value === "unresolved") return "Unresolved";
+  if (value === "pending") return "Pending";
 
   return formatCrmDirection(value) || formatCrmCategory(value) || value;
 };
@@ -51,6 +52,7 @@ const CSR_PERFORMANCE_HEADERS = [
   "Tickets",
   "Resolved",
   "Unresolved",
+  "Pending",
   "Resolution %",
   "Inbound",
   "Outbound",
@@ -78,6 +80,7 @@ const mapCsrPerformanceRow = (row) => [
   row.totalTickets ?? 0,
   row.resolved ?? 0,
   row.unresolved ?? 0,
+  row.pending ?? 0,
   formatPercent(row.resolutionRate),
   row.inbound ?? 0,
   row.outbound ?? 0,
@@ -112,6 +115,7 @@ const buildOverviewRows = (overview) => [
   ["Total tickets", overview.totalTickets ?? 0],
   ["Resolved tickets", overview.resolved ?? 0],
   ["Unresolved tickets", overview.unresolved ?? 0],
+  ["Pending tickets", overview.pending ?? 0],
   ["Resolution rate", formatPercent(overview.resolutionRate)],
   ["Pending requests", overview.pendingRequests ?? 0],
   ["Inbound tickets", overview.inbound ?? 0],

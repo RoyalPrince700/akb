@@ -28,6 +28,9 @@ const buildSurveyMessage = (dispatch) => {
   return `Thank you for speaking with Accessible Publishers Ltd. Kindly complete this short survey about your recent support experience.\n\n${dispatch.surveyUrl}`;
 };
 
+const buildSurveyReminderMessage = (dispatch) =>
+  `Reminder: Please take a moment to complete our short survey about your recent support experience with Accessible Publishers Ltd.\n\n${dispatch.surveyUrl}`;
+
 const getSmsConfig = () => {
   const apiKey = process.env.SMS_API_KEY;
   const clientId = process.env.SMS_CLIENT_ID;
@@ -94,7 +97,7 @@ const logSmsEvent = (level, message, details = {}) => {
   console.log(`[sms] ${message}`, payload);
 };
 
-const sendSurveySms = async ({ dispatch }) => {
+const sendSms = async ({ dispatch, message, logLabel = "survey SMS" }) => {
   const { apiKey, clientId, senderId, baseUrl } = getSmsConfig();
 
   if (!apiKey || !clientId) {
@@ -121,7 +124,7 @@ const sendSurveySms = async ({ dispatch }) => {
     apiKey,
     clientId,
     senderId,
-    message: buildSurveyMessage(dispatch),
+    message,
     mobileNumbers,
     coRelator: dispatch._id?.toString() || dispatch.token,
   };
@@ -134,7 +137,7 @@ const sendSurveySms = async ({ dispatch }) => {
     payload.templateId = process.env.SMS_TEMPLATE_ID;
   }
 
-  logSmsEvent("info", "Sending survey SMS", {
+  logSmsEvent("info", logLabel, {
     dispatchId: dispatch._id?.toString(),
     to: mobileNumbers,
     senderId,
@@ -205,9 +208,25 @@ const sendSurveySms = async ({ dispatch }) => {
   };
 };
 
+const sendSurveySms = async ({ dispatch }) =>
+  sendSms({
+    dispatch,
+    message: buildSurveyMessage(dispatch),
+    logLabel: "Sending survey SMS",
+  });
+
+const sendSurveyReminderSms = async ({ dispatch }) =>
+  sendSms({
+    dispatch,
+    message: buildSurveyReminderMessage(dispatch),
+    logLabel: "Sending survey reminder SMS",
+  });
+
 module.exports = {
   buildSurveyMessage,
+  buildSurveyReminderMessage,
   formatPhoneForSms,
   normalizeSmsResponse,
+  sendSurveyReminderSms,
   sendSurveySms,
 };
