@@ -504,6 +504,7 @@ const listInteractions = asyncHandler(async (req, res) => {
               latestSurveyDispatchId: { $first: "$_id" },
               latestSurveyDispatchStatus: { $first: "$status" },
               latestSurveyDispatchPhone: { $first: "$customerPhoneNumber" },
+              latestSurveyDispatchReminderSentAt: { $first: "$reminderSentAt" },
             },
           },
         ])
@@ -523,6 +524,7 @@ const listInteractions = asyncHandler(async (req, res) => {
       latestSurveyDispatchId: surveyInfo?.latestSurveyDispatchId ?? null,
       latestSurveyDispatchStatus: surveyInfo?.latestSurveyDispatchStatus ?? null,
       latestSurveyDispatchPhone: surveyInfo?.latestSurveyDispatchPhone ?? null,
+      latestSurveyDispatchReminderSentAt: surveyInfo?.latestSurveyDispatchReminderSentAt ?? null,
     };
   });
 
@@ -1863,6 +1865,11 @@ const sendSurveyReminder = asyncHandler(async (req, res) => {
     throw new Error("This survey has already been completed");
   }
 
+  if (dispatch.reminderSentAt) {
+    res.status(400);
+    throw new Error("A reminder has already been sent for this survey");
+  }
+
   const customerPhoneNumber =
     (req.body.customerPhoneNumber || "").trim() ||
     dispatch.customerPhoneNumber?.trim() ||
@@ -1878,11 +1885,16 @@ const sendSurveyReminder = asyncHandler(async (req, res) => {
 
   try {
     const smsResult = await sendSurveyReminderSms({ dispatch: dispatchForSms });
+    dispatch.reminderSentAt = new Date();
+    dispatch.reminderSentBy = req.user._id;
+    await dispatch.save();
+
     res.json({
       sms: {
         messageId: smsResult.messageId,
         sent: true,
       },
+      reminderSentAt: dispatch.reminderSentAt,
     });
   } catch (error) {
     console.error("[crm] Survey reminder SMS send failed", {

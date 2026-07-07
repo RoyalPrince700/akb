@@ -102,6 +102,15 @@ const surveyDispatchSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    reminderSentAt: {
+      type: Date,
+      default: null,
+    },
+    reminderSentBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
     response: {
       type: surveyResponseSchema,
       default: null,

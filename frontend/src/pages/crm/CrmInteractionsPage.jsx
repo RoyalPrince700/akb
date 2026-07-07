@@ -266,7 +266,11 @@ const CrmInteractionsPage = () => {
   const canSendSurveyReminder = (interaction) =>
     interaction.surveyTriggered &&
     interaction.latestSurveyDispatchStatus !== "responded" &&
-    interaction.latestSurveyDispatchId;
+    interaction.latestSurveyDispatchId &&
+    !interaction.latestSurveyDispatchReminderSentAt;
+
+  const hasSurveyReminderBeenSent = (interaction) =>
+    Boolean(interaction.latestSurveyDispatchReminderSentAt);
 
   const handleReminderSubmit = async ({ dispatchId, customerPhoneNumber }) => {
     setSendingReminder(true);
@@ -276,6 +280,7 @@ const CrmInteractionsPage = () => {
       await sendSurveyReminder(dispatchId, { customerPhoneNumber });
       window.alert("Survey reminder SMS sent successfully.");
       closeReminderModal();
+      loadInteractions();
     } catch (apiError) {
       setError(apiError.response?.data?.message || "Failed to send survey reminder.");
     } finally {
@@ -479,12 +484,19 @@ const CrmInteractionsPage = () => {
                       {isFollowUpDirection(interaction.direction) ? (
                         <span className="text-slate-500">—</span>
                       ) : interaction.surveyTriggered ? (
-                        <span className="inline-flex rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-semibold text-sky-800">
-                          Sent
-                          {interaction.surveyDispatchCount > 1
-                            ? ` (${interaction.surveyDispatchCount}x)`
-                            : ""}
-                        </span>
+                        <div className="flex flex-col gap-1">
+                          <span className="inline-flex w-fit rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-semibold text-sky-800">
+                            Sent
+                            {interaction.surveyDispatchCount > 1
+                              ? ` (${interaction.surveyDispatchCount}x)`
+                              : ""}
+                          </span>
+                          {hasSurveyReminderBeenSent(interaction) && (
+                            <span className="inline-flex w-fit rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+                              Reminder sent
+                            </span>
+                          )}
+                        </div>
                       ) : (
                         <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
                           Not sent
@@ -547,6 +559,21 @@ const CrmInteractionsPage = () => {
                                     Send reminder
                                   </button>
                                 )}
+                                {hasSurveyReminderBeenSent(interaction) &&
+                                  interaction.latestSurveyDispatchStatus !== "responded" && (
+                                    <span
+                                      className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800"
+                                      title={
+                                        interaction.latestSurveyDispatchReminderSentAt
+                                          ? `Reminder sent on ${new Date(
+                                              interaction.latestSurveyDispatchReminderSentAt
+                                            ).toLocaleString()}`
+                                          : "Reminder sent"
+                                      }
+                                    >
+                                      Reminder sent
+                                    </span>
+                                  )}
                               </>
                             )}
                           </>

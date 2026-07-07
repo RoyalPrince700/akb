@@ -72,6 +72,7 @@ const CrmSurveysPage = () => {
       await sendSurveyReminder(dispatchId, { customerPhoneNumber });
       window.alert("Survey reminder SMS sent successfully.");
       closeReminderModal();
+      loadDispatches();
     } catch (apiError) {
       setError(apiError.response?.data?.message || "Failed to send survey reminder.");
     } finally {
@@ -173,22 +174,29 @@ const CrmSurveysPage = () => {
                       {getCsrDisplayName(dispatch.sentBy, "Unknown")}
                     </td>
                     <td className="py-3 pr-4">
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                          dispatch.status === "responded"
-                            ? "bg-emerald-100 text-emerald-800"
-                            : "bg-amber-100 text-amber-800"
-                        }`}
-                      >
-                        {dispatch.status}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span
+                          className={`inline-flex w-fit rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                            dispatch.status === "responded"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-amber-100 text-amber-800"
+                          }`}
+                        >
+                          {dispatch.status}
+                        </span>
+                        {dispatch.reminderSentAt && dispatch.status !== "responded" && (
+                          <span className="inline-flex w-fit rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+                            Reminder sent
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 pr-4 text-slate-700">
                       {new Date(dispatch.sentAt).toLocaleString()}
                     </td>
                     <td className="py-3 text-right">
                       <div className="flex flex-wrap justify-end gap-2">
-                        {dispatch.status !== "responded" && (
+                        {dispatch.status !== "responded" && !dispatch.reminderSentAt && (
                           <button
                             type="button"
                             onClick={() => openReminderModal(dispatch)}
@@ -196,6 +204,14 @@ const CrmSurveysPage = () => {
                           >
                             Send reminder
                           </button>
+                        )}
+                        {dispatch.reminderSentAt && dispatch.status !== "responded" && (
+                          <span
+                            className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800"
+                            title={`Reminder sent on ${new Date(dispatch.reminderSentAt).toLocaleString()}`}
+                          >
+                            Reminder sent
+                          </span>
                         )}
                         <button
                           type="button"
