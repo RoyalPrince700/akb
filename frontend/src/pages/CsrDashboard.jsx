@@ -213,10 +213,20 @@ const CsrDashboard = () => {
   };
 
   const ticketsPath = panelSegmentPath(user?.role, "interactions");
-  const ticketsPathForDirection = (direction) =>
-    direction ? `${ticketsPath}?direction=${direction}` : ticketsPath;
-  const ticketsPathForStatus = (status) =>
-    status ? `${ticketsPath}?status=${status}` : ticketsPath;
+  const buildTicketsPath = ({ direction, status } = {}) => {
+    const params = new URLSearchParams();
+
+    if (direction) {
+      params.set("direction", direction);
+    }
+
+    if (status) {
+      params.set("status", status);
+    }
+
+    const query = params.toString();
+    return query ? `${ticketsPath}?${query}` : ticketsPath;
+  };
   const surveysPath = panelSegmentPath(user?.role, "surveys");
   const salesRecordsPath = panelSegmentPath(
     user?.role,
@@ -352,7 +362,7 @@ const CsrDashboard = () => {
             label="Unresolved cases"
             value={summary.unresolvedCount ?? 0}
             description="Unresolved tickets logged in this period"
-            to={ticketsPath}
+            to={buildTicketsPath({ status: "unresolved" })}
             icon={Radio}
             tone="amber"
           />
@@ -360,14 +370,14 @@ const CsrDashboard = () => {
             label="Pending tickets"
             value={summary.pendingRequests ?? 0}
             description="Tickets with pending status logged in this period"
-            to={ticketsPathForStatus("pending")}
+            to={buildTicketsPath({ status: "pending" })}
             icon={CheckCircle2}
           />
           <OverviewCard
             label="Inbound"
             value={summary.inboundCount ?? 0}
             description="Inbound tickets logged in this period"
-            to={ticketsPath}
+            to={buildTicketsPath({ direction: "inbound" })}
             icon={PhoneCall}
             tone="blue"
           />
@@ -375,14 +385,14 @@ const CsrDashboard = () => {
             label="Outbound"
             value={summary.outboundCount ?? 0}
             description="Outbound tickets logged in this period"
-            to={ticketsPath}
+            to={buildTicketsPath({ direction: "outbound" })}
             icon={ArrowUpRight}
           />
           <OverviewCard
             label="WhatsApp"
             value={summary.whatsappCount ?? 0}
             description="WhatsApp tickets logged in this period"
-            to={ticketsPath}
+            to={buildTicketsPath({ direction: "whatsapp" })}
             icon={MessageSquareShare}
             tone="blue"
           />
@@ -390,14 +400,14 @@ const CsrDashboard = () => {
             label="SMS"
             value={summary.smsCount ?? 0}
             description="SMS tickets logged in this period"
-            to={ticketsPath}
+            to={buildTicketsPath({ direction: "sms" })}
             icon={MessageSquareShare}
           />
           <OverviewCard
             label="Inbound follow-up"
             value={summary.inboundFollowUpCount ?? 0}
             description="Inbound follow-up tickets logged in this period"
-            to={ticketsPath}
+            to={buildTicketsPath({ direction: "inboundFollowUp" })}
             icon={Headphones}
             tone="amber"
           />
@@ -405,7 +415,7 @@ const CsrDashboard = () => {
             label="Outbound follow-up"
             value={summary.outboundFollowUpCount ?? 0}
             description="Outbound follow-up tickets logged in this period"
-            to={ticketsPath}
+            to={buildTicketsPath({ direction: "outboundFollowUp" })}
             icon={ArrowUpRight}
             tone="amber"
           />
@@ -417,7 +427,7 @@ const CsrDashboard = () => {
                 ? "Hoax calls tagged across all CSRs in this period"
                 : "Hoax calls you tagged in this period"
             }
-            to={ticketsPathForDirection("hoax")}
+            to={buildTicketsPath({ direction: "hoax" })}
             icon={PhoneOff}
             tone="amber"
           />
