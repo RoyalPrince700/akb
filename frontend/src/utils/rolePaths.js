@@ -1,3 +1,12 @@
+export const LEARNING_ROLES = ["staff", "hr", "admin", "csr", "csrAdmin"];
+
+export const COURSE_LEARNER_ROLES = ["staff", "csr", "csrAdmin"];
+
+export const isLearningRole = (role) => LEARNING_ROLES.includes(role);
+
+export const isCourseLearnerRole = (role) =>
+  COURSE_LEARNER_ROLES.includes(role);
+
 export const getPanelBasePath = (role) => {
   if (role === "admin") {
     return "/admin";

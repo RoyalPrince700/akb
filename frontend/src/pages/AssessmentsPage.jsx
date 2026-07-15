@@ -7,11 +7,11 @@ import Navbar from "../components/Navbar";
 import assessments from "../assessments";
 import courses, { getCourseById } from "../courses";
 import { useAuth } from "../context/AuthContext";
+import { isLearningRole } from "../utils/rolePaths";
 
 const AssessmentsPage = () => {
   const { isAuthenticated, user } = useAuth();
-  const canTake =
-    isAuthenticated && ["staff", "hr", "admin"].includes(user?.role);
+  const canTake = isAuthenticated && isLearningRole(user?.role);
 
   return (
     <div className="min-h-screen bg-slate-50">

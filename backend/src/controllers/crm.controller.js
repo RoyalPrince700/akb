@@ -2134,11 +2134,13 @@ const getDashboardSummary = asyncHandler(async (req, res) => {
     };
   }
 
+  const pendingFilter = { ...filter, status: "pending" };
+
   const [
     totalContacts,
     directionBreakdown,
     unresolvedCount,
-    pendingRequests,
+    pendingInteractions,
     surveysSent,
     totalSalesRecords,
     salesRecordTotals,
@@ -2149,11 +2151,10 @@ const getDashboardSummary = asyncHandler(async (req, res) => {
       { $group: { _id: "$direction", count: { $sum: 1 } } },
     ]),
     CrmInteraction.countDocuments({ ...filter, status: "unresolved" }),
-    CrmInteraction.countDocuments({
-      ...filter,
-      category: "request",
-      status: "unresolved",
-    }),
+    CrmInteraction.find(pendingFilter)
+      .populate("owner", CSR_USER_FIELDS)
+      .populate("salesRep", "name state location")
+      .sort({ dateOfContact: -1, createdAt: -1 }),
     SurveyDispatch.countDocuments(surveyFilter),
     CrmSalesRecord.countDocuments(salesRecordFilter),
     CrmSalesRecord.aggregate([
@@ -2167,6 +2168,8 @@ const getDashboardSummary = asyncHandler(async (req, res) => {
       },
     ]),
   ]);
+
+  const pendingRequests = pendingInteractions.length;
 
   const directionCounts = mapDirectionCounts(directionBreakdown);
 
@@ -2201,6 +2204,7 @@ const getDashboardSummary = asyncHandler(async (req, res) => {
         }
       : { type: "all" },
     recentInteractions,
+    pendingInteractions,
   });
 });
 

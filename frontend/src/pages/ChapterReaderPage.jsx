@@ -13,6 +13,7 @@ import courses, {
   getSortedChapters,
 } from "../courses";
 import { useProgress } from "../hooks/useProgress";
+import { isLearningRole } from "../utils/rolePaths";
 
 const BackToCourses = () => (
   <Link
@@ -78,7 +79,7 @@ const ChapterReaderPage = () => {
   }
 
   // Ensure staff can only access if they've completed previous chapters
-  const canRead = isAuthenticated && ["staff", "hr", "admin"].includes(user?.role);
+  const canRead = isAuthenticated && isLearningRole(user?.role);
   if (!canRead) {
     return <Navigate to={`/courses/${courseId}`} replace />;
   }

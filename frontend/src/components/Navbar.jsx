@@ -5,7 +5,7 @@ import { Link, NavLink } from "react-router-dom";
 import accessibleLogo from "../assets/accessiblelogo.png";
 import { formatRoleLabel } from "../constants/crm";
 import { useAuth } from "../context/AuthContext";
-import { getDashboardPath } from "../utils/rolePaths";
+import { getDashboardPath, isLearningRole } from "../utils/rolePaths";
 
 const navLinkClass = ({ isActive }) =>
   `relative flex flex-col items-center justify-center py-1 text-sm transition-colors before:content-[attr(data-text)] before:font-bold before:h-0 before:invisible before:overflow-hidden ${
@@ -153,7 +153,8 @@ const NavLinks = ({ children, mobile = false, onNavigate }) => {
   const roleDashboardPath = getDashboardPath(user?.role);
   const roleDashboardClass = getRoleBadgeClass(user?.role, mobile);
   const isCsrRole = user?.role === "csr" || user?.role === "csrAdmin";
-  const isLearningRole = ["staff", "hr", "admin"].includes(user?.role);
+  const canAccessLearning = isLearningRole(user?.role);
+  const navbarDashboardPath = isCsrRole ? "/dashboard" : roleDashboardPath;
 
   const handleChildNavClick = (event) => {
     if (mobile && onNavigate && event.target.closest("a")) {
@@ -177,7 +178,7 @@ const NavLinks = ({ children, mobile = false, onNavigate }) => {
       )}
       {!loading && isAuthenticated && user && (
         <NavLink
-          to={getDashboardPath(user.role)}
+          to={navbarDashboardPath}
           end
           className={linkClass}
           onClick={onNavigate}
@@ -192,7 +193,7 @@ const NavLinks = ({ children, mobile = false, onNavigate }) => {
       <NavLink to="/assessments" className={linkClass} onClick={onNavigate} data-text="Assessments">
         Assessments
       </NavLink>
-      {!loading && isAuthenticated && user && isLearningRole && (
+      {!loading && isAuthenticated && user && canAccessLearning && (
         <NavLink
           to="/dashboard/results"
           className={linkClass}
@@ -207,7 +208,7 @@ const NavLinks = ({ children, mobile = false, onNavigate }) => {
 
   const accountLinks = !loading && isAuthenticated && user ? (
     <>
-      {isLearningRole && (
+      {canAccessLearning && (
         <>
           <Link
             to="/leaderboard"

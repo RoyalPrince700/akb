@@ -11,7 +11,12 @@ const AssessmentCourseAction = ({
   assessment,
 }) => {
   const { user } = useAuth();
-  const { canAccessCourses, canTakeAssessment, isReady, isStaff } =
+  const {
+    canAccessCourses,
+    canTakeAssessment,
+    isReady,
+    requiresCourseCompletion,
+  } =
     useAssessmentAccess(assessment.courseId);
   const [modalOpen, setModalOpen] = useState(false);
   const course = getCourseById(courses, assessment.courseId);
@@ -23,7 +28,7 @@ const AssessmentCourseAction = ({
     );
   }, [user?.name]);
 
-  if (isStaff && !isReady) {
+  if (requiresCourseCompletion && !isReady) {
     return (
       <p className="mt-10 text-[13px] font-medium text-slate-500">
         Checking course progress…
@@ -42,7 +47,7 @@ const AssessmentCourseAction = ({
     );
   }
 
-  if (isStaff) {
+  if (requiresCourseCompletion) {
     return (
       <>
         <LockedAssessmentModal

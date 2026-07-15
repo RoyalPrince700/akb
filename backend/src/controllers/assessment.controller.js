@@ -8,8 +8,8 @@ const asyncHandler = require("../utils/asyncHandler");
 const { isCourseFullyComplete } = require("../utils/courseCompletion");
 const gradeAssessment = require("../utils/gradeAssessment");
 
-const assertStaffCompletedCourse = async (user, courseId, res) => {
-  if (user.role !== "staff") {
+const assertCourseLearnerCompletedCourse = async (user, courseId, res) => {
+  if (!["staff", "csr", "csrAdmin"].includes(user.role)) {
     return;
   }
 
@@ -56,7 +56,7 @@ const submitAssessment = asyncHandler(async (req, res) => {
     throw new Error("Answers are required");
   }
 
-  await assertStaffCompletedCourse(req.user, assessment.courseId, res);
+  await assertCourseLearnerCompletedCourse(req.user, assessment.courseId, res);
 
   const graded = gradeAssessment(assessment, answers);
 

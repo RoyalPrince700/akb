@@ -215,6 +215,8 @@ const CsrDashboard = () => {
   const ticketsPath = panelSegmentPath(user?.role, "interactions");
   const ticketsPathForDirection = (direction) =>
     direction ? `${ticketsPath}?direction=${direction}` : ticketsPath;
+  const ticketsPathForStatus = (status) =>
+    status ? `${ticketsPath}?status=${status}` : ticketsPath;
   const surveysPath = panelSegmentPath(user?.role, "surveys");
   const salesRecordsPath = panelSegmentPath(
     user?.role,
@@ -355,10 +357,10 @@ const CsrDashboard = () => {
             tone="amber"
           />
           <OverviewCard
-            label="Requests pending"
+            label="Pending tickets"
             value={summary.pendingRequests ?? 0}
-            description="Unresolved request tickets in this period"
-            to={ticketsPath}
+            description="Tickets with pending status logged in this period"
+            to={ticketsPathForStatus("pending")}
             icon={CheckCircle2}
           />
           <OverviewCard

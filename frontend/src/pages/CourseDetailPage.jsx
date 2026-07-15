@@ -9,6 +9,7 @@ import { useAuth } from "../context/AuthContext";
 import { useAssessmentAccess } from "../hooks/useAssessmentAccess";
 import courses, { getCourseById, getSortedChapters } from "../courses";
 import { useProgress } from "../hooks/useProgress";
+import { isLearningRole } from "../utils/rolePaths";
 
 const CourseDetailPage = () => {
   const { courseId } = useParams();
@@ -17,8 +18,12 @@ const CourseDetailPage = () => {
   const chapters = getSortedChapters(course);
   const assessment = getAssessmentByCourseId(assessments, courseId);
   const { progress } = useProgress(courseId);
-  const { canTakeAssessment, courseCompleted, isReady, isStaff } =
-    useAssessmentAccess(courseId);
+  const {
+    canTakeAssessment,
+    courseCompleted,
+    isReady,
+    requiresCourseCompletion,
+  } = useAssessmentAccess(courseId);
 
   const [lockedAttempt, setLockedAttempt] = useState(null);
 
@@ -26,7 +31,7 @@ const CourseDetailPage = () => {
     return <Navigate to="/courses" replace />;
   }
 
-  const canRead = isAuthenticated && ["staff", "hr", "admin"].includes(user?.role);
+  const canRead = isAuthenticated && isLearningRole(user?.role);
 
   const rawFirstName = user?.name?.split(' ')[0] || "Staff";
   const firstName = rawFirstName.charAt(0).toUpperCase() + rawFirstName.slice(1).toLowerCase();
@@ -155,7 +160,10 @@ const CourseDetailPage = () => {
                 Take assessment ({assessment.totalQuestions} questions)
               </Link>
             )}
-            {assessment && isStaff && isReady && !courseCompleted && (
+            {assessment &&
+              requiresCourseCompletion &&
+              isReady &&
+              !courseCompleted && (
               <span className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-500">
                 <Lock className="h-4 w-4" />
                 Complete all chapters to unlock assessment
@@ -172,7 +180,7 @@ const CourseDetailPage = () => {
               {assessment.totalQuestions} total). Pass mark: {assessment.passMark}/
               {assessment.totalQuestions}.
             </p>
-            {isStaff && isReady && !courseCompleted && (
+            {requiresCourseCompletion && isReady && !courseCompleted && (
               <p className="mt-3 text-sm font-medium text-amber-800">
                 Finish every chapter above before you can take this assessment.
               </p>

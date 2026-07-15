@@ -38,6 +38,7 @@ import CrmSurveysPage from "./pages/crm/CrmSurveysPage";
 import CrmSurveyResponsesPage from "./pages/crm/CrmSurveyResponsesPage";
 import CrmUploadDataPage from "./pages/crm/CrmUploadDataPage";
 import PublicSurveyPage from "./pages/crm/PublicSurveyPage";
+import { LEARNING_ROLES } from "./utils/rolePaths";
 
 const hrAdminPanel = (page) => (
   <ProtectedRoute roles={["hr", "admin"]}>{page}</ProtectedRoute>
@@ -63,7 +64,7 @@ const App = () => {
       <Route
         path="/leaderboard"
         element={
-          <ProtectedRoute roles={["staff", "hr", "admin"]}>
+          <ProtectedRoute roles={LEARNING_ROLES}>
             <LeaderboardPage />
           </ProtectedRoute>
         }
@@ -72,7 +73,7 @@ const App = () => {
       <Route
         path="/courses/:courseId/chapters/:chapterId"
         element={
-          <ProtectedRoute roles={["staff", "hr", "admin"]}>
+          <ProtectedRoute roles={LEARNING_ROLES}>
             <ChapterReaderPage />
           </ProtectedRoute>
         }
@@ -80,7 +81,7 @@ const App = () => {
       <Route
         path="/courses/:courseId/assessment"
         element={
-          <ProtectedRoute roles={["staff", "hr", "admin"]}>
+          <ProtectedRoute roles={LEARNING_ROLES}>
             <TakeAssessmentPage />
           </ProtectedRoute>
         }
@@ -88,7 +89,7 @@ const App = () => {
       <Route
         path="/courses/:courseId/assessment/result"
         element={
-          <ProtectedRoute roles={["staff", "hr", "admin"]}>
+          <ProtectedRoute roles={LEARNING_ROLES}>
             <AssessmentResultPage />
           </ProtectedRoute>
         }
@@ -106,7 +107,7 @@ const App = () => {
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute roles={["staff", "hr", "admin"]}>
+          <ProtectedRoute roles={LEARNING_ROLES}>
             <StaffDashboard />
           </ProtectedRoute>
         }
@@ -114,7 +115,7 @@ const App = () => {
       <Route
         path="/dashboard/results"
         element={
-          <ProtectedRoute roles={["staff", "hr", "admin"]}>
+          <ProtectedRoute roles={LEARNING_ROLES}>
             <StaffResultsPage />
           </ProtectedRoute>
         }

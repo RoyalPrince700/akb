@@ -34,7 +34,8 @@ const BackToAssessments = () => (
 const TakeAssessmentPage = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
-  const { isLocked, isReady, isStaff } = useAssessmentAccess(courseId);
+  const { isLocked, isReady, requiresCourseCompletion } =
+    useAssessmentAccess(courseId);
   const course = getCourseById(courses, courseId);
   const assessment = getAssessmentByCourseId(assessments, courseId);
   const [answers, setAnswers] = useState({});
@@ -130,7 +131,7 @@ const TakeAssessmentPage = () => {
     return <Navigate to="/courses" replace />;
   }
 
-  if (isStaff && !isReady) {
+  if (requiresCourseCompletion && !isReady) {
     return (
       <main className="min-h-screen bg-slate-50">
         <Navbar />
