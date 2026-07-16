@@ -18,12 +18,7 @@ const CourseDetailPage = () => {
   const chapters = getSortedChapters(course);
   const assessment = getAssessmentByCourseId(assessments, courseId);
   const { progress } = useProgress(courseId);
-  const {
-    canTakeAssessment,
-    courseCompleted,
-    isReady,
-    requiresCourseCompletion,
-  } = useAssessmentAccess(courseId);
+  const { canTakeAssessment } = useAssessmentAccess(courseId);
 
   const [lockedAttempt, setLockedAttempt] = useState(null);
 
@@ -160,15 +155,6 @@ const CourseDetailPage = () => {
                 Take assessment ({assessment.totalQuestions} questions)
               </Link>
             )}
-            {assessment &&
-              requiresCourseCompletion &&
-              isReady &&
-              !courseCompleted && (
-              <span className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-500">
-                <Lock className="h-4 w-4" />
-                Complete all chapters to unlock assessment
-              </span>
-            )}
           </div>
         )}
 
@@ -180,11 +166,6 @@ const CourseDetailPage = () => {
               {assessment.totalQuestions} total). Pass mark: {assessment.passMark}/
               {assessment.totalQuestions}.
             </p>
-            {requiresCourseCompletion && isReady && !courseCompleted && (
-              <p className="mt-3 text-sm font-medium text-amber-800">
-                Finish every chapter above before you can take this assessment.
-              </p>
-            )}
           </div>
         )}
       </section>

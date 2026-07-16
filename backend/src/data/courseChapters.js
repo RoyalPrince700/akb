@@ -51,4 +51,11 @@ module.exports = {
     "job-design-analysis",
     "communication-employee-relations",
   ],
+  "digital-transformation": [
+    "what-is-digital-transformation",
+    "key-components",
+    "process-automation",
+    "working-together",
+    "marketing-tech-stack",
+  ],
 };

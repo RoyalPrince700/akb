@@ -5,6 +5,7 @@ import Navbar from "../components/Navbar";
 import AssessmentStartWarningModal from "../components/AssessmentStartWarningModal";
 import assessments, { getAssessmentByCourseId } from "../assessments";
 import { stripCorrectAnswers } from "../assessments/utils";
+import { useAuth } from "../context/AuthContext";
 import courses, { getCourseById } from "../courses";
 import { useAssessmentAccess } from "../hooks/useAssessmentAccess";
 import { submitAssessment } from "../services/api";
@@ -34,8 +35,8 @@ const BackToAssessments = () => (
 const TakeAssessmentPage = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
-  const { isLocked, isReady, requiresCourseCompletion } =
-    useAssessmentAccess(courseId);
+  const { updateUser } = useAuth();
+  const { isLocked, isReady } = useAssessmentAccess(courseId);
   const course = getCourseById(courses, courseId);
   const assessment = getAssessmentByCourseId(assessments, courseId);
   const [answers, setAnswers] = useState({});
@@ -49,6 +50,8 @@ const TakeAssessmentPage = () => {
   const [showWarning, setShowWarning] = useState(true);
   const [timerStarted, setTimerStarted] = useState(false);
   const hasSubmittedRef = useRef(false);
+  const answersRef = useRef(answers);
+  const timedOutHandledRef = useRef(false);
 
   const hasAssessment = Boolean(course && assessment);
   const questions = hasAssessment
@@ -58,12 +61,59 @@ const TakeAssessmentPage = () => {
   const isFirstQuestion = currentIndex === 0;
   const isLastQuestion = currentIndex === questions.length - 1;
 
+  useEffect(() => {
+    answersRef.current = answers;
+  }, [answers]);
+
+  const finishSubmission = useCallback(
+    async ({ timedOut = false } = {}) => {
+      if (hasSubmittedRef.current) {
+        return;
+      }
+
+      hasSubmittedRef.current = true;
+      setError("");
+      setSubmitting(true);
+
+      try {
+        const data = await submitAssessment(courseId, answersRef.current);
+        if (data.totalGems != null) {
+          updateUser({ gems: data.totalGems });
+        }
+        navigate(`/courses/${courseId}/assessment/result`, {
+          state: {
+            result: {
+              ...data.result,
+              gemsEarned: data.result?.gemsEarned ?? data.gemsEarned ?? 0,
+              isFirstAttempt: data.result?.isFirstAttempt ?? false,
+            },
+            timedOut,
+          },
+        });
+      } catch (err) {
+        // Keep the lock on timeout so we never enter a retry loop.
+        if (!timedOut) {
+          hasSubmittedRef.current = false;
+        }
+        setError(
+          err.response?.data?.message ||
+            (timedOut
+              ? "Time is up, but submission failed. Please refresh and try again."
+              : "Failed to submit assessment.")
+        );
+        setSubmitting(false);
+      }
+    },
+    [courseId, navigate, updateUser]
+  );
+
   const submitAnswers = useCallback(
     async ({ timedOut = false } = {}) => {
       if (hasSubmittedRef.current || submitting) {
         return;
       }
 
+      // "Next" action when not on the last question (manual submit button path).
       if (!timedOut && currentIndex < questions.length - 1) {
         if (!answers[currentQuestion?.id]) {
           setError("Please answer this question before continuing.");
@@ -75,7 +125,8 @@ const TakeAssessmentPage = () => {
         return;
       }
 
-      const unanswered = questions.filter((q) => !answers[q.id]);
+      const currentAnswers = answersRef.current;
+      const unanswered = questions.filter((q) => !currentAnswers[q.id]);
 
       if (!timedOut && unanswered.length > 0) {
         const proceed = window.confirm(
@@ -88,23 +139,16 @@ const TakeAssessmentPage = () => {
         }
       }
 
-      hasSubmittedRef.current = true;
-      setError("");
-      setSubmitting(true);
-
-      try {
-        const data = await submitAssessment(courseId, answers);
-        navigate(`/courses/${courseId}/assessment/result`, {
-          state: { result: data.result, timedOut },
-        });
-      } catch (err) {
-        hasSubmittedRef.current = false;
-        setError(err.response?.data?.message || "Failed to submit assessment.");
-      } finally {
-        setSubmitting(false);
-      }
+      await finishSubmission({ timedOut });
     },
-    [answers, courseId, currentIndex, currentQuestion?.id, navigate, questions, submitting]
+    [
+      answers,
+      currentIndex,
+      currentQuestion?.id,
+      finishSubmission,
+      questions,
+      submitting,
+    ]
   );
 
   useEffect(() => {
@@ -112,67 +156,49 @@ const TakeAssessmentPage = () => {
       return undefined;
     }
 
+    if (secondsLeft <= 0) {
+      return undefined;
+    }
+
     const timerId = setInterval(() => {
-      setSecondsLeft((prev) => (prev > 0 ? prev - 1 : 0));
+      setSecondsLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerId);
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
 
     return () => clearInterval(timerId);
-  }, [hasAssessment, isLocked, isReady, timerStarted]);
+  }, [hasAssessment, isLocked, isReady, timerStarted, secondsLeft > 0]);
 
   useEffect(() => {
-    if (!hasAssessment || !isReady || isLocked || !timerStarted || secondsLeft > 0) {
+    if (
+      !hasAssessment ||
+      !isReady ||
+      isLocked ||
+      !timerStarted ||
+      secondsLeft > 0 ||
+      timedOutHandledRef.current ||
+      hasSubmittedRef.current
+    ) {
       return;
     }
 
-    submitAnswers({ timedOut: true });
-  }, [hasAssessment, isLocked, isReady, timerStarted, secondsLeft, submitAnswers]);
+    timedOutHandledRef.current = true;
+    finishSubmission({ timedOut: true });
+  }, [
+    finishSubmission,
+    hasAssessment,
+    isLocked,
+    isReady,
+    secondsLeft,
+    timerStarted,
+  ]);
 
   if (!hasAssessment) {
     return <Navigate to="/courses" replace />;
-  }
-
-  if (requiresCourseCompletion && !isReady) {
-    return (
-      <main className="min-h-screen bg-slate-50">
-        <Navbar />
-        <section className="mx-auto max-w-3xl px-6 pb-12 pt-10 lg:px-8">
-          <BackToAssessments />
-          <div className="rounded-[28px] border border-slate-200/70 bg-white p-8 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)]">
-            <p className="text-slate-600">Loading assessment…</p>
-          </div>
-        </section>
-      </main>
-    );
-  }
-
-  if (isLocked) {
-    return (
-      <main className="min-h-screen bg-slate-50">
-        <Navbar />
-        <section className="mx-auto max-w-3xl px-6 pb-12 pt-10 lg:px-8">
-          <BackToAssessments />
-          <div className="relative overflow-hidden rounded-[32px] border border-amber-200/80 bg-white p-8 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)]">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-linear-to-br from-amber-100/70 via-white to-white" />
-            <div className="relative">
-            <p className="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium leading-none text-amber-700">
-              Locked
-            </p>
-            <h1 className="mt-5 text-3xl font-bold tracking-tight text-slate-950">Assessment locked</h1>
-            <p className="mt-3 text-slate-700">
-              Complete every chapter in {course.title} before taking this
-              assessment.
-            </p>
-            <Link
-              to={`/courses/${courseId}`}
-              className="mt-8 inline-flex h-9 items-center justify-center rounded-xl bg-slate-950 px-3.5 text-[13px] font-semibold text-white shadow-[0_1px_2px_rgba(15,23,42,0.08),0_8px_18px_rgba(15,23,42,0.1)] transition hover:bg-amber-600"
-            >
-              Continue course
-            </Link>
-            </div>
-          </div>
-        </section>
-      </main>
-    );
   }
 
   const handleSelect = (questionId, value) => {
@@ -289,7 +315,10 @@ const TakeAssessmentPage = () => {
 
         <form onSubmit={handleSubmit} className="mt-8">
           {currentQuestion && (
-            <fieldset className="rounded-[32px] border border-slate-200/70 bg-white p-8 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)]">
+            <fieldset
+              disabled={submitting || secondsLeft === 0}
+              className="rounded-[32px] border border-slate-200/70 bg-white p-8 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)] disabled:opacity-70"
+            >
               <legend className="sr-only">
                 Question {currentIndex + 1} of {questions.length}
               </legend>
@@ -327,7 +356,7 @@ const TakeAssessmentPage = () => {
             <button
               type="button"
               onClick={goToPrevious}
-              disabled={isFirstQuestion || submitting}
+              disabled={isFirstQuestion || submitting || secondsLeft === 0}
               className="h-10 rounded-xl border border-slate-200/80 bg-white px-4 text-sm font-semibold text-slate-700 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:border-slate-300 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
             >
               Previous
@@ -338,7 +367,7 @@ const TakeAssessmentPage = () => {
                 <button
                   type="button"
                   onClick={goToNext}
-                  disabled={submitting}
+                  disabled={submitting || secondsLeft === 0}
                   className="h-10 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(15,23,42,0.08),0_8px_18px_rgba(15,23,42,0.1)] transition hover:bg-violet-700 disabled:opacity-60"
                 >
                   Next
@@ -346,7 +375,7 @@ const TakeAssessmentPage = () => {
               ) : (
                 <button
                   type="button"
-                  onClick={submitAnswers}
+                  onClick={() => submitAnswers({ timedOut: false })}
                   disabled={submitting || secondsLeft === 0}
                   className="h-10 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(15,23,42,0.08),0_8px_18px_rgba(15,23,42,0.1)] transition hover:bg-violet-700 disabled:opacity-60"
                 >

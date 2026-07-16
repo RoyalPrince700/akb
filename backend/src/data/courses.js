@@ -55,4 +55,11 @@ module.exports = [
     chapterCount: 10,
     source: "frontend",
   },
+  {
+    id: "digital-transformation",
+    title: "Digital Transformation and Process Automation",
+    category: "Professional Development",
+    chapterCount: 5,
+    source: "frontend",
+  },
 ];

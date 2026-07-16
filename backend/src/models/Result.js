@@ -44,6 +44,15 @@ const resultSchema = new mongoose.Schema(
       type: Boolean,
       required: true,
     },
+    isFirstAttempt: {
+      type: Boolean,
+      default: false,
+    },
+    gemsEarned: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     submittedAt: {
       type: Date,
       default: Date.now,

@@ -59,8 +59,9 @@ const LeaderboardPage = () => {
                 Gems Leaderboard
               </h1>
               <p className="mt-5 text-base leading-8 text-slate-600">
-                Staff earn 10 gems for each course they complete. Rankings update as
-                teammates finish courses.
+                Staff earn 10 gems for each course they complete, plus 1 gem per
+                correct answer on an assessment&apos;s first attempt. Rankings
+                update as teammates learn and take assessments.
               </p>
             </div>
           </div>

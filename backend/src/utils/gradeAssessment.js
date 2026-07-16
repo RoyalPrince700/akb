@@ -1,15 +1,19 @@
 const gradeAssessment = (assessment, submittedAnswers) => {
   const questionIds = Object.keys(assessment.answers);
   const gradedAnswers = questionIds.map((questionId) => {
-    const selectedAnswer = submittedAnswers[questionId];
+    const rawAnswer = submittedAnswers?.[questionId];
+    const selectedAnswer =
+      typeof rawAnswer === "string" && rawAnswer.trim()
+        ? rawAnswer.trim()
+        : "(No answer)";
     const correctAnswer = assessment.answers[questionId];
     const isCorrect =
-      typeof selectedAnswer === "string" &&
-      selectedAnswer.trim() === correctAnswer.trim();
+      typeof rawAnswer === "string" &&
+      rawAnswer.trim() === correctAnswer.trim();
 
     return {
       questionId,
-      selectedAnswer: selectedAnswer || "",
+      selectedAnswer,
       isCorrect,
     };
   });

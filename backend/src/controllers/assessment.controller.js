@@ -2,30 +2,11 @@ const {
   assessments,
   getAssessmentByCourseId,
 } = require("../data/assessments");
-const CourseProgress = require("../models/CourseProgress");
+const { GEMS_PER_CORRECT_ANSWER } = require("../constants/gems");
 const Result = require("../models/Result");
+const User = require("../models/User");
 const asyncHandler = require("../utils/asyncHandler");
-const { isCourseFullyComplete } = require("../utils/courseCompletion");
 const gradeAssessment = require("../utils/gradeAssessment");
-
-const assertCourseLearnerCompletedCourse = async (user, courseId, res) => {
-  if (!["staff", "csr", "csrAdmin"].includes(user.role)) {
-    return;
-  }
-
-  const record = await CourseProgress.findOne({
-    user: user._id,
-    courseId,
-  });
-  const completedChapters = record?.completedChapters ?? [];
-
-  if (!isCourseFullyComplete(courseId, completedChapters)) {
-    res.status(403);
-    throw new Error(
-      "Complete all chapters in this course before taking the assessment"
-    );
-  }
-};
 
 const listAssessments = asyncHandler(async (req, res) => {
   res.json({
@@ -51,14 +32,35 @@ const submitAssessment = asyncHandler(async (req, res) => {
 
   const { answers } = req.body;
 
-  if (!answers || typeof answers !== "object") {
+  // Allow empty object on timeout — unanswered questions count as incorrect.
+  if (answers == null || typeof answers !== "object" || Array.isArray(answers)) {
     res.status(400);
     throw new Error("Answers are required");
   }
 
-  await assertCourseLearnerCompletedCourse(req.user, assessment.courseId, res);
+  const priorAttempt = await Result.exists({
+    user: req.user._id,
+    courseId: assessment.courseId,
+  });
+  const isFirstAttempt = !priorAttempt;
 
   const graded = gradeAssessment(assessment, answers);
+  const gemsEarned = isFirstAttempt
+    ? graded.score * GEMS_PER_CORRECT_ANSWER
+    : 0;
+
+  let totalGems = req.user.gems ?? 0;
+
+  if (gemsEarned > 0) {
+    const user = await User.findById(req.user._id);
+    user.gems = (user.gems ?? 0) + gemsEarned;
+    await user.save();
+    totalGems = user.gems;
+    req.user.gems = user.gems;
+  } else {
+    const userRecord = await User.findById(req.user._id).select("gems");
+    totalGems = userRecord?.gems ?? 0;
+  }
 
   const result = await Result.create({
     user: req.user._id,
@@ -69,6 +71,8 @@ const submitAssessment = asyncHandler(async (req, res) => {
     totalQuestions: graded.totalQuestions,
     percentage: graded.percentage,
     passed: graded.passed,
+    isFirstAttempt,
+    gemsEarned,
   });
 
   await result.populate("user", "name staffId department");
@@ -84,7 +88,11 @@ const submitAssessment = asyncHandler(async (req, res) => {
       passed: result.passed,
       submittedAt: result.submittedAt,
       answers: result.answers,
+      isFirstAttempt: result.isFirstAttempt,
+      gemsEarned: result.gemsEarned,
     },
+    gemsEarned,
+    totalGems,
   });
 });
 

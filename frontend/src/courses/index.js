@@ -4,6 +4,7 @@ import conflictResolution from "./conflict-resolution";
 import consultativeSelling from "./consultative-selling";
 import criticalThinking from "./critical-thinking";
 import customerService from "./customer-service";
+import digitalTransformation from "./digital-transformation";
 import finance from "./finance";
 import humanResourceManagement from "./human-resource-management";
 import {
@@ -21,6 +22,7 @@ const courseRegistry = [
   consultativeSelling,
   criticalThinking,
   customerService,
+  digitalTransformation,
   finance,
   humanResourceManagement,
 ];

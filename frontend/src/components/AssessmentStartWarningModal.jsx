@@ -37,7 +37,8 @@ const AssessmentStartWarningModal = ({ isOpen, onConfirm, onCancel, assessmentTi
               <li>• The timer starts immediately after you click "Start Test".</li>
               <li>• <strong>You cannot pause or cancel</strong> once the test begins.</li>
               <li>• The test will auto-submit when time runs out.</li>
-              <li>• Your score is recorded only on your <strong>first attempt</strong>.</li>
+              <li>• You earn <strong>1 gem per correct answer</strong> on your <strong>first attempt</strong> only.</li>
+              <li>• Retakes do not award additional gems.</li>
             </ul>
           </div>
 

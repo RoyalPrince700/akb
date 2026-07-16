@@ -1,8 +1,5 @@
 import { useAuth } from "../context/AuthContext";
-import {
-  isCourseLearnerRole,
-  isLearningRole,
-} from "../utils/rolePaths";
+import { isLearningRole } from "../utils/rolePaths";
 import { useProgress } from "./useProgress";
 
 export const useAssessmentAccess = (courseId) => {
@@ -10,23 +7,17 @@ export const useAssessmentAccess = (courseId) => {
   const { courseCompleted, isReady: progressReady } = useProgress(courseId);
 
   const canAccessCourses = isAuthenticated && isLearningRole(user?.role);
-  const requiresCourseCompletion = isCourseLearnerRole(user?.role);
   const isPrivilegedUser = ["hr", "admin"].includes(user?.role);
-  const needsCourseCompletion =
-    canAccessCourses && requiresCourseCompletion;
-  const isReady = !needsCourseCompletion || progressReady;
-  const isLocked = needsCourseCompletion && !courseCompleted;
-  const canTakeAssessment =
-    canAccessCourses && (!needsCourseCompletion || courseCompleted);
 
+  // Assessments are open regardless of course completion.
   return {
     canAccessCourses,
-    canTakeAssessment,
+    canTakeAssessment: canAccessCourses,
     courseCompleted,
-    isLocked,
+    isLocked: false,
     isPrivilegedUser,
-    isReady,
-    requiresCourseCompletion,
+    isReady: true,
+    requiresCourseCompletion: false,
     progressReady,
   };
 };

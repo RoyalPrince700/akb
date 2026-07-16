@@ -4,6 +4,7 @@ import conflictResolutionAssessment from "./conflict-resolution";
 import consultativeSellingAssessment from "./consultative-selling";
 import criticalThinkingAssessment from "./critical-thinking";
 import customerServiceAssessment from "./customer-service";
+import digitalTransformationAssessment from "./digital-transformation";
 import financeAssessment from "./finance";
 import hrmAssessment from "./human-resource-management";
 import { getAssessmentByCourseId } from "./utils";
@@ -15,6 +16,7 @@ const assessmentRegistry = [
   consultativeSellingAssessment,
   criticalThinkingAssessment,
   customerServiceAssessment,
+  digitalTransformationAssessment,
   financeAssessment,
   hrmAssessment,
 ];
