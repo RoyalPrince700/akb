@@ -7,6 +7,7 @@ import {
   Globe,
   LayoutDashboard,
   ListChecks,
+  Lock,
   MessageSquareShare,
   PhoneCall,
   ScrollText,
@@ -145,6 +146,11 @@ const PanelSidebar = ({ accent, onNavigate, className = "" }) => {
           to: panelSegmentPath(role, "results"),
           label: "Assessment Results",
           icon: ClipboardList,
+        },
+        {
+          to: panelSegmentPath(role, "assessments"),
+          label: "Lock Access",
+          icon: Lock,
         },
         {
           to: panelSegmentPath(role, "materials"),

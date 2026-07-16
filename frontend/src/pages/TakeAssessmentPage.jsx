@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
 import AssessmentStartWarningModal from "../components/AssessmentStartWarningModal";
+import LockedAssessmentModal from "../components/LockedAssessmentModal";
 import assessments, { getAssessmentByCourseId } from "../assessments";
 import { stripCorrectAnswers } from "../assessments/utils";
 import { useAuth } from "../context/AuthContext";
@@ -35,10 +36,14 @@ const BackToAssessments = () => (
 const TakeAssessmentPage = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
-  const { updateUser } = useAuth();
-  const { isLocked, isReady } = useAssessmentAccess(courseId);
+  const { user, updateUser } = useAuth();
+  const { isLocked, isReady, assessmentLockedByHr } =
+    useAssessmentAccess(courseId);
   const course = getCourseById(courses, courseId);
   const assessment = getAssessmentByCourseId(assessments, courseId);
+  const rawFirstName = user?.name?.split(" ")[0] || "Staff";
+  const firstName =
+    rawFirstName.charAt(0).toUpperCase() + rawFirstName.slice(1).toLowerCase();
   const [answers, setAnswers] = useState({});
   const [currentIndex, setCurrentIndex] = useState(0);
   const initialTime = assessment
@@ -199,6 +204,51 @@ const TakeAssessmentPage = () => {
 
   if (!hasAssessment) {
     return <Navigate to="/courses" replace />;
+  }
+
+  if (!isReady) {
+    return (
+      <main className="min-h-screen bg-slate-50">
+        <Navbar />
+        <section className="mx-auto max-w-3xl px-6 pb-12 pt-10 lg:px-8">
+          <BackToAssessments />
+          <p className="text-center text-slate-600">Checking assessment access…</p>
+        </section>
+      </main>
+    );
+  }
+
+  if (isLocked || assessmentLockedByHr) {
+    return (
+      <main className="min-h-screen bg-slate-50">
+        <Navbar />
+        <section className="mx-auto max-w-3xl px-6 pb-12 pt-10 lg:px-8">
+          <BackToAssessments />
+          <div className="rounded-[32px] border border-red-200 bg-white p-8 text-center shadow-sm">
+            <h1 className="text-2xl font-bold text-slate-950">
+              Assessment locked
+            </h1>
+            <p className="mt-3 text-slate-600">
+              This assessment is currently locked by HR. Please check back later.
+            </p>
+            <Link
+              to="/assessments"
+              className="mt-6 inline-flex rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-700"
+            >
+              Back to assessments
+            </Link>
+          </div>
+          <LockedAssessmentModal
+            courseId={courseId}
+            courseTitle={course?.title || assessment.title}
+            firstName={firstName}
+            isOpen
+            onClose={() => navigate("/assessments")}
+            reason="hr-lock"
+          />
+        </section>
+      </main>
+    );
   }
 
   const handleSelect = (questionId, value) => {

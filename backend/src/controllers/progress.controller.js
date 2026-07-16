@@ -4,6 +4,10 @@ const COURSE_CATALOG = require("../data/courses");
 const { GEMS_PER_COURSE } = require("../constants/gems");
 const asyncHandler = require("../utils/asyncHandler");
 const {
+  assertCourseNotLocked,
+  getLockForCourse,
+} = require("../utils/contentLocks");
+const {
   getCourseChapterIds,
   isCourseFullyComplete,
   isProgressRecordComplete,
@@ -22,10 +26,13 @@ const getCourseProgress = asyncHandler(async (req, res) => {
     throw new Error("Course not found");
   }
 
-  const record = await CourseProgress.findOne({
-    user: req.user._id,
-    courseId,
-  });
+  const [record, lock] = await Promise.all([
+    CourseProgress.findOne({
+      user: req.user._id,
+      courseId,
+    }),
+    getLockForCourse(courseId),
+  ]);
 
   const completedChapters = record?.completedChapters ?? [];
 
@@ -35,6 +42,8 @@ const getCourseProgress = asyncHandler(async (req, res) => {
     courseCompleted: isCourseFullyComplete(courseId, completedChapters),
     gemsAwarded: record?.gemsAwarded ?? false,
     totalChapters: required.length,
+    courseLocked: lock.courseLocked,
+    assessmentLocked: lock.assessmentLocked,
   });
 });
 
@@ -46,6 +55,8 @@ const completeChapter = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Course not found");
   }
+
+  await assertCourseNotLocked(req.user, courseId);
 
   if (!required.includes(chapterId)) {
     res.status(400);

@@ -81,6 +81,21 @@ export const submitAssessment = async (courseId, answers) => {
   return response.data;
 };
 
+export const listContentLocks = async () => {
+  const response = await api.get("/content-locks");
+  return response.data;
+};
+
+export const getContentLock = async (courseId) => {
+  const response = await api.get(`/content-locks/${courseId}`);
+  return response.data;
+};
+
+export const updateContentLock = async (courseId, payload) => {
+  const response = await api.patch(`/content-locks/${courseId}`, payload);
+  return response.data;
+};
+
 export const listMyResults = async () => {
   const response = await api.get("/results/me");
   return response.data;

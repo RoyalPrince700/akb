@@ -73,6 +73,7 @@ const HrDashboard = () => {
   const completionsPath = panelSegmentPath("hr", "completions");
   const resultsPath = panelSegmentPath("hr", "results");
   const materialsPath = panelSegmentPath("hr", "materials");
+  const assessmentsPath = panelSegmentPath("hr", "assessments");
 
   return (
     <PanelLayout title="HR Panel">
@@ -117,10 +118,20 @@ const HrDashboard = () => {
             staff member has finished and view their completed course list.
           </li>
           <li>View assessment results for all staff (read-only).</li>
+          <li>
+            Open{" "}
+            <Link
+              to={assessmentsPath}
+              className="font-semibold text-violet-700 underline"
+            >
+              Lock Access
+            </Link>{" "}
+            to lock or unlock courses and assessments for staff.
+          </li>
           <li>See published learning materials and built-in course catalog.</li>
           <li>
-            Account changes (create, edit, activate, delete) require an
-            administrator.
+            Account changes (create, edit, activate) require an administrator.
+            HR can delete staff accounts.
           </li>
         </ul>
       </div>

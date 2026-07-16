@@ -16,6 +16,7 @@ import HowItWorksPage from "./pages/HowItWorksPage";
 import HrDashboard from "./pages/HrDashboard";
 import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/LoginPage";
+import ContentLocksPage from "./pages/ContentLocksPage";
 import MaterialsManagementPage from "./pages/MaterialsManagementPage";
 import SignupPage from "./pages/SignupPage";
 import StaffDashboard from "./pages/StaffDashboard";
@@ -136,6 +137,7 @@ const App = () => {
       />
       <Route path="/admin/results" element={hrAdminPanel(<AssessmentResultsPage />)} />
       <Route path="/admin/materials" element={hrAdminPanel(<MaterialsManagementPage />)} />
+      <Route path="/admin/assessments" element={hrAdminPanel(<ContentLocksPage />)} />
 
       <Route
         path="/hr"
@@ -152,6 +154,7 @@ const App = () => {
       />
       <Route path="/hr/results" element={hrAdminPanel(<AssessmentResultsPage />)} />
       <Route path="/hr/materials" element={hrAdminPanel(<MaterialsManagementPage />)} />
+      <Route path="/hr/assessments" element={hrAdminPanel(<ContentLocksPage />)} />
 
       <Route
         path="/csr"

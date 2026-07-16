@@ -6,6 +6,7 @@ import ChapterContent from "../components/ChapterContent";
 import CongratulationModal from "../components/CongratulationModal";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
+import { useAssessmentAccess } from "../hooks/useAssessmentAccess";
 import courses, {
   getAdjacentChapters,
   getChapterById,
@@ -43,6 +44,7 @@ const ChapterReaderPage = () => {
     lastCompletion,
     clearLastCompletion,
   } = useProgress(courseId);
+  const { courseLockedByHr, isReady: lockReady } = useAssessmentAccess(courseId);
 
   const [showCongrats, setShowCongrats] = useState(false);
   const [completing, setCompleting] = useState(false);
@@ -84,13 +86,17 @@ const ChapterReaderPage = () => {
     return <Navigate to={`/courses/${courseId}`} replace />;
   }
 
+  if (lockReady && courseLockedByHr) {
+    return <Navigate to={`/courses/${courseId}`} replace />;
+  }
+
   const prevChapterCompleted =
     chapterIndex > 0 ? progress.includes(chapters[chapterIndex - 1].id) : true;
   if (isProgressReady && !prevChapterCompleted && chapterIndex > 0) {
     return <Navigate to={`/courses/${courseId}`} replace />;
   }
 
-  if (!isProgressReady) {
+  if (!isProgressReady || !lockReady) {
     return (
       <main className="min-h-screen bg-slate-50">
         <Navbar />

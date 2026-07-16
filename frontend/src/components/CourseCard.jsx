@@ -1,8 +1,9 @@
-import { BookOpen, ChevronRight } from "lucide-react";
+import { BookOpen, ChevronRight, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
 import { getSortedChapters } from "../courses";
+import { useAssessmentAccess } from "../hooks/useAssessmentAccess";
 import { useProgress } from "../hooks/useProgress";
 
 const accentStyles = {
@@ -41,6 +42,7 @@ const accentStyles = {
 const CourseCard = ({ course }) => {
   const { isAuthenticated } = useAuth();
   const { courseCompleted, isReady, progress } = useProgress(course.id);
+  const { courseLockedByHr } = useAssessmentAccess(course.id);
   const chapters = getSortedChapters(course);
   const chapterCount = chapters.length;
   const completedCount = Math.min(progress.length, chapterCount);
@@ -54,11 +56,13 @@ const CourseCard = ({ course }) => {
       : "Loading your progress..."
     : `${chapterCount} lesson${chapterCount !== 1 ? "s" : ""} available. Sign in to track progress.`;
   const progressStatus = courseCompleted ? "Completed" : `${displayPercentage}%`;
-  const ctaLabel = courseCompleted
-    ? "Review Course"
-    : displayPercentage > 0
-      ? "Continue Learning"
-      : "Start Learning";
+  const ctaLabel = courseLockedByHr
+    ? "Locked by HR"
+    : courseCompleted
+      ? "Review Course"
+      : displayPercentage > 0
+        ? "Continue Learning"
+        : "Start Learning";
   const accent = accentStyles[course.accent] ?? accentStyles.blue;
   const metadataItems = [
     `${chapterCount} lesson${chapterCount !== 1 ? "s" : ""}`,
@@ -86,9 +90,17 @@ const CourseCard = ({ course }) => {
             <BookOpen className="h-[18px] w-[18px] stroke-[1.8]" />
           </div>
 
-          <p className="mt-6 inline-flex rounded-full bg-slate-100/70 px-2.5 py-1 text-xs font-medium leading-none text-slate-500">
-            {course.category}
-          </p>
+          <div className="mt-6 flex flex-wrap items-center gap-2">
+            <p className="inline-flex rounded-full bg-slate-100/70 px-2.5 py-1 text-xs font-medium leading-none text-slate-500">
+              {course.category}
+            </p>
+            {courseLockedByHr && (
+              <p className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold leading-none text-red-700 ring-1 ring-red-200/80">
+                <Lock className="h-3 w-3" aria-hidden />
+                Locked
+              </p>
+            )}
+          </div>
           <h3 className="mt-5 text-[1.7rem] font-bold leading-[1.08] tracking-[-0.035em] text-slate-950 sm:text-[1.9rem]">
             {course.title}
           </h3>

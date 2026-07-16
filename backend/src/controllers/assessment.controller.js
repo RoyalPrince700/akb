@@ -6,9 +6,20 @@ const { GEMS_PER_CORRECT_ANSWER } = require("../constants/gems");
 const Result = require("../models/Result");
 const User = require("../models/User");
 const asyncHandler = require("../utils/asyncHandler");
+const {
+  assertAssessmentNotLocked,
+  getLockForCourse,
+} = require("../utils/contentLocks");
 const gradeAssessment = require("../utils/gradeAssessment");
 
 const listAssessments = asyncHandler(async (req, res) => {
+  const locks = await Promise.all(
+    assessments.map((assessment) => getLockForCourse(assessment.courseId))
+  );
+  const lockByCourseId = Object.fromEntries(
+    locks.map((lock) => [lock.courseId, lock])
+  );
+
   res.json({
     assessments: assessments.map(
       ({ courseId, title, totalQuestions, pointsPerQuestion, passMark }) => ({
@@ -17,6 +28,8 @@ const listAssessments = asyncHandler(async (req, res) => {
         totalQuestions,
         pointsPerQuestion,
         passMark,
+        assessmentLocked: Boolean(lockByCourseId[courseId]?.assessmentLocked),
+        courseLocked: Boolean(lockByCourseId[courseId]?.courseLocked),
       })
     ),
   });
@@ -29,6 +42,8 @@ const submitAssessment = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Assessment not found for this course");
   }
+
+  await assertAssessmentNotLocked(req.user, assessment.courseId);
 
   const { answers } = req.body;
 
