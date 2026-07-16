@@ -84,6 +84,10 @@ const assertCanManageStaffMember = (actor, staffMember) => {
     return;
   }
 
+  if (actor.role === "hr" && staffMember.role === "staff") {
+    return;
+  }
+
   const error = new Error("You are not authorized to manage this user");
   error.statusCode = 403;
   throw error;

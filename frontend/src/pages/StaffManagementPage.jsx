@@ -16,7 +16,9 @@ const StaffManagementPage = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
   const isCsrAdmin = user?.role === "csrAdmin";
+  const isHr = user?.role === "hr";
   const canManageUsers = isAdmin || isCsrAdmin;
+  const canDeleteStaff = canManageUsers || isHr;
   const roleOptions = isCsrAdmin
     ? crmRoleOptions.filter((option) => ["csr", "csrAdmin"].includes(option.value))
     : crmRoleOptions;
@@ -152,8 +154,9 @@ const StaffManagementPage = () => {
     <PanelLayout title="Staff Management">
       {!canManageUsers && (
         <p className="mb-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
-          You have read-only access. Only administrators can create, edit,
-          activate, deactivate, or delete staff accounts.
+          {canDeleteStaff
+            ? "You can delete staff accounts. Only administrators can create, edit, activate, or deactivate accounts."
+            : "You have read-only access. Only administrators can create, edit, activate, deactivate, or delete staff accounts."}
         </p>
       )}
 
@@ -258,7 +261,7 @@ const StaffManagementPage = () => {
                   <th className="pb-3 pr-4 font-medium">Position</th>
                   <th className="pb-3 pr-4 font-medium">Role</th>
                   <th className="pb-3 pr-4 font-medium">Status</th>
-                  {canManageUsers && (
+                  {canDeleteStaff && (
                     <th className="pb-3 font-medium text-right">Actions</th>
                   )}
                 </tr>
@@ -307,26 +310,30 @@ const StaffManagementPage = () => {
                         {member.isActive !== false ? "Active" : "Inactive"}
                       </span>
                     </td>
-                    {canManageUsers && (
+                    {canDeleteStaff && (
                       <td className="py-3 text-right">
                         <div className="flex flex-wrap justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(member)}
-                            className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleToggleStatus(member)}
-                            disabled={member._id === user?._id}
-                            className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                          >
-                            {member.isActive !== false
-                              ? "Deactivate"
-                              : "Activate"}
-                          </button>
+                          {canManageUsers && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => openEditModal(member)}
+                                className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleStatus(member)}
+                                disabled={member._id === user?._id}
+                                className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                              >
+                                {member.isActive !== false
+                                  ? "Deactivate"
+                                  : "Activate"}
+                              </button>
+                            </>
+                          )}
                           <button
                             type="button"
                             onClick={() => handleDelete(member)}
