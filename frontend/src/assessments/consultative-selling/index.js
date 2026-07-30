@@ -8,5 +8,6 @@ export default {
   totalQuestions: questions.length,
   pointsPerQuestion: 1,
   passMark: 14,
+  timeLimitMinutes: 10,
   questions,
 };

@@ -17,7 +17,7 @@ const getAssessmentTimeSeconds = (assessment) => {
   if (assessment?.timeLimitMinutes) {
     return assessment.timeLimitMinutes * 60;
   }
-  return 5 * 60; // default 5 minutes
+  return 10 * 60; // default 10 minutes
 };
 
 const formatTime = (totalSeconds) => {
@@ -51,7 +51,7 @@ const TakeAssessmentPage = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const initialTime = assessment
     ? getAssessmentTimeSeconds(assessment)
-    : 5 * 60;
+    : 10 * 60;
   const [secondsLeft, setSecondsLeft] = useState(initialTime);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -403,7 +403,7 @@ const TakeAssessmentPage = () => {
               </p>
               <p className="mt-8 text-[13px] font-medium leading-5 text-slate-500">
                 {questions.length} questions • 1 point each • pass mark{" "}
-                {assessment.passMark}/{questions.length} • {assessment.timeLimitMinutes || 5} minute limit
+                {assessment.passMark}/{questions.length} • {assessment.timeLimitMinutes || 10} minute limit
               </p>
             </div>
             <div
@@ -537,7 +537,7 @@ const TakeAssessmentPage = () => {
         onConfirm={handleStartTest}
         onCancel={handleCancelStart}
         assessmentTitle={assessment.title}
-        timeLimitMinutes={assessment.timeLimitMinutes || 5}
+        timeLimitMinutes={assessment.timeLimitMinutes || 10}
       />
 
       <AssessmentSubmitConfirmModal
