@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Plus, Search } from "lucide-react";
 
+import useCaretSafeCapitalize from "../../hooks/useCaretSafeCapitalize";
 import { listBookshops } from "../../services/api";
 import { capitalizeWords } from "../../utils/textFormat";
 import AddBookshopModal from "./AddBookshopModal";
@@ -68,6 +69,7 @@ const BookshopSearchSelect = ({
 }) => {
   const listboxId = useId();
   const containerRef = useRef(null);
+  const { inputRef, capitalizeInputValue } = useCaretSafeCapitalize();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [options, setOptions] = useState([]);
@@ -91,6 +93,11 @@ const BookshopSearchSelect = ({
   };
 
   useEffect(() => {
+    // Avoid resetting the caret while the user is mid-edit.
+    if (inputRef.current && document.activeElement === inputRef.current) {
+      return;
+    }
+
     setSearchTerm(value || "");
   }, [value]);
 
@@ -180,7 +187,7 @@ const BookshopSearchSelect = ({
   };
 
   const handleInputChange = (event) => {
-    const nextValue = capitalizeWords(event.target.value, { trim: false });
+    const nextValue = capitalizeInputValue(event.target);
     setSearchTerm(nextValue);
     onChange(nextValue);
     setAddMessage("");
@@ -210,6 +217,7 @@ const BookshopSearchSelect = ({
             aria-hidden
           />
           <input
+            ref={inputRef}
             id={id}
             name={name}
             type="text"

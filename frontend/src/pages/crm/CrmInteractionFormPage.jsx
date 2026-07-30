@@ -91,6 +91,17 @@ const CrmInteractionFormPage = () => {
   const [surveyModalOpen, setSurveyModalOpen] = useState(false);
 
   const ticketsPath = panelSegmentPath(user?.role, "interactions");
+  // On /new, `direction` only seeds the form — strip it so create returns to the plain list.
+  // On /edit, keep the full list query (status, search, page, direction filter, etc.).
+  const listReturnParams = useMemo(() => {
+    const params = new URLSearchParams(searchParams);
+    if (!isEdit) {
+      params.delete("direction");
+    }
+    return params;
+  }, [isEdit, searchParams]);
+  const filterQuery = listReturnParams.toString();
+  const backToTicketsPath = filterQuery ? `${ticketsPath}?${filterQuery}` : ticketsPath;
   const csrPhoneNumbers = useMemo(
     () => (Array.isArray(user?.csrPhoneNumbers) ? user.csrPhoneNumbers : []),
     [user?.csrPhoneNumbers]
@@ -99,9 +110,12 @@ const CrmInteractionFormPage = () => {
 
   useEffect(() => {
     if (isCsrAdmin && isEdit && id) {
-      navigate(`${ticketsPath}/${id}`, { replace: true });
+      navigate(
+        filterQuery ? `${ticketsPath}/${id}?${filterQuery}` : `${ticketsPath}/${id}`,
+        { replace: true }
+      );
     }
-  }, [id, isCsrAdmin, isEdit, navigate, ticketsPath]);
+  }, [filterQuery, id, isCsrAdmin, isEdit, navigate, ticketsPath]);
 
   const resolveCsrPhoneForLineLabel = (lineLabel, currentPhoneNumber = "") => {
     if (lineLabel === "landline") {
@@ -375,7 +389,7 @@ const CrmInteractionFormPage = () => {
         setCreatedTicket(savedTicket);
         setSurveyModalOpen(true);
       } else {
-        navigate(ticketsPath);
+        navigate(backToTicketsPath);
       }
     } catch (apiError) {
       setError(apiError.response?.data?.message || "Failed to save CRM ticket.");
@@ -400,7 +414,7 @@ const CrmInteractionFormPage = () => {
           ? "Ticket saved and survey SMS sent successfully."
           : "Ticket saved and survey triggered successfully."
       );
-      navigate(ticketsPath);
+      navigate(backToTicketsPath);
     } catch (apiError) {
       setError(apiError.response?.data?.message || "Failed to trigger customer survey.");
     } finally {
@@ -415,7 +429,7 @@ const CrmInteractionFormPage = () => {
 
     setSurveyModalOpen(false);
     setCreatedTicket(null);
-    navigate(ticketsPath);
+    navigate(backToTicketsPath);
   };
 
   const title = isEdit ? "Edit CRM Ticket" : "New CRM Ticket";
@@ -438,7 +452,7 @@ const CrmInteractionFormPage = () => {
               </p>
             </div>
             <Link
-              to={ticketsPath}
+              to={backToTicketsPath}
               className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
             >
               Back to ticket log
@@ -900,7 +914,7 @@ const CrmInteractionFormPage = () => {
 
               <div className="flex justify-end gap-3 pt-2 md:col-span-2">
                 <Link
-                  to={ticketsPath}
+                  to={backToTicketsPath}
                   className="rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
                 >
                   Cancel

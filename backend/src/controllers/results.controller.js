@@ -1,4 +1,5 @@
 const Result = require("../models/Result");
+const User = require("../models/User");
 const asyncHandler = require("../utils/asyncHandler");
 
 const formatResult = (result) => ({
@@ -45,7 +46,37 @@ const listStaffResults = asyncHandler(async (req, res) => {
   });
 });
 
+const deleteResult = asyncHandler(async (req, res) => {
+  const result = await Result.findById(req.params.id);
+
+  if (!result) {
+    res.status(404);
+    throw new Error("Assessment result not found");
+  }
+
+  const gemsToRevoke = result.gemsEarned || 0;
+  const userId = result.user;
+  const resultId = result._id;
+
+  await result.deleteOne();
+
+  if (gemsToRevoke > 0 && userId) {
+    const user = await User.findById(userId);
+
+    if (user) {
+      user.gems = Math.max(0, (user.gems ?? 0) - gemsToRevoke);
+      await user.save();
+    }
+  }
+
+  res.json({
+    message: "Assessment result deleted successfully",
+    id: resultId,
+  });
+});
+
 module.exports = {
+  deleteResult,
   listAllResults,
   listMyResults,
   listStaffResults,

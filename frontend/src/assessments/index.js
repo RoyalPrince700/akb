@@ -7,6 +7,7 @@ import customerServiceAssessment from "./customer-service";
 import digitalTransformationAssessment from "./digital-transformation";
 import financeAssessment from "./finance";
 import hrmAssessment from "./human-resource-management";
+import solutionSellingAssessment from "./solution-selling";
 import { getAssessmentByCourseId } from "./utils";
 
 const assessmentRegistry = [
@@ -19,6 +20,7 @@ const assessmentRegistry = [
   digitalTransformationAssessment,
   financeAssessment,
   hrmAssessment,
+  solutionSellingAssessment,
 ];
 
 export const assessments = assessmentRegistry;

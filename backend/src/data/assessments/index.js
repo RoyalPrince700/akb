@@ -6,6 +6,7 @@ const customerService = require("./customer-service");
 const digitalTransformation = require("./digital-transformation");
 const finance = require("./finance");
 const humanResourceManagement = require("./human-resource-management");
+const solutionSelling = require("./solution-selling");
 
 const assessments = [
   aiForStaff,
@@ -16,6 +17,7 @@ const assessments = [
   digitalTransformation,
   finance,
   humanResourceManagement,
+  solutionSelling,
 ];
 
 const getAssessmentByCourseId = (courseId) =>

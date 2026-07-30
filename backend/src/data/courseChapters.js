@@ -58,4 +58,13 @@ module.exports = {
     "working-together",
     "marketing-tech-stack",
   ],
+  "solution-selling": [
+    "think-beyond-first-order",
+    "cross-sell-and-up-sell",
+    "product-ecosystem",
+    "segments-and-value-ladder",
+    "smartedu-hub-and-bundles",
+    "needs-conversations",
+    "practice-and-kpis",
+  ],
 };

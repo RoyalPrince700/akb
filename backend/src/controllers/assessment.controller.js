@@ -57,12 +57,16 @@ const submitAssessment = asyncHandler(async (req, res) => {
     user: req.user._id,
     courseId: assessment.courseId,
   });
-  const isFirstAttempt = !priorAttempt;
+
+  if (priorAttempt) {
+    res.status(409);
+    throw new Error(
+      "You have already submitted this assessment. Retakes are not allowed."
+    );
+  }
 
   const graded = gradeAssessment(assessment, answers);
-  const gemsEarned = isFirstAttempt
-    ? graded.score * GEMS_PER_CORRECT_ANSWER
-    : 0;
+  const gemsEarned = graded.score * GEMS_PER_CORRECT_ANSWER;
 
   let totalGems = req.user.gems ?? 0;
 
@@ -86,7 +90,7 @@ const submitAssessment = asyncHandler(async (req, res) => {
     totalQuestions: graded.totalQuestions,
     percentage: graded.percentage,
     passed: graded.passed,
-    isFirstAttempt,
+    isFirstAttempt: true,
     gemsEarned,
   });
 

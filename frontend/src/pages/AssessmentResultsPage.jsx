@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
 
 import PanelLayout from "../layouts/PanelLayout";
-import { listAllResults } from "../services/api";
+import { useAuth } from "../context/AuthContext";
+import { deleteResult, listAllResults } from "../services/api";
 
 const AssessmentResultsPage = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -27,6 +31,31 @@ const AssessmentResultsPage = () => {
 
     fetchResults();
   }, []);
+
+  const handleDelete = async (result) => {
+    const staffLabel = result.staffName || "this staff member";
+    const assessmentLabel = result.assessmentTitle || "this assessment";
+
+    if (
+      !window.confirm(
+        `Delete ${staffLabel}'s result for "${assessmentLabel}"? This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    setDeletingId(result._id);
+    setError("");
+
+    try {
+      await deleteResult(result._id);
+      setResults((current) => current.filter((item) => item._id !== result._id));
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to delete assessment result.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <PanelLayout title="Assessment Results">
@@ -61,7 +90,12 @@ const AssessmentResultsPage = () => {
                   <th className="pb-3 pr-4 font-medium">Assessment</th>
                   <th className="pb-3 pr-4 font-medium">Score</th>
                   <th className="pb-3 pr-4 font-medium">Status</th>
-                  <th className="pb-3 font-medium">Submitted</th>
+                  <th className={`pb-3 font-medium${isAdmin ? " pr-4" : ""}`}>
+                    Submitted
+                  </th>
+                  {isAdmin && (
+                    <th className="pb-3 text-right font-medium">Actions</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -92,9 +126,21 @@ const AssessmentResultsPage = () => {
                         {result.passed ? "Passed" : "Not passed"}
                       </span>
                     </td>
-                    <td className="py-3 text-slate-600">
+                    <td className={`py-3 text-slate-600${isAdmin ? " pr-4" : ""}`}>
                       {new Date(result.submittedAt).toLocaleString()}
                     </td>
+                    {isAdmin && (
+                      <td className="py-3 text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(result)}
+                          disabled={deletingId === result._id}
+                          className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {deletingId === result._id ? "Deleting..." : "Delete"}
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

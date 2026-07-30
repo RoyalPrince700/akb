@@ -111,6 +111,11 @@ export const listStaffResults = async (staffId) => {
   return response.data;
 };
 
+export const deleteResult = async (resultId) => {
+  const response = await api.delete(`/results/${resultId}`);
+  return response.data;
+};
+
 export const listPublishedMaterials = async () => {
   const response = await api.get("/materials/published");
   return response.data;

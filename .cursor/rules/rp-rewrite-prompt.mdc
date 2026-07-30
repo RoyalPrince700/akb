@@ -1,0 +1,21 @@
+---
+description: When the user starts with "rp", rewrite their request into a clear copyable prompt
+alwaysApply: true
+---
+
+# RP = Rewrite Prompt
+
+When a user message starts with `rp` (case-insensitive), treat it as a **rewrite prompt** request — not as a request to implement changes.
+
+## Workflow
+
+1. Read the user's rough notes / intended changes in the message.
+2. Inspect relevant project files so the rewritten prompt matches the real codebase (paths, names, patterns, constraints).
+3. Produce a single, self-contained prompt the user can copy and send to another model.
+
+## Output
+
+- Reply with the rewritten prompt in one copyable fenced code block (plain text inside).
+- Do not implement the changes unless the user asks after reviewing the prompt.
+- Make the prompt specific: goal, relevant files/areas, acceptance criteria, and constraints inferred from the repo.
+- Keep the user's intent; clarify vague parts using what you learned from the project.

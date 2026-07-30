@@ -3,10 +3,11 @@ import { Link } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
 import { useAssessmentAccess } from "../hooks/useAssessmentAccess";
+import { getResultsPath } from "../utils/rolePaths";
 import LockedAssessmentModal from "./LockedAssessmentModal";
 import courses, { getCourseById } from "../courses";
 
-const AssessmentCourseAction = ({ assessment }) => {
+const AssessmentCourseAction = ({ assessment, isTaken = false }) => {
   const { user } = useAuth();
   const { canTakeAssessment, assessmentLockedByHr, isReady } =
     useAssessmentAccess(assessment.courseId);
@@ -15,6 +16,7 @@ const AssessmentCourseAction = ({ assessment }) => {
   const rawFirstName = user?.name?.split(" ")[0] || "Staff";
   const firstName =
     rawFirstName.charAt(0).toUpperCase() + rawFirstName.slice(1).toLowerCase();
+  const resultsPath = getResultsPath(user?.role) || "/dashboard/results";
 
   if (!isReady) {
     return (
@@ -43,6 +45,17 @@ const AssessmentCourseAction = ({ assessment }) => {
           reason="hr-lock"
         />
       </>
+    );
+  }
+
+  if (isTaken) {
+    return (
+      <Link
+        to={resultsPath}
+        className="mt-10 inline-flex h-9 w-fit items-center justify-center rounded-xl border border-emerald-200/80 bg-emerald-50 px-3.5 text-[13px] font-semibold text-emerald-800 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:border-emerald-300 hover:bg-emerald-100"
+      >
+        View result
+      </Link>
     );
   }
 

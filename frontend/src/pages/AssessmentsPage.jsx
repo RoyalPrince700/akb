@@ -80,9 +80,9 @@ const AssessmentsPage = () => {
                 Assessments that confirm real understanding.
               </h1>
               <p className="mt-6 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
-                Each course includes a focused assessment. Answer with care, earn
-                gems on your first attempt, and keep a clear record of your
-                progress.
+                Each course includes a focused assessment. You get one attempt —
+                answer with care, earn gems for correct answers, and keep a clear
+                record of your progress.
               </p>
             </div>
 
@@ -93,7 +93,7 @@ const AssessmentsPage = () => {
               </span>
               {canTake && statusReady && (
                 <span className="rounded-full border border-emerald-200/80 bg-emerald-50/80 px-3.5 py-2 text-emerald-800 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-                  {completedCount} completed
+                  {completedCount} taken
                 </span>
               )}
             </div>
@@ -115,7 +115,7 @@ const AssessmentsPage = () => {
             <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
               {assessments.map((assessment) => {
                 const course = getCourseById(courses, assessment.courseId);
-                const isCompleted =
+                const isTaken =
                   canTake && takenCourseIds.has(assessment.courseId);
                 const isHrLocked =
                   canTake &&
@@ -129,7 +129,7 @@ const AssessmentsPage = () => {
                     className={`group relative flex h-full flex-col overflow-hidden rounded-[32px] border bg-white p-8 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:border-slate-300/80 hover:shadow-[0_8px_20px_rgba(15,23,42,0.08),0_28px_70px_rgba(15,23,42,0.12)] ${
                       isHrLocked
                         ? "border-red-200/80"
-                        : isCompleted
+                        : isTaken
                           ? "border-emerald-200/80"
                           : "border-slate-200/70"
                     }`}
@@ -138,7 +138,7 @@ const AssessmentsPage = () => {
                       className={`pointer-events-none absolute inset-x-0 top-0 h-36 bg-linear-to-br via-white to-white opacity-80 transition-opacity duration-300 group-hover:opacity-100 ${
                         isHrLocked
                           ? "from-red-100/60"
-                          : isCompleted
+                          : isTaken
                             ? "from-emerald-100/60"
                             : "from-violet-100/60"
                       }`}
@@ -149,7 +149,7 @@ const AssessmentsPage = () => {
                           className={`flex h-10 w-10 items-center justify-center rounded-xl border shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] ${
                             isHrLocked
                               ? "border-red-100 bg-red-50 text-red-700"
-                              : isCompleted
+                              : isTaken
                                 ? "border-emerald-100 bg-emerald-50 text-emerald-700"
                                 : "border-violet-100 bg-violet-50 text-violet-700"
                           }`}
@@ -162,7 +162,7 @@ const AssessmentsPage = () => {
                             className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold leading-none ${
                               isHrLocked
                                 ? "bg-red-50 text-red-700 ring-1 ring-red-200/80"
-                                : isCompleted
+                                : isTaken
                                   ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/80"
                                   : "bg-slate-100 text-slate-500 ring-1 ring-slate-200/80"
                             }`}
@@ -172,10 +172,10 @@ const AssessmentsPage = () => {
                                 <Lock className="h-3.5 w-3.5" aria-hidden />
                                 Locked
                               </>
-                            ) : isCompleted ? (
+                            ) : isTaken ? (
                               <>
                                 <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
-                                Completed
+                                Assessment taken
                               </>
                             ) : (
                               <>
@@ -200,7 +200,10 @@ const AssessmentsPage = () => {
                         {assessment.totalQuestions} questions • pass{" "}
                         {assessment.passMark}/{assessment.totalQuestions}
                       </p>
-                      <AssessmentCourseAction assessment={assessment} />
+                      <AssessmentCourseAction
+                        assessment={assessment}
+                        isTaken={isTaken}
+                      />
                     </div>
                   </article>
                 );

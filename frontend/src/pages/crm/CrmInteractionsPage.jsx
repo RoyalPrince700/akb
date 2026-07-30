@@ -530,7 +530,9 @@ const CrmInteractionsPage = () => {
                         ) : (
                           <>
                             <Link
-                              to={`${listPath}/${interaction._id}/edit`}
+                              to={`${listPath}/${interaction._id}/edit${
+                                searchParams.toString() ? `?${searchParams.toString()}` : ""
+                              }`}
                               className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
                             >
                               Edit

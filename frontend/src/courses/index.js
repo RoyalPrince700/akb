@@ -7,6 +7,7 @@ import customerService from "./customer-service";
 import digitalTransformation from "./digital-transformation";
 import finance from "./finance";
 import humanResourceManagement from "./human-resource-management";
+import solutionSelling from "./solution-selling";
 import {
   getAdjacentChapters,
   getAllCourses,
@@ -25,6 +26,7 @@ const courseRegistry = [
   digitalTransformation,
   finance,
   humanResourceManagement,
+  solutionSelling,
 ];
 
 export const courses = getAllCourses(courseRegistry);

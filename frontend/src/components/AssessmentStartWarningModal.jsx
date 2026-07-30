@@ -27,6 +27,8 @@ const AssessmentStartWarningModal = ({ isOpen, onConfirm, onCancel, assessmentTi
         <div className="mb-6 space-y-4 text-slate-700">
           <p className="leading-relaxed">
             You are about to start the <strong>{assessmentTitle}</strong> assessment.
+            This is a <strong>single attempt</strong> — you cannot retake it after
+            submitting.
           </p>
 
           <div className="rounded-2xl border border-amber-200/80 bg-amber-50/80 p-4 text-sm">
@@ -36,9 +38,8 @@ const AssessmentStartWarningModal = ({ isOpen, onConfirm, onCancel, assessmentTi
             <ul className="space-y-2 text-amber-800">
               <li>• The timer starts immediately after you click "Start Test".</li>
               <li>• <strong>You cannot pause or cancel</strong> once the test begins.</li>
-              <li>• The test will auto-submit when time runs out.</li>
-              <li>• You earn <strong>1 gem per correct answer</strong> on your <strong>first attempt</strong> only.</li>
-              <li>• Retakes do not award additional gems.</li>
+              <li>• The test will auto-submit when time runs out — that counts as your attempt.</li>
+              <li>• You earn <strong>1 gem per correct answer</strong> on this attempt.</li>
             </ul>
           </div>
 

@@ -3,13 +3,15 @@ import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
 import AssessmentStartWarningModal from "../components/AssessmentStartWarningModal";
+import AssessmentSubmitConfirmModal from "../components/AssessmentSubmitConfirmModal";
 import LockedAssessmentModal from "../components/LockedAssessmentModal";
 import assessments, { getAssessmentByCourseId } from "../assessments";
 import { stripCorrectAnswers } from "../assessments/utils";
 import { useAuth } from "../context/AuthContext";
 import courses, { getCourseById } from "../courses";
 import { useAssessmentAccess } from "../hooks/useAssessmentAccess";
-import { submitAssessment } from "../services/api";
+import { listMyResults, submitAssessment } from "../services/api";
+import { getResultsPath, isLearningRole } from "../utils/rolePaths";
 
 const getAssessmentTimeSeconds = (assessment) => {
   if (assessment?.timeLimitMinutes) {
@@ -36,7 +38,7 @@ const BackToAssessments = () => (
 const TakeAssessmentPage = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, isAuthenticated } = useAuth();
   const { isLocked, isReady, assessmentLockedByHr } =
     useAssessmentAccess(courseId);
   const course = getCourseById(courses, courseId);
@@ -44,6 +46,7 @@ const TakeAssessmentPage = () => {
   const rawFirstName = user?.name?.split(" ")[0] || "Staff";
   const firstName =
     rawFirstName.charAt(0).toUpperCase() + rawFirstName.slice(1).toLowerCase();
+  const resultsPath = getResultsPath(user?.role) || "/dashboard/results";
   const [answers, setAnswers] = useState({});
   const [currentIndex, setCurrentIndex] = useState(0);
   const initialTime = assessment
@@ -54,6 +57,10 @@ const TakeAssessmentPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [showWarning, setShowWarning] = useState(true);
   const [timerStarted, setTimerStarted] = useState(false);
+  const [alreadyTaken, setAlreadyTaken] = useState(false);
+  const [takenCheckReady, setTakenCheckReady] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [pendingUnansweredCount, setPendingUnansweredCount] = useState(0);
   const hasSubmittedRef = useRef(false);
   const answersRef = useRef(answers);
   const timedOutHandledRef = useRef(false);
@@ -65,10 +72,48 @@ const TakeAssessmentPage = () => {
   const currentQuestion = questions[currentIndex];
   const isFirstQuestion = currentIndex === 0;
   const isLastQuestion = currentIndex === questions.length - 1;
+  const canTake =
+    isAuthenticated && isLearningRole(user?.role);
 
   useEffect(() => {
     answersRef.current = answers;
   }, [answers]);
+
+  useEffect(() => {
+    if (!hasAssessment || !canTake) {
+      setAlreadyTaken(false);
+      setTakenCheckReady(true);
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const checkPriorAttempt = async () => {
+      setTakenCheckReady(false);
+      try {
+        const data = await listMyResults();
+        if (cancelled) return;
+        const taken = (data.results || []).some(
+          (result) => result.courseId === courseId
+        );
+        setAlreadyTaken(taken);
+      } catch {
+        if (!cancelled) {
+          setAlreadyTaken(false);
+        }
+      } finally {
+        if (!cancelled) {
+          setTakenCheckReady(true);
+        }
+      }
+    };
+
+    checkPriorAttempt();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canTake, courseId, hasAssessment]);
 
   const finishSubmission = useCallback(
     async ({ timedOut = false } = {}) => {
@@ -79,6 +124,7 @@ const TakeAssessmentPage = () => {
       hasSubmittedRef.current = true;
       setError("");
       setSubmitting(true);
+      setShowSubmitConfirm(false);
 
       try {
         const data = await submitAssessment(courseId, answersRef.current);
@@ -90,7 +136,7 @@ const TakeAssessmentPage = () => {
             result: {
               ...data.result,
               gemsEarned: data.result?.gemsEarned ?? data.gemsEarned ?? 0,
-              isFirstAttempt: data.result?.isFirstAttempt ?? false,
+              isFirstAttempt: data.result?.isFirstAttempt ?? true,
             },
             timedOut,
           },
@@ -133,18 +179,14 @@ const TakeAssessmentPage = () => {
       const currentAnswers = answersRef.current;
       const unanswered = questions.filter((q) => !currentAnswers[q.id]);
 
-      if (!timedOut && unanswered.length > 0) {
-        const proceed = window.confirm(
-          `You have ${unanswered.length} unanswered question${
-            unanswered.length === 1 ? "" : "s"
-          }. Submit anyway? Unanswered questions count as incorrect.`
-        );
-        if (!proceed) {
-          return;
-        }
+      // Manual final submit: confirm one-attempt policy before calling the API.
+      if (!timedOut) {
+        setPendingUnansweredCount(unanswered.length);
+        setShowSubmitConfirm(true);
+        return;
       }
 
-      await finishSubmission({ timedOut });
+      await finishSubmission({ timedOut: true });
     },
     [
       answers,
@@ -157,7 +199,14 @@ const TakeAssessmentPage = () => {
   );
 
   useEffect(() => {
-    if (!hasAssessment || isLocked || !isReady || !timerStarted) {
+    if (
+      !hasAssessment ||
+      isLocked ||
+      !isReady ||
+      !takenCheckReady ||
+      alreadyTaken ||
+      !timerStarted
+    ) {
       return undefined;
     }
 
@@ -176,12 +225,22 @@ const TakeAssessmentPage = () => {
     }, 1000);
 
     return () => clearInterval(timerId);
-  }, [hasAssessment, isLocked, isReady, timerStarted, secondsLeft > 0]);
+  }, [
+    alreadyTaken,
+    hasAssessment,
+    isLocked,
+    isReady,
+    takenCheckReady,
+    timerStarted,
+    secondsLeft > 0,
+  ]);
 
   useEffect(() => {
     if (
       !hasAssessment ||
       !isReady ||
+      !takenCheckReady ||
+      alreadyTaken ||
       isLocked ||
       !timerStarted ||
       secondsLeft > 0 ||
@@ -194,11 +253,13 @@ const TakeAssessmentPage = () => {
     timedOutHandledRef.current = true;
     finishSubmission({ timedOut: true });
   }, [
+    alreadyTaken,
     finishSubmission,
     hasAssessment,
     isLocked,
     isReady,
     secondsLeft,
+    takenCheckReady,
     timerStarted,
   ]);
 
@@ -206,13 +267,47 @@ const TakeAssessmentPage = () => {
     return <Navigate to="/courses" replace />;
   }
 
-  if (!isReady) {
+  if (!isReady || !takenCheckReady) {
     return (
       <main className="min-h-screen bg-slate-50">
         <Navbar />
         <section className="mx-auto max-w-3xl px-6 pb-12 pt-10 lg:px-8">
           <BackToAssessments />
           <p className="text-center text-slate-600">Checking assessment access…</p>
+        </section>
+      </main>
+    );
+  }
+
+  if (alreadyTaken) {
+    return (
+      <main className="min-h-screen bg-slate-50">
+        <Navbar />
+        <section className="mx-auto max-w-3xl px-6 pb-12 pt-10 lg:px-8">
+          <BackToAssessments />
+          <div className="rounded-[32px] border border-emerald-200 bg-white p-8 text-center shadow-sm">
+            <h1 className="text-2xl font-bold text-slate-950">
+              Assessment already taken
+            </h1>
+            <p className="mt-3 text-slate-600">
+              You have already submitted this assessment. Each assessment can
+              only be taken once.
+            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                to={resultsPath}
+                className="inline-flex rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-700"
+              >
+                View my results
+              </Link>
+              <Link
+                to="/assessments"
+                className="inline-flex rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Back to assessments
+              </Link>
+            </div>
+          </div>
         </section>
       </main>
     );
@@ -443,6 +538,14 @@ const TakeAssessmentPage = () => {
         onCancel={handleCancelStart}
         assessmentTitle={assessment.title}
         timeLimitMinutes={assessment.timeLimitMinutes || 5}
+      />
+
+      <AssessmentSubmitConfirmModal
+        isOpen={showSubmitConfirm}
+        unansweredCount={pendingUnansweredCount}
+        submitting={submitting}
+        onCancel={() => setShowSubmitConfirm(false)}
+        onConfirm={() => finishSubmission({ timedOut: false })}
       />
     </main>
   );

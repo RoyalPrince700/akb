@@ -1,6 +1,6 @@
 import { Link, Navigate, useParams } from "react-router-dom";
 import { CheckCircle2, Lock, PlayCircle } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import Navbar from "../components/Navbar";
 import LockedChapterModal from "../components/LockedChapterModal";
@@ -10,7 +10,8 @@ import { useAuth } from "../context/AuthContext";
 import { useAssessmentAccess } from "../hooks/useAssessmentAccess";
 import courses, { getCourseById, getSortedChapters } from "../courses";
 import { useProgress } from "../hooks/useProgress";
-import { isLearningRole } from "../utils/rolePaths";
+import { listMyResults } from "../services/api";
+import { getResultsPath, isLearningRole } from "../utils/rolePaths";
 
 const CourseDetailPage = () => {
   const { courseId } = useParams();
@@ -28,13 +29,45 @@ const CourseDetailPage = () => {
 
   const [lockedAttempt, setLockedAttempt] = useState(null);
   const [showAssessmentLocked, setShowAssessmentLocked] = useState(false);
+  const [hasTakenAssessment, setHasTakenAssessment] = useState(false);
+
+  const canRead = isAuthenticated && isLearningRole(user?.role);
+
+  useEffect(() => {
+    if (!canRead || !assessment) {
+      setHasTakenAssessment(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    const loadTaken = async () => {
+      try {
+        const data = await listMyResults();
+        if (cancelled) return;
+        setHasTakenAssessment(
+          (data.results || []).some((result) => result.courseId === courseId)
+        );
+      } catch {
+        if (!cancelled) {
+          setHasTakenAssessment(false);
+        }
+      }
+    };
+
+    loadTaken();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [assessment, canRead, courseId]);
 
   if (!course) {
     return <Navigate to="/courses" replace />;
   }
 
-  const canRead = isAuthenticated && isLearningRole(user?.role);
   const courseIsLocked = canRead && courseLockedByHr;
+  const resultsPath = getResultsPath(user?.role) || "/dashboard/results";
 
   const rawFirstName = user?.name?.split(" ")[0] || "Staff";
   const firstName =
@@ -193,23 +226,38 @@ const CourseDetailPage = () => {
                 Start reading
               </Link>
             )}
-            {assessment && canTakeAssessment && (
-              <Link
-                to={`/courses/${course.id}/assessment`}
-                className="inline-flex rounded-full border border-blue-700 px-5 py-2.5 text-sm font-semibold text-blue-700 hover:bg-blue-50"
-              >
-                Take assessment ({assessment.totalQuestions} questions)
-              </Link>
-            )}
-            {assessment && assessmentLockedByHr && isReady && (
-              <button
-                type="button"
-                onClick={() => setShowAssessmentLocked(true)}
-                className="inline-flex rounded-full border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100"
-              >
-                Assessment locked by HR
-              </button>
-            )}
+            {assessment &&
+              isReady &&
+              assessmentLockedByHr && (
+                <button
+                  type="button"
+                  onClick={() => setShowAssessmentLocked(true)}
+                  className="inline-flex rounded-full border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100"
+                >
+                  Assessment locked by HR
+                </button>
+              )}
+            {assessment &&
+              isReady &&
+              !assessmentLockedByHr &&
+              hasTakenAssessment && (
+                <Link
+                  to={resultsPath}
+                  className="inline-flex rounded-full border border-emerald-600 px-5 py-2.5 text-sm font-semibold text-emerald-700 hover:bg-emerald-50"
+                >
+                  Assessment taken — view result
+                </Link>
+              )}
+            {assessment &&
+              canTakeAssessment &&
+              !hasTakenAssessment && (
+                <Link
+                  to={`/courses/${course.id}/assessment`}
+                  className="inline-flex rounded-full border border-blue-700 px-5 py-2.5 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+                >
+                  Take assessment ({assessment.totalQuestions} questions)
+                </Link>
+              )}
           </div>
         )}
 
