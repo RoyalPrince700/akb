@@ -121,6 +121,7 @@ const CrmInteractionDetailPage = () => {
               value={capitalizeWords(customer.schoolName)}
             />
             <DetailField label="Phone number" value={customer.phoneNumber} />
+            <DetailField label="Country" value={capitalizeWords(customer.country)} />
             <DetailField label="State" value={customer.state} />
             <DetailField label="Date of contact" value={formatDateTime(interaction.dateOfContact)} />
             <DetailField

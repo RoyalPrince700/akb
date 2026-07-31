@@ -60,8 +60,9 @@ const AssessmentResultsPage = () => {
   return (
     <PanelLayout title="Assessment Results">
       <p className="mb-6 text-sm leading-6 text-slate-600">
-        All staff assessment submissions. Each test has 10 questions scored at 1
-        point per correct answer (pass mark: 7/10).
+        All staff assessment submissions. Each assessment has its own question
+        count and pass mark. Scoring is 1 point per correct answer; each row
+        shows that attempt&apos;s score as score/totalQuestions.
       </p>
 
       {error && (

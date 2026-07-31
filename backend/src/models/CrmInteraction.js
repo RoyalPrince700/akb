@@ -30,6 +30,11 @@ const customerSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    country: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     state: {
       type: String,
       enum: NIGERIAN_STATES,

@@ -5,6 +5,7 @@ const {
   createSalesRecord,
   createSalesRep,
   createBookshop,
+  createCountry,
   createIndividual,
   createSchool,
   createSurveyDispatch,
@@ -23,6 +24,7 @@ const {
   listSalesRecords,
   listSalesReps,
   listBookshops,
+  listCountries,
   listIndividuals,
   listSchools,
   listSurveyDispatches,
@@ -69,6 +71,8 @@ router.delete("/sales-reps/:id", authorizeCsrAdmin, deleteSalesRep);
 
 router.get("/bookshops", authorizeCsrOrAdmin, listBookshops);
 router.post("/bookshops", authorizeCsrOrAdmin, createBookshop);
+router.get("/countries", authorizeCsrOrAdmin, listCountries);
+router.post("/countries", authorizeCsrOrAdmin, createCountry);
 router.get("/individuals", authorizeCsrOrAdmin, listIndividuals);
 router.post("/individuals", authorizeCsrOrAdmin, createIndividual);
 router.get("/schools", authorizeCsrOrAdmin, listSchools);

@@ -27,8 +27,9 @@ const StaffResultsPage = () => {
   return (
     <DashboardLayout title="My Assessment Results">
       <p className="mb-6 text-sm leading-6 text-slate-600">
-        Each submission is scored out of 10 (1 point per correct answer). Pass
-        mark is 7/10.
+        Your assessment submissions. Each assessment has its own question count
+        and pass mark. Scoring is 1 point per correct answer; each row shows
+        that attempt&apos;s score as score/totalQuestions.
       </p>
 
       {error && (

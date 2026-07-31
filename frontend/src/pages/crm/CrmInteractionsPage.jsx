@@ -20,6 +20,7 @@ import PanelLayout from "../../layouts/PanelLayout";
 import {
   createSurveyDispatch,
   deleteCrmInteraction,
+  listCountries,
   listCrmInteractions,
   listStaff,
   sendSurveyReminder,
@@ -44,6 +45,7 @@ const CrmInteractionsPage = () => {
   const [error, setError] = useState("");
   const appliedSearch = searchParams.get("search") || "";
   const [searchDraft, setSearchDraft] = useState(appliedSearch);
+  const countryFilter = searchParams.get("country") || "";
   const stateFilter = searchParams.get("state") || "";
   const directionFilter = searchParams.get("direction") || "";
   const statusFilter = searchParams.get("status") || "";
@@ -52,6 +54,7 @@ const CrmInteractionsPage = () => {
   const endDateFilter = searchParams.get("endDate") || "";
   const page = getPageFromSearchParams(searchParams);
   const [csrOptions, setCsrOptions] = useState([]);
+  const [countryOptions, setCountryOptions] = useState([]);
   const [surveyModalOpen, setSurveyModalOpen] = useState(false);
   const [reminderModalOpen, setReminderModalOpen] = useState(false);
   const [activeInteraction, setActiveInteraction] = useState(null);
@@ -110,6 +113,24 @@ const CrmInteractionsPage = () => {
   }, [isCsrAdmin]);
 
   useEffect(() => {
+    const loadCountries = async () => {
+      try {
+        const data = await listCountries({ limit: 100 });
+        const countries = [...(data.countries || [])].sort((left, right) =>
+          (left.name || "").localeCompare(right.name || "", undefined, {
+            sensitivity: "base",
+          })
+        );
+        setCountryOptions(countries);
+      } catch {
+        setCountryOptions([]);
+      }
+    };
+
+    loadCountries();
+  }, []);
+
+  useEffect(() => {
     setSearchDraft(appliedSearch);
   }, [appliedSearch]);
 
@@ -120,6 +141,7 @@ const CrmInteractionsPage = () => {
     try {
       const params = { page, limit: 10 };
       if (appliedSearch.trim()) params.search = appliedSearch.trim();
+      if (countryFilter) params.country = countryFilter;
       if (stateFilter) params.state = stateFilter;
       if (directionFilter) params.direction = directionFilter;
       if (statusFilter) params.status = statusFilter;
@@ -138,6 +160,7 @@ const CrmInteractionsPage = () => {
     }
   }, [
     appliedSearch,
+    countryFilter,
     directionFilter,
     isCsrAdmin,
     ownerFilter,
@@ -352,6 +375,20 @@ const CrmInteractionsPage = () => {
             </select>
           )}
           <select
+            value={countryFilter}
+            onChange={(event) => {
+              updateFilterParams({ country: event.target.value }, { resetPage: true });
+            }}
+            className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+          >
+            <option value="">All countries</option>
+            {countryOptions.map((country) => (
+              <option key={country._id || country.name} value={country.name}>
+                {country.name}
+              </option>
+            ))}
+          </select>
+          <select
             value={stateFilter}
             onChange={(event) => {
               updateFilterParams({ state: event.target.value }, { resetPage: true });
@@ -432,6 +469,7 @@ const CrmInteractionsPage = () => {
                   <th className="pb-3 pr-4 font-medium">Name</th>
                   <th className="pb-3 pr-4 font-medium">Direction</th>
                   <th className="pb-3 pr-4 font-medium">Category</th>
+                  <th className="pb-3 pr-4 font-medium">Country</th>
                   <th className="pb-3 pr-4 font-medium">State</th>
                   <th className="pb-3 pr-4 font-medium">Phone</th>
                   <th className="pb-3 pr-4 font-medium">Sales rep</th>
@@ -457,7 +495,10 @@ const CrmInteractionsPage = () => {
                     <td className="py-3 pr-4 text-slate-700">
                       {formatCrmCategory(interaction.category)}
                     </td>
-                    <td className="py-3 pr-4 text-slate-700">{interaction.customer.state}</td>
+                    <td className="py-3 pr-4 text-slate-700">
+                      {capitalizeWords(interaction.customer.country) || "—"}
+                    </td>
+                    <td className="py-3 pr-4 text-slate-700">{interaction.customer.state || "—"}</td>
                     <td className="py-3 pr-4 text-slate-700">
                       {interaction.customer.phoneNumber}
                     </td>

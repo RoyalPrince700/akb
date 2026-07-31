@@ -274,6 +274,25 @@ export const createSchool = async (payload) => {
   return response.data;
 };
 
+export const listCountries = async (params = {}) => {
+  const response = await api.get("/crm/countries", {
+    params: {
+      ...params,
+      _ts: Date.now(),
+    },
+    headers: {
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    },
+  });
+  return response.data;
+};
+
+export const createCountry = async (payload) => {
+  const response = await api.post("/crm/countries", payload);
+  return response.data;
+};
+
 export const listBookshops = async (params = {}) => {
   const response = await api.get("/crm/bookshops", {
     params: {

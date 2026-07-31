@@ -137,7 +137,11 @@ const CrmCustomerHistoryPage = () => {
                     <div>
                       <p className="font-semibold text-slate-950">{customer.schoolName}</p>
                       <p className="mt-1 text-sm text-slate-600">{customer.phoneNumber}</p>
-                      <p className="mt-1 text-sm text-slate-500">{customer.address}</p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {[customer.address, customer.country, customer.state]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
                     </div>
                     <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
                       {customer.totalInteractions} call

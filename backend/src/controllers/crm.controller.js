@@ -5,6 +5,7 @@ const CrmInteraction = require("../models/CrmInteraction");
 const CrmSalesRecord = require("../models/CrmSalesRecord");
 const SalesRep = require("../models/SalesRep");
 const Bookshop = require("../models/Bookshop");
+const Country = require("../models/Country");
 const Individual = require("../models/Individual");
 const School = require("../models/School");
 const SurveyDispatch = require("../models/SurveyDispatch");
@@ -168,6 +169,13 @@ const buildInteractionFilter = (query, user) => {
 
   if (query.state) {
     filter["customer.state"] = query.state;
+  }
+
+  if (query.country) {
+    const country = String(query.country).trim();
+    if (country) {
+      filter["customer.country"] = new RegExp(`^${escapeRegex(country)}$`, "i");
+    }
   }
 
   if (query.organizationType) {
@@ -423,6 +431,7 @@ const buildInteractionPayload = async (body, user, existingInteraction = null) =
         body.organizationType ?? existingCustomer.organizationType ?? "school",
       schoolName: capitalizeWords(body.schoolName || existingCustomer.schoolName || ""),
       address: capitalizeWords(body.address || existingCustomer.address || ""),
+      country: capitalizeWords(body.country || existingCustomer.country || ""),
       state: body.state || existingCustomer.state || undefined,
       phoneNumber: phoneNumber.trim(),
       normalizedPhoneNumber,
@@ -624,6 +633,7 @@ const listCustomers = asyncHandler(async (req, res) => {
         schoolName: { $first: "$customer.schoolName" },
         organizationType: { $first: "$customer.organizationType" },
         address: { $first: "$customer.address" },
+        country: { $first: "$customer.country" },
         state: { $first: "$customer.state" },
         phoneNumber: { $first: "$customer.phoneNumber" },
         customerType: { $first: "$customerType" },
@@ -695,6 +705,7 @@ const getCustomerLookup = asyncHandler(async (req, res) => {
       organizationType: latestInteraction.customer.organizationType || "school",
       schoolName: latestInteraction.customer.schoolName,
       address: latestInteraction.customer.address,
+      country: latestInteraction.customer.country,
       state: latestInteraction.customer.state,
       phoneNumber: latestInteraction.customer.phoneNumber,
       customerType: latestInteraction.customerType,
@@ -1069,6 +1080,140 @@ const createSchool = asyncHandler(async (req, res) => {
       result.action === "inserted"
         ? "School added to the directory"
         : "Existing school record updated",
+  });
+});
+
+const DEFAULT_COUNTRY_NAME = "Nigeria";
+
+const ensureDefaultCountry = async (userId) => {
+  const existing = await Country.findOne({
+    name: new RegExp(`^${escapeRegex(DEFAULT_COUNTRY_NAME)}$`, "i"),
+  });
+
+  if (existing) {
+    return existing;
+  }
+
+  try {
+    return await Country.create({
+      name: DEFAULT_COUNTRY_NAME,
+      createdBy: userId,
+      updatedBy: userId,
+    });
+  } catch (error) {
+    if (error?.code === 11000) {
+      return Country.findOne({
+        name: new RegExp(`^${escapeRegex(DEFAULT_COUNTRY_NAME)}$`, "i"),
+      });
+    }
+
+    throw error;
+  }
+};
+
+const listCountries = asyncHandler(async (req, res) => {
+  await ensureDefaultCountry(req.user._id);
+
+  const { limit, page, skip } = parsePagination(req.query);
+  const filter = {};
+
+  if (req.query.search) {
+    const search = req.query.search.trim();
+    filter.name = new RegExp(escapeRegex(search), "i");
+  }
+
+  const [countries, total] = await Promise.all([
+    Country.find(filter).sort({ name: 1, createdAt: -1 }).skip(skip).limit(limit),
+    Country.countDocuments(filter),
+  ]);
+
+  res.set({
+    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+    Pragma: "no-cache",
+    Expires: "0",
+  });
+
+  res.status(200).json({
+    countries,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit) || 1,
+    },
+  });
+});
+
+const createCountry = asyncHandler(async (req, res) => {
+  await ensureDefaultCountry(req.user._id);
+
+  const name = capitalizeWords((req.body.name || "").trim());
+
+  if (!name) {
+    res.status(400);
+    throw new Error("Country name is required");
+  }
+
+  const existing = await Country.findOne({
+    name: new RegExp(`^${escapeRegex(name)}$`, "i"),
+  });
+
+  if (existing) {
+    res.set({
+      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      Pragma: "no-cache",
+      Expires: "0",
+    });
+
+    return res.status(200).json({
+      country: existing,
+      action: "existing",
+      message: "Country already exists in the directory",
+    });
+  }
+
+  let country;
+
+  try {
+    country = await Country.create({
+      name,
+      createdBy: req.user._id,
+      updatedBy: req.user._id,
+    });
+  } catch (error) {
+    if (error?.code === 11000) {
+      country = await Country.findOne({
+        name: new RegExp(`^${escapeRegex(name)}$`, "i"),
+      });
+
+      if (country) {
+        res.set({
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        });
+
+        return res.status(200).json({
+          country,
+          action: "existing",
+          message: "Country already exists in the directory",
+        });
+      }
+    }
+
+    throw error;
+  }
+
+  res.set({
+    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+    Pragma: "no-cache",
+    Expires: "0",
+  });
+
+  res.status(201).json({
+    country,
+    action: "inserted",
+    message: "Country added to the directory",
   });
 });
 
@@ -2662,6 +2807,7 @@ const getReportsSummary = asyncHandler(async (req, res) => {
 
 module.exports = {
   createBookshop,
+  createCountry,
   createIndividual,
   createInteraction,
   createSalesRecord,
@@ -2679,6 +2825,7 @@ module.exports = {
   importSalesReps,
   importSchools,
   listBookshops,
+  listCountries,
   listIndividuals,
   listCustomers,
   listInteractions,

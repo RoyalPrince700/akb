@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 
 import SurveyDispatchModal from "../../components/crm/SurveyDispatchModal";
 import BookshopSearchSelect from "../../components/crm/BookshopSearchSelect";
+import CountrySearchSelect from "../../components/crm/CountrySearchSelect";
 import IndividualSearchSelect from "../../components/crm/IndividualSearchSelect";
 import SchoolSearchSelect from "../../components/crm/SchoolSearchSelect";
 import {
@@ -51,6 +52,7 @@ const emptyForm = {
   organizationType: "school",
   schoolName: "",
   address: "",
+  country: "Nigeria",
   state: "",
   phoneNumber: "",
   dateOfContact: getDefaultDateTime(),
@@ -216,6 +218,7 @@ const CrmInteractionFormPage = () => {
           organizationType: interaction.customer.organizationType || "school",
           schoolName: capitalizeWords(interaction.customer.schoolName || ""),
           address: capitalizeWords(interaction.customer.address || ""),
+          country: capitalizeWords(interaction.customer.country || "") || "Nigeria",
           state: interaction.customer.state || "",
           phoneNumber: interaction.customer.phoneNumber || "",
           dateOfContact: new Date(interaction.dateOfContact).toISOString().slice(0, 16),
@@ -316,6 +319,8 @@ const CrmInteractionFormPage = () => {
         organizationType: data.customer.organizationType || current.organizationType,
         schoolName: current.schoolName || capitalizeWords(data.customer.schoolName || ""),
         address: current.address || capitalizeWords(data.customer.address || ""),
+        country:
+          capitalizeWords(data.customer.country || "") || current.country || "Nigeria",
         state: current.schoolName ? current.state : data.customer.state || "",
         customerType: data.interactionCount > 0 ? "existingCustomer" : current.customerType,
         callerStatus: data.interactionCount > 1 ? "repeatCaller" : current.callerStatus,
@@ -354,6 +359,13 @@ const CrmInteractionFormPage = () => {
     setFormData((current) => ({
       ...current,
       schoolName: value,
+    }));
+  };
+
+  const handleCountryChange = (value) => {
+    setFormData((current) => ({
+      ...current,
+      country: value,
     }));
   };
 
@@ -598,6 +610,19 @@ const CrmInteractionFormPage = () => {
               </div>
 
               <div>
+                <label htmlFor="country" className="text-sm font-medium text-slate-700">
+                  Country
+                </label>
+                <CountrySearchSelect
+                  id="country"
+                  name="country"
+                  value={formData.country}
+                  onChange={handleCountryChange}
+                  placeholder="Search country..."
+                />
+              </div>
+
+              <div>
                 <label htmlFor="state" className="text-sm font-medium text-slate-700">
                   State
                 </label>
@@ -615,6 +640,12 @@ const CrmInteractionFormPage = () => {
                     </option>
                   ))}
                 </select>
+                {formData.country &&
+                  formData.country.trim().toLowerCase() !== "nigeria" && (
+                    <p className="mt-1 text-xs text-slate-500">
+                      Nigerian state is optional for customers outside Nigeria.
+                    </p>
+                  )}
               </div>
 
               <div>
