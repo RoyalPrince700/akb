@@ -44,7 +44,17 @@ import { capitalizeWords, CRM_CAPITALIZED_FIELDS } from "../../utils/textFormat"
 
 const normalizePhoneNumber = (value) => value.replace(/\D/g, "");
 
-const getDefaultDateTime = () => new Date().toISOString().slice(0, 16);
+const toLocalDateTimeInputValue = (value = new Date()) => {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return toLocalDateTimeInputValue(new Date());
+  }
+
+  const pad = (part) => String(part).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
+const getDefaultDateTime = () => toLocalDateTimeInputValue();
 
 const emptyForm = {
   direction: "inbound",
@@ -55,7 +65,7 @@ const emptyForm = {
   country: "Nigeria",
   state: "",
   phoneNumber: "",
-  dateOfContact: getDefaultDateTime(),
+  dateOfContact: "",
   medium: "phone",
   customerType: "newCustomer",
   callerStatus: "firstCaller",
@@ -79,6 +89,7 @@ const CrmInteractionFormPage = () => {
   const initialDirection = searchParams.get("direction");
   const [formData, setFormData] = useState({
     ...emptyForm,
+    dateOfContact: getDefaultDateTime(),
     direction: initialDirection === "outbound" ? "outbound" : "inbound",
     category: initialDirection === "outbound" ? "enquiry" : "enquiry",
   });
@@ -221,7 +232,7 @@ const CrmInteractionFormPage = () => {
           country: capitalizeWords(interaction.customer.country || "") || "Nigeria",
           state: interaction.customer.state || "",
           phoneNumber: interaction.customer.phoneNumber || "",
-          dateOfContact: new Date(interaction.dateOfContact).toISOString().slice(0, 16),
+          dateOfContact: toLocalDateTimeInputValue(interaction.dateOfContact),
           medium,
           customerType: interaction.customerType || "newCustomer",
           callerStatus: interaction.callerStatus || "firstCaller",
