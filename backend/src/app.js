@@ -11,6 +11,7 @@ const materialRoutes = require("./routes/material.routes");
 const resultsRoutes = require("./routes/results.routes");
 const staffRoutes = require("./routes/staff.routes");
 const progressRoutes = require("./routes/progress.routes");
+const attendanceRoutes = require("./routes/attendance.routes");
 const { errorHandler, notFoundHandler } = require("./middleware/error.middleware");
 
 const app = express();
@@ -48,6 +49,7 @@ app.use("/api/results", resultsRoutes);
 app.use("/api/materials", materialRoutes);
 app.use("/api/progress", progressRoutes);
 app.use("/api/crm", crmRoutes);
+app.use("/api/attendance", attendanceRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

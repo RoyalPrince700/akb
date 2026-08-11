@@ -55,7 +55,7 @@ const ContentLocksPage = () => {
 
   return (
     <PanelLayout title="Courses & Assessments">
-      <p className="mb-4 rounded-2xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-900">
+      <p className="mb-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
         Lock a course to stop staff from reading chapters and earning progress.
         Lock an assessment to stop staff from taking that test. HR and admin can
         still preview locked content.

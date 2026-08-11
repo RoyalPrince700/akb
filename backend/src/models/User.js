@@ -37,7 +37,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["staff", "hr", "admin", "csr", "csrAdmin"],
+      enum: ["staff", "hr", "admin", "csr", "csrAdmin", "security"],
       default: "staff",
     },
     department: {
@@ -67,9 +67,32 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    // Facial attendance enrollment (admin-only via /api/staff/:id/face)
+    facePhotoUrl: {
+      type: String,
+      default: null,
+    },
+    facePhotoPublicId: {
+      type: String,
+      default: null,
+    },
+    // 128-d face-api descriptor averaged across enrollment photos (client-computed)
+    faceDescriptor: {
+      type: [Number],
+      default: undefined,
+      select: false,
+    },
+    faceEnrolledAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );
+
+userSchema.virtual("faceEnrolled").get(function faceEnrolled() {
+  return Boolean(this.facePhotoUrl || (this.faceDescriptor && this.faceDescriptor.length));
+});
 
 userSchema.pre("save", async function hashPassword() {
   if (!this.isModified("password")) {
@@ -84,8 +107,12 @@ userSchema.methods.comparePassword = function comparePassword(password) {
 };
 
 userSchema.methods.toSafeObject = function toSafeObject() {
-  const user = this.toObject();
+  const user = this.toObject({ virtuals: true });
   delete user.password;
+  delete user.faceDescriptor;
+  user.faceEnrolled = Boolean(
+    user.facePhotoUrl || user.faceEnrolledAt
+  );
   return user;
 };
 

@@ -74,15 +74,22 @@ const HrDashboard = () => {
   const resultsPath = panelSegmentPath("hr", "results");
   const materialsPath = panelSegmentPath("hr", "materials");
   const assessmentsPath = panelSegmentPath("hr", "assessments");
+  const attendancePath = panelSegmentPath("hr", "attendance");
 
   return (
     <PanelLayout title="HR Panel">
-      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <OverviewCard
           label="Staff directory"
           value={staffCount}
           description="View all staff records"
           to={staffPath}
+        />
+        <OverviewCard
+          label="Attendance"
+          value="Track"
+          description="Facial check-in and daily records"
+          to={attendancePath}
         />
         <OverviewCard
           label="Learning content"
@@ -111,6 +118,17 @@ const HrDashboard = () => {
         <ul className="mt-5 max-w-3xl list-inside list-disc space-y-2 leading-7 text-slate-600">
           <li>
             Browse the staff directory and filter by department or status.
+          </li>
+          <li>
+            Open{" "}
+            <Link
+              to={attendancePath}
+              className="font-semibold text-violet-700 underline"
+            >
+              Attendance
+            </Link>{" "}
+            to view facial check-in/out records (server timestamps, Africa/Lagos
+            days).
           </li>
           <li>
             Open{" "}

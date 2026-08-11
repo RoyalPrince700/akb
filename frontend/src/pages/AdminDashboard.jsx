@@ -81,15 +81,22 @@ const AdminDashboard = () => {
   const completionsPath = panelSegmentPath("admin", "completions");
   const resultsPath = panelSegmentPath("admin", "results");
   const materialsPath = panelSegmentPath("admin", "materials");
+  const attendancePath = panelSegmentPath("admin", "attendance");
 
   return (
     <PanelLayout title="Admin Panel">
-      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <OverviewCard
           label="Staff accounts"
           value={staffCount}
           description="Create, edit, activate, and deactivate"
           to={staffPath}
+        />
+        <OverviewCard
+          label="Attendance"
+          value="Track"
+          description="View facial attendance logs"
+          to={attendancePath}
         />
         <OverviewCard
           label="Built-in courses"
@@ -127,7 +134,17 @@ const AdminDashboard = () => {
                 Staff management
               </Link>
               {" "}
-              — add accounts, reset passwords, and deactivate leavers.
+              — add accounts (including Security), enroll faces, reset passwords.
+            </li>
+            <li>
+              <Link
+                to={attendancePath}
+                className="font-semibold text-blue-700 hover:underline"
+              >
+                Attendance
+              </Link>
+              {" "}
+              — review facial check-in records for HR/admin.
             </li>
             <li>
               <Link
@@ -169,9 +186,9 @@ const AdminDashboard = () => {
             Platform status
           </h2>
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            Core courses and assessments are live. Cloudinary file uploads can be
-            connected later; for now you can add materials with title, description,
-            and optional external file URLs.
+            Core courses and assessments are live. Face enrollment stores photos
+            on Cloudinary when configured, and security attendance punches use
+            server time (Africa/Lagos business days).
           </p>
         </div>
       </div>

@@ -1,4 +1,3 @@
-import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 
 const DashboardLayout = ({ children, title }) => {
@@ -20,7 +19,6 @@ const DashboardLayout = ({ children, title }) => {
         </div>
         {children}
       </main>
-      <Footer />
     </div>
   );
 };

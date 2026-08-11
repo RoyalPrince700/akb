@@ -166,6 +166,7 @@ export const crmRoleOptions = [
   { value: "admin", label: "Admin" },
   { value: "csr", label: "CSR" },
   { value: "csrAdmin", label: "CSR Admin" },
+  { value: "security", label: "Security" },
 ];
 
 export const formatCrmCategory = (value) => {

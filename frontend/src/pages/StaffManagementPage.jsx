@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
+import { CheckCircle2 } from "lucide-react";
 
+import FaceEnrollmentModal from "../components/FaceEnrollmentModal";
 import StaffFormModal from "../components/StaffFormModal";
 import { crmRoleOptions, formatRoleLabel } from "../constants/crm";
 import { useAuth } from "../context/AuthContext";
@@ -19,8 +21,11 @@ const StaffManagementPage = () => {
   const isHr = user?.role === "hr";
   const canManageUsers = isAdmin || isCsrAdmin;
   const canDeleteStaff = canManageUsers || isHr;
+  const canEnrollFaces = isAdmin;
   const roleOptions = isCsrAdmin
-    ? crmRoleOptions.filter((option) => ["csr", "csrAdmin"].includes(option.value))
+    ? crmRoleOptions.filter((option) =>
+        ["csr", "csrAdmin"].includes(option.value)
+      )
     : crmRoleOptions;
 
   const [staff, setStaff] = useState([]);
@@ -31,11 +36,13 @@ const StaffManagementPage = () => {
   const [department, setDepartment] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
+  const [faceFilter, setFaceFilter] = useState("");
   const [page, setPage] = useState(1);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [faceStaff, setFaceStaff] = useState(null);
 
   const fetchStaff = useCallback(async () => {
     setLoading(true);
@@ -47,6 +54,7 @@ const StaffManagementPage = () => {
       if (department.trim()) params.department = department.trim();
       if (statusFilter !== "") params.isActive = statusFilter;
       if (canManageUsers && roleFilter) params.role = roleFilter;
+      if (faceFilter !== "") params.faceEnrolled = faceFilter;
 
       const data = await listStaff(params);
       setStaff(data.staff);
@@ -57,7 +65,15 @@ const StaffManagementPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [canManageUsers, department, page, roleFilter, search, statusFilter]);
+  }, [
+    canManageUsers,
+    department,
+    faceFilter,
+    page,
+    roleFilter,
+    search,
+    statusFilter,
+  ]);
 
   useEffect(() => {
     fetchStaff();
@@ -123,9 +139,11 @@ const StaffManagementPage = () => {
   };
 
   const handleToggleStatus = async (member) => {
-    if (!window.confirm(
-      `Are you sure you want to ${member.isActive ? "deactivate" : "activate"} ${member.name}?`
-    )) {
+    if (
+      !window.confirm(
+        `Are you sure you want to ${member.isActive ? "deactivate" : "activate"} ${member.name}?`
+      )
+    ) {
       return;
     }
 
@@ -148,6 +166,17 @@ const StaffManagementPage = () => {
     } catch (err) {
       setError(err.response?.data?.message || "Failed to delete staff member.");
     }
+  };
+
+  const handleFaceSaved = (updatedStaff) => {
+    setStaff((prev) =>
+      prev.map((member) =>
+        member._id === updatedStaff._id ? { ...member, ...updatedStaff } : member
+      )
+    );
+    setFaceStaff((prev) =>
+      prev && prev._id === updatedStaff._id ? { ...prev, ...updatedStaff } : prev
+    );
   };
 
   return (
@@ -180,7 +209,7 @@ const StaffManagementPage = () => {
             <button
               type="button"
               onClick={openCreateModal}
-              className="inline-flex items-center justify-center rounded-full bg-blue-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-800"
+              className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-950 px-6 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(15,23,42,0.08),0_8px_18px_rgba(15,23,42,0.1)] transition hover:bg-blue-600"
             >
               {isCsrAdmin ? "Add CSR" : "Add user"}
             </button>
@@ -188,7 +217,7 @@ const StaffManagementPage = () => {
         </div>
 
         <form
-          className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5"
+          className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-6"
           onSubmit={handleSearchSubmit}
         >
           <input
@@ -234,9 +263,21 @@ const StaffManagementPage = () => {
             <option value="true">Active</option>
             <option value="false">Inactive</option>
           </select>
+          <select
+            value={faceFilter}
+            onChange={(e) => {
+              setFaceFilter(e.target.value);
+              setPage(1);
+            }}
+            className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+          >
+            <option value="">All faces</option>
+            <option value="true">Face enrolled</option>
+            <option value="false">Not enrolled</option>
+          </select>
           <button
             type="submit"
-            className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 lg:col-span-5 lg:w-fit"
+            className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 lg:col-span-6 lg:w-fit"
           >
             Apply filters
           </button>
@@ -252,7 +293,7 @@ const StaffManagementPage = () => {
               No staff members found.
             </p>
           ) : (
-            <table className="w-full min-w-[640px] text-left text-sm">
+            <table className="w-full min-w-[720px] text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-500">
                   <th className="pb-3 pr-4 font-medium">Name</th>
@@ -260,6 +301,7 @@ const StaffManagementPage = () => {
                   <th className="pb-3 pr-4 font-medium">Department</th>
                   <th className="pb-3 pr-4 font-medium">Position</th>
                   <th className="pb-3 pr-4 font-medium">Role</th>
+                  <th className="pb-3 pr-4 font-medium">Face</th>
                   <th className="pb-3 pr-4 font-medium">Status</th>
                   {canDeleteStaff && (
                     <th className="pb-3 font-medium text-right">Actions</th>
@@ -293,11 +335,28 @@ const StaffManagementPage = () => {
                                 ? "bg-emerald-100 text-emerald-900"
                                 : member.role === "csr"
                                   ? "bg-teal-100 text-teal-900"
-                              : "bg-blue-100 text-blue-900"
+                                  : member.role === "security"
+                                    ? "bg-amber-100 text-amber-900"
+                                    : "bg-blue-100 text-blue-900"
                         }`}
                       >
                         {formatRoleLabel(member.role || "staff")}
                       </span>
+                    </td>
+                    <td className="py-3 pr-4">
+                      {member.faceEnrolled || member.facePhotoUrl ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-900">
+                          <CheckCircle2
+                            className="h-3.5 w-3.5 shrink-0 text-emerald-700"
+                            aria-hidden
+                          />
+                          Face enrolled
+                        </span>
+                      ) : (
+                        <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">
+                          Not enrolled
+                        </span>
+                      )}
                     </td>
                     <td className="py-3 pr-4">
                       <span
@@ -313,6 +372,17 @@ const StaffManagementPage = () => {
                     {canDeleteStaff && (
                       <td className="py-3 text-right">
                         <div className="flex flex-wrap justify-end gap-2">
+                          {canEnrollFaces && (
+                            <button
+                              type="button"
+                              onClick={() => setFaceStaff(member)}
+                              className="rounded-xl border border-slate-200/80 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:border-slate-300 hover:bg-slate-50"
+                            >
+                              {member.faceEnrolled || member.facePhotoUrl
+                                ? "Manage face"
+                                : "Enroll face"}
+                            </button>
+                          )}
                           {canManageUsers && (
                             <>
                               <button
@@ -387,6 +457,15 @@ const StaffManagementPage = () => {
           currentUserId={user?._id}
           defaultRole={isCsrAdmin ? "csr" : "staff"}
           roleOptions={roleOptions}
+        />
+      )}
+
+      {canEnrollFaces && (
+        <FaceEnrollmentModal
+          staff={faceStaff}
+          isOpen={Boolean(faceStaff)}
+          onClose={() => setFaceStaff(null)}
+          onSaved={handleFaceSaved}
         />
       )}
     </PanelLayout>

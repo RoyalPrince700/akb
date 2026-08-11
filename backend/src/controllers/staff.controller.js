@@ -1,8 +1,43 @@
 const User = require("../models/User");
 const asyncHandler = require("../utils/asyncHandler");
+const { deleteAsset, uploadBuffer } = require("../config/cloudinary");
 
-const ROLES = ["staff", "hr", "admin", "csr", "csrAdmin"];
+const ROLES = ["staff", "hr", "admin", "csr", "csrAdmin", "security"];
 const CSR_MANAGED_ROLES = ["csr", "csrAdmin"];
+
+const ROLE_LABELS = "staff, hr, admin, csr, csrAdmin, or security";
+
+const parseFaceDescriptor = (raw) => {
+  if (raw === undefined || raw === null || raw === "") {
+    return null;
+  }
+
+  let value = raw;
+  if (typeof raw === "string") {
+    try {
+      value = JSON.parse(raw);
+    } catch {
+      const error = new Error("faceDescriptor must be a JSON array of numbers");
+      error.statusCode = 400;
+      throw error;
+    }
+  }
+
+  if (!Array.isArray(value) || value.length === 0) {
+    const error = new Error("faceDescriptor must be a non-empty array of numbers");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const numbers = value.map((entry) => Number(entry));
+  if (numbers.some((entry) => !Number.isFinite(entry))) {
+    const error = new Error("faceDescriptor must contain only numbers");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return numbers;
+};
 
 const getStaffAccessScope = (user) => {
   if (user.role === "admin") {
@@ -30,8 +65,27 @@ const buildManagedRoleFilter = (scope, queryRole) => {
   return "staff";
 };
 
+/** Matches toSafeObject faceEnrolled: facePhotoUrl or faceEnrolledAt is set. */
+const FACE_ENROLLED_CLAUSE = {
+  $or: [{ faceEnrolledAt: { $ne: null } }, { facePhotoUrl: { $ne: null } }],
+};
+
+const FACE_NOT_ENROLLED_CLAUSE = {
+  $and: [
+    { $or: [{ faceEnrolledAt: null }, { faceEnrolledAt: { $exists: false } }] },
+    {
+      $or: [
+        { facePhotoUrl: null },
+        { facePhotoUrl: { $exists: false } },
+        { facePhotoUrl: "" },
+      ],
+    },
+  ],
+};
+
 const buildUserFilter = (query, scope) => {
   const filter = {};
+  const andClauses = [];
   const roleFilter = buildManagedRoleFilter(scope, query.role);
 
   if (roleFilter) {
@@ -48,12 +102,26 @@ const buildUserFilter = (query, scope) => {
 
   if (query.search) {
     const search = query.search.trim();
-    filter.$or = [
-      { name: new RegExp(search, "i") },
-      { staffId: new RegExp(search, "i") },
-      { department: new RegExp(search, "i") },
-      { position: new RegExp(search, "i") },
-    ];
+    andClauses.push({
+      $or: [
+        { name: new RegExp(search, "i") },
+        { staffId: new RegExp(search, "i") },
+        { department: new RegExp(search, "i") },
+        { position: new RegExp(search, "i") },
+      ],
+    });
+  }
+
+  if (query.faceEnrolled === "true") {
+    andClauses.push(FACE_ENROLLED_CLAUSE);
+  } else if (query.faceEnrolled === "false") {
+    andClauses.push(FACE_NOT_ENROLLED_CLAUSE);
+  }
+
+  if (andClauses.length === 1) {
+    Object.assign(filter, andClauses[0]);
+  } else if (andClauses.length > 1) {
+    filter.$and = andClauses;
   }
 
   return filter;
@@ -110,7 +178,7 @@ const listStaff = asyncHandler(async (req, res) => {
 
   const [staff, total] = await Promise.all([
     User.find(filter)
-      .select("-password")
+      .select("-password -faceDescriptor")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit),
@@ -162,7 +230,7 @@ const createStaff = asyncHandler(async (req, res) => {
 
   if (!ROLES.includes(assignedRole)) {
     res.status(400);
-    throw new Error("Role must be staff, hr, admin, csr, or csrAdmin");
+    throw new Error(`Role must be ${ROLE_LABELS}`);
   }
 
   assertCanManageRole(req.user, assignedRole);
@@ -260,7 +328,7 @@ const updateStaff = asyncHandler(async (req, res) => {
   if (role !== undefined) {
     if (!ROLES.includes(role)) {
       res.status(400);
-      throw new Error("Role must be staff, hr, admin, csr, or csrAdmin");
+      throw new Error(`Role must be ${ROLE_LABELS}`);
     }
 
     assertCanManageRole(req.user, role);
@@ -279,6 +347,107 @@ const updateStaff = asyncHandler(async (req, res) => {
   await staffMember.save();
 
   res.json({ staff: staffMember.toSafeObject() });
+});
+
+/**
+ * Admin-only face enrollment.
+ * Face matching v1: client (face-api) computes descriptor; server stores photo + descriptor.
+ * Official attendance punches still use server timestamps only.
+ */
+const enrollStaffFace = asyncHandler(async (req, res) => {
+  const staffMember = await User.findById(req.params.id);
+
+  if (!staffMember) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  const faceDescriptor = parseFaceDescriptor(
+    req.body.faceDescriptor ?? req.body.descriptor
+  );
+
+  if (!req.file?.buffer && !faceDescriptor && !req.body.facePhotoUrl) {
+    res.status(400);
+    throw new Error("Provide a face image file and/or faceDescriptor");
+  }
+
+  if (req.file?.buffer) {
+    try {
+      const upload = await uploadBuffer(req.file.buffer, {
+        folder: "akb/faces",
+        public_id: `staff_${staffMember.staffId}_${Date.now()}`,
+      });
+
+      if (staffMember.facePhotoPublicId) {
+        try {
+          await deleteAsset(staffMember.facePhotoPublicId);
+        } catch {
+          // Keep enrollment even if prior asset cleanup fails
+        }
+      }
+
+      staffMember.facePhotoUrl = upload.secure_url || upload.url;
+      staffMember.facePhotoPublicId = upload.public_id;
+    } catch (uploadError) {
+      // Allow descriptor-only enrollment when Cloudinary is unavailable
+      if (!faceDescriptor) {
+        res.status(uploadError.statusCode || 503);
+        throw uploadError;
+      }
+    }
+  } else if (req.body.facePhotoUrl) {
+    staffMember.facePhotoUrl = String(req.body.facePhotoUrl).trim();
+  }
+
+  if (faceDescriptor) {
+    staffMember.faceDescriptor = faceDescriptor;
+  }
+
+  if (!staffMember.faceDescriptor?.length && !staffMember.facePhotoUrl) {
+    res.status(400);
+    throw new Error(
+      "Enrollment failed: need a valid faceDescriptor or image upload"
+    );
+  }
+
+  staffMember.faceEnrolledAt = new Date();
+  await staffMember.save();
+
+  res.json({
+    message: "Face enrolled successfully",
+    staff: {
+      ...staffMember.toSafeObject(),
+      faceEnrolled: true,
+    },
+  });
+});
+
+const clearStaffFace = asyncHandler(async (req, res) => {
+  const staffMember = await User.findById(req.params.id);
+
+  if (!staffMember) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  if (staffMember.facePhotoPublicId) {
+    try {
+      await deleteAsset(staffMember.facePhotoPublicId);
+    } catch {
+      // Continue clearing local fields
+    }
+  }
+
+  staffMember.facePhotoUrl = null;
+  staffMember.facePhotoPublicId = null;
+  staffMember.faceDescriptor = undefined;
+  staffMember.faceEnrolledAt = null;
+  await staffMember.save();
+
+  res.json({
+    message: "Face enrollment cleared",
+    staff: staffMember.toSafeObject(),
+  });
 });
 
 const updateStaffStatus = asyncHandler(async (req, res) => {
@@ -328,8 +497,10 @@ const deleteStaff = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  clearStaffFace,
   createStaff,
   deleteStaff,
+  enrollStaffFace,
   getStaff,
   listStaff,
   updateStaff,

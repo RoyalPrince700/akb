@@ -177,7 +177,7 @@ const StaffFormModal = ({
             <p className="mt-1 text-xs text-slate-500">
               {isSelf
                 ? "You cannot change your own role."
-                : "HR, admin, CSR, and CSR Admin users can access role-specific dashboards. Staff use the learning dashboard only."}
+                : "HR, admin, CSR, CSR Admin, and Security users access role-specific dashboards. Staff use the learning dashboard only."}
             </p>
           </div>
 

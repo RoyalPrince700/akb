@@ -69,6 +69,72 @@ export const deleteStaffMember = async (id) => {
   return response.data;
 };
 
+export const enrollStaffFace = async (id, formData) => {
+  const response = await api.post(`/staff/${id}/face`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data;
+};
+
+export const clearStaffFace = async (id) => {
+  const response = await api.delete(`/staff/${id}/face`);
+  return response.data;
+};
+
+export const listEnrolledFaces = async () => {
+  const response = await api.get("/attendance/enrolled-faces");
+  return response.data;
+};
+
+export const listTodayAttendance = async () => {
+  const response = await api.get("/attendance/today");
+  return response.data;
+};
+
+/**
+ * Punch attendance. Server sets timestamp; any client time is ignored.
+ * Default type "auto": server chooses check-in (first of day) or check-out (second).
+ */
+export const markAttendancePunch = async ({
+  type = "auto",
+  userId,
+  staffId,
+  matchConfidence,
+  snapshotBlob,
+}) => {
+  const formData = new FormData();
+  formData.append("type", type);
+  if (userId) formData.append("userId", userId);
+  if (staffId) formData.append("staffId", staffId);
+  if (matchConfidence !== undefined && matchConfidence !== null) {
+    formData.append("matchConfidence", String(matchConfidence));
+  }
+  if (snapshotBlob) {
+    formData.append("snapshot", snapshotBlob, "capture.jpg");
+  }
+
+  const response = await api.post("/attendance/punch", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data;
+};
+
+export const listAttendanceRecords = async (params = {}) => {
+  const response = await api.get("/attendance", { params });
+  return response.data;
+};
+
+export const getAttendanceSummary = async (params = {}) => {
+  const response = await api.get("/attendance/summary", { params });
+  return response.data;
+};
+
+/** Monthly / ranged attendance export payload (HR builds Excel client-side). */
+export const exportAttendanceRecords = async (params = {}) => {
+  const response = await api.get("/attendance/export", { params });
+  return response.data;
+};
+
 export const listAssessments = async () => {
   const response = await api.get("/assessments");
   return response.data;

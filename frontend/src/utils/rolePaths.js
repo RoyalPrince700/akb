@@ -20,6 +20,10 @@ export const getPanelBasePath = (role) => {
     return "/csr";
   }
 
+  if (role === "security") {
+    return "/security";
+  }
+
   return null;
 };
 
