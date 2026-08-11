@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Check, Copy } from "lucide-react";
+import { ArrowLeft, Check, Copy, Download } from "lucide-react";
 
 import PanelLayout from "../layouts/PanelLayout";
 import { useAuth } from "../context/AuthContext";
 import { getKssSession, updateKssSession } from "../services/api";
+import { downloadKssAttendanceReportXlsx } from "../utils/kssAttendanceReportXlsx";
 import { panelSegmentPath } from "../utils/rolePaths";
 
 const formatDate = (value) => {
@@ -51,6 +52,7 @@ const HrKssAttendanceDetailPage = () => {
   const [session, setSession] = useState(null);
   const [attendees, setAttendees] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [copied, setCopied] = useState(false);
@@ -100,6 +102,20 @@ const HrKssAttendanceDetailPage = () => {
       setSuccess(data.message || "Session updated.");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to update session.");
+    }
+  };
+
+  const handleDownloadExcel = () => {
+    if (!session) return;
+    setError("");
+    setExporting(true);
+    try {
+      downloadKssAttendanceReportXlsx({ session, attendees });
+      setSuccess("Excel file downloaded.");
+    } catch (err) {
+      setError(err.message || "Failed to download Excel.");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -168,6 +184,15 @@ const HrKssAttendanceDetailPage = () => {
                   >
                     {session.isActive ? "Open" : "Closed"}
                   </span>
+                  <button
+                    type="button"
+                    onClick={handleDownloadExcel}
+                    disabled={exporting}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Download className="h-4 w-4" />
+                    {exporting ? "Exporting…" : "Download Excel"}
+                  </button>
                   <button
                     type="button"
                     onClick={handleCopy}

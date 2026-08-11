@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, Copy, Eye, Link2, Plus } from "lucide-react";
+import { Check, Copy, Download, Eye, Link2, Plus } from "lucide-react";
 
 import PanelLayout from "../layouts/PanelLayout";
 import { useAuth } from "../context/AuthContext";
 import {
   createKssSession,
+  getKssSession,
   listKssSessions,
   updateKssSession,
 } from "../services/api";
+import { downloadKssAttendanceReportXlsx } from "../utils/kssAttendanceReportXlsx";
 import { panelSegmentPath } from "../utils/rolePaths";
 
 const todayKey = () => {
@@ -67,6 +69,7 @@ const HrKssAttendancePage = () => {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [exportingId, setExportingId] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [copiedId, setCopiedId] = useState("");
@@ -161,6 +164,30 @@ const HrKssAttendancePage = () => {
       await loadSessions();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to update session.");
+    }
+  };
+
+  const handleDownloadExcel = async (session) => {
+    const id = session._id || session.id;
+    if (!id || exportingId) return;
+    setError("");
+    setSuccess("");
+    setExportingId(id);
+    try {
+      const data = await getKssSession(id);
+      downloadKssAttendanceReportXlsx({
+        session: data.session || session,
+        attendees: data.attendees || [],
+      });
+      setSuccess("Excel file downloaded.");
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to download Excel."
+      );
+    } finally {
+      setExportingId("");
     }
   };
 
@@ -368,6 +395,15 @@ const HrKssAttendancePage = () => {
                               <Eye className="h-3.5 w-3.5" />
                               View
                             </Link>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadExcel(session)}
+                              disabled={exportingId === id}
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                              {exportingId === id ? "Exporting…" : "Excel"}
+                            </button>
                             <button
                               type="button"
                               onClick={() => handleCopy(session)}

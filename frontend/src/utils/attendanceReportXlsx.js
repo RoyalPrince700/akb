@@ -1,11 +1,28 @@
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
-const formatDateTime = (value) => {
+/** Date key YYYY-MM-DD → readable Lagos date for the Date column only */
+const formatDateKey = (value) => {
   if (!value) return "—";
-  return new Date(value).toLocaleString("en-NG", {
-    dateStyle: "medium",
-    timeStyle: "short",
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [y, m, d] = value.split("-").map(Number);
+    return new Date(Date.UTC(y, m - 1, d, 12)).toLocaleDateString("en-NG", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      timeZone: "Africa/Lagos",
+    });
+  }
+  return value;
+};
+
+/** Punch time only (AM/PM) — date lives in the Date column */
+const formatTime = (value) => {
+  if (!value) return "—";
+  return new Date(value).toLocaleTimeString("en-NG", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
     timeZone: "Africa/Lagos",
   });
 };
@@ -16,21 +33,22 @@ const formatDuration = (minutes) => {
   const hours = Math.floor(total / 60);
   const mins = total % 60;
   if (hours <= 0) return `${mins}m`;
-  return `${mins > 0 ? `${hours}h ${mins}m` : `${hours}h`}`;
+  return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
 };
 
 const formatOvertime = (minutes) => {
   const total = Number(minutes) || 0;
-  if (total <= 0) return "0";
+  if (total <= 0) return "—";
   return formatDuration(total);
 };
 
 const yesNo = (value) => (value ? "Yes" : "No");
 
+/** Columns aligned with what HR sees on the attendance page */
 const HEADERS = [
   "Date",
-  "Staff ID",
   "Name",
+  "Staff ID",
   "Department",
   "Position",
   "Check in",
@@ -39,37 +57,25 @@ const HEADERS = [
   "Status",
   "Late",
   "Early leave",
-  "Overtime (minutes)",
-  "Overtime (hours)",
-  "Overtime display",
+  "Overtime",
   "Source",
 ];
 
-const mapRecordRow = (record) => {
-  const overtimeMinutes = Number(record.overtimeMinutes) || 0;
-  const overtimeHours =
-    record.overtimeHours != null
-      ? record.overtimeHours
-      : Math.round((overtimeMinutes / 60) * 100) / 100;
-
-  return [
-    record.date || "—",
-    record.staffId || "—",
-    record.name || "—",
-    record.department || "—",
-    record.position || "—",
-    formatDateTime(record.checkInAt),
-    formatDateTime(record.checkOutAt),
-    formatDuration(record.durationMinutes),
-    record.status || "—",
-    yesNo(record.isLate),
-    yesNo(record.isEarlyLeave),
-    overtimeMinutes,
-    overtimeHours,
-    formatOvertime(overtimeMinutes),
-    record.source || "facial",
-  ];
-};
+const mapRecordRow = (record) => [
+  formatDateKey(record.date),
+  record.name || "—",
+  record.staffId || "—",
+  record.department || "—",
+  record.position || "—",
+  formatTime(record.checkInAt),
+  formatTime(record.checkOutAt),
+  formatDuration(record.durationMinutes),
+  record.status || "—",
+  yesNo(record.isLate),
+  yesNo(record.isEarlyLeave),
+  formatOvertime(record.overtimeMinutes),
+  record.source || "facial",
+];
 
 const formatMonthLabel = (month) => {
   if (!month || !/^\d{4}-\d{2}$/.test(month)) return month || "—";
@@ -92,11 +98,37 @@ export const downloadAttendanceReportXlsx = ({
   const workbook = XLSX.utils.book_new();
   const monthLabel = formatMonthLabel(month || filter.month);
 
+  const dataRows = [HEADERS, ...records.map(mapRecordRow)];
+  const dataSheet = XLSX.utils.aoa_to_sheet(dataRows);
+  dataSheet["!cols"] = [
+    { wch: 14 }, // Date
+    { wch: 24 }, // Name
+    { wch: 12 }, // Staff ID
+    { wch: 18 }, // Department
+    { wch: 16 }, // Position
+    { wch: 12 }, // Check in
+    { wch: 12 }, // Check out
+    { wch: 12 }, // Duration
+    { wch: 10 }, // Status
+    { wch: 8 }, // Late
+    { wch: 12 }, // Early leave
+    { wch: 12 }, // Overtime
+    { wch: 10 }, // Source
+  ];
+  // Primary sheet first — the row-level details HR needs
+  XLSX.utils.book_append_sheet(workbook, dataSheet, "Attendance");
+
   const summaryRows = [
     ["AKB Attendance Report"],
     ["Timezone", timezone],
     ["Period", monthLabel],
-    ["Generated on", new Date().toLocaleString("en-NG", { timeZone: timezone })],
+    [
+      "Generated on",
+      new Date().toLocaleString("en-NG", {
+        timeZone: timezone,
+        hour12: true,
+      }),
+    ],
     [],
     ["Totals"],
     ["Records", totals.records ?? records.length],
@@ -107,41 +139,16 @@ export const downloadAttendanceReportXlsx = ({
     ["Overtime minutes", totals.overtimeMinutes ?? 0],
     [],
     ["Official policy (Africa/Lagos)"],
-    ["Resumption", "08:00"],
-    ["Grace period", "15 minutes (on time through 08:15)"],
-    ["Late from", "08:16"],
-    ["Official closing", "17:00"],
-    ["Overtime starts", "18:00"],
-  ];
-
-  const dataRows = [
-    HEADERS,
-    ...records.map(mapRecordRow),
+    ["Resumption", "08:00 AM"],
+    ["Grace period", "15 minutes (on time through 08:15 AM)"],
+    ["Late from", "08:16 AM"],
+    ["Official closing", "05:00 PM"],
+    ["Overtime starts", "06:00 PM"],
   ];
 
   const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows);
   summarySheet["!cols"] = [{ wch: 28 }, { wch: 48 }];
   XLSX.utils.book_append_sheet(workbook, summarySheet, "Summary");
-
-  const dataSheet = XLSX.utils.aoa_to_sheet(dataRows);
-  dataSheet["!cols"] = [
-    { wch: 12 },
-    { wch: 12 },
-    { wch: 22 },
-    { wch: 16 },
-    { wch: 16 },
-    { wch: 22 },
-    { wch: 22 },
-    { wch: 12 },
-    { wch: 10 },
-    { wch: 8 },
-    { wch: 12 },
-    { wch: 16 },
-    { wch: 14 },
-    { wch: 14 },
-    { wch: 10 },
-  ];
-  XLSX.utils.book_append_sheet(workbook, dataSheet, "Records");
 
   const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
   const blob = new Blob([buffer], {
