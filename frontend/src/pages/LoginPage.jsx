@@ -75,7 +75,10 @@ const LoginPage = () => {
     try {
       const loggedInUser = await login(formData);
       const fallbackPath = getDashboardPath(loggedInUser.role);
-      const redirectPath = location.state?.from?.pathname || fallbackPath;
+      const from = location.state?.from;
+      const redirectPath = from?.pathname
+        ? `${from.pathname}${from.search || ""}${from.hash || ""}`
+        : fallbackPath;
       navigate(redirectPath, { replace: true });
     } catch (apiError) {
       setError(

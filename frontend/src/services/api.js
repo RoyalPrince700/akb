@@ -135,6 +135,38 @@ export const exportAttendanceRecords = async (params = {}) => {
   return response.data;
 };
 
+// --- KSS Attendance (Knowledge Sharing Session; separate from facial attendance) ---
+
+export const createKssSession = async (payload) => {
+  const response = await api.post("/kss-attendance", payload);
+  return response.data;
+};
+
+export const listKssSessions = async (params = {}) => {
+  const response = await api.get("/kss-attendance", { params });
+  return response.data;
+};
+
+export const getKssSession = async (id) => {
+  const response = await api.get(`/kss-attendance/${id}`);
+  return response.data;
+};
+
+export const updateKssSession = async (id, payload) => {
+  const response = await api.patch(`/kss-attendance/${id}`, payload);
+  return response.data;
+};
+
+export const previewKssAttendanceMark = async (token) => {
+  const response = await api.get(`/kss-attendance/mark/${token}`);
+  return response.data;
+};
+
+export const markKssAttendance = async (token) => {
+  const response = await api.post(`/kss-attendance/mark/${token}`);
+  return response.data;
+};
+
 export const listAssessments = async () => {
   const response = await api.get("/assessments");
   return response.data;

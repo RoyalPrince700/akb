@@ -15,7 +15,10 @@ import FeaturesPage from "./pages/FeaturesPage";
 import HowItWorksPage from "./pages/HowItWorksPage";
 import HrAttendancePage from "./pages/HrAttendancePage";
 import HrDashboard from "./pages/HrDashboard";
+import HrKssAttendanceDetailPage from "./pages/HrKssAttendanceDetailPage";
+import HrKssAttendancePage from "./pages/HrKssAttendancePage";
 import HomePage from "./pages/HomePage";
+import KssAttendanceMarkPage from "./pages/KssAttendanceMarkPage";
 import LoginPage from "./pages/LoginPage";
 import ContentLocksPage from "./pages/ContentLocksPage";
 import MaterialsManagementPage from "./pages/MaterialsManagementPage";
@@ -100,6 +103,14 @@ const App = () => {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route
+        path="/kss-attendance/:token"
+        element={
+          <ProtectedRoute>
+            <KssAttendanceMarkPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/profile"
         element={
           <ProtectedRoute
@@ -143,6 +154,14 @@ const App = () => {
       <Route path="/admin/materials" element={hrAdminPanel(<MaterialsManagementPage />)} />
       <Route path="/admin/assessments" element={hrAdminPanel(<ContentLocksPage />)} />
       <Route path="/admin/attendance" element={hrAdminPanel(<HrAttendancePage />)} />
+      <Route
+        path="/admin/kss-attendance"
+        element={hrAdminPanel(<HrKssAttendancePage />)}
+      />
+      <Route
+        path="/admin/kss-attendance/:id"
+        element={hrAdminPanel(<HrKssAttendanceDetailPage />)}
+      />
 
       <Route
         path="/hr"
@@ -161,6 +180,14 @@ const App = () => {
       <Route path="/hr/materials" element={hrAdminPanel(<MaterialsManagementPage />)} />
       <Route path="/hr/assessments" element={hrAdminPanel(<ContentLocksPage />)} />
       <Route path="/hr/attendance" element={hrAdminPanel(<HrAttendancePage />)} />
+      <Route
+        path="/hr/kss-attendance"
+        element={hrAdminPanel(<HrKssAttendancePage />)}
+      />
+      <Route
+        path="/hr/kss-attendance/:id"
+        element={hrAdminPanel(<HrKssAttendanceDetailPage />)}
+      />
 
       <Route
         path="/security"

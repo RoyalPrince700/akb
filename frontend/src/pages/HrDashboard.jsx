@@ -75,10 +75,11 @@ const HrDashboard = () => {
   const materialsPath = panelSegmentPath("hr", "materials");
   const assessmentsPath = panelSegmentPath("hr", "assessments");
   const attendancePath = panelSegmentPath("hr", "attendance");
+  const kssAttendancePath = panelSegmentPath("hr", "kss-attendance");
 
   return (
     <PanelLayout title="HR Panel">
-      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <OverviewCard
           label="Staff directory"
           value={staffCount}
@@ -90,6 +91,12 @@ const HrDashboard = () => {
           value="Track"
           description="Facial check-in and daily records"
           to={attendancePath}
+        />
+        <OverviewCard
+          label="KSS Attendance"
+          value="Links"
+          description="Session links and who attended"
+          to={kssAttendancePath}
         />
         <OverviewCard
           label="Learning content"
@@ -129,6 +136,16 @@ const HrDashboard = () => {
             </Link>{" "}
             to view facial check-in/out records (server timestamps, Africa/Lagos
             days).
+          </li>
+          <li>
+            Open{" "}
+            <Link
+              to={kssAttendancePath}
+              className="font-semibold text-violet-700 underline"
+            >
+              KSS Attendance
+            </Link>{" "}
+            to create Knowledge Sharing Session links and see who marked present.
           </li>
           <li>
             Open{" "}

@@ -12,6 +12,7 @@ import {
   Lock,
   MessageSquareShare,
   PhoneCall,
+  Presentation,
   ScanFace,
   ScrollText,
   Settings,
@@ -177,6 +178,11 @@ const PanelSidebar = ({
           to: panelSegmentPath(role, "attendance"),
           label: "Attendance",
           icon: ScanFace,
+        },
+        {
+          to: panelSegmentPath(role, "kss-attendance"),
+          label: "KSS Attendance",
+          icon: Presentation,
         },
         {
           to: panelSegmentPath(role, "completions"),

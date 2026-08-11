@@ -82,10 +82,11 @@ const AdminDashboard = () => {
   const resultsPath = panelSegmentPath("admin", "results");
   const materialsPath = panelSegmentPath("admin", "materials");
   const attendancePath = panelSegmentPath("admin", "attendance");
+  const kssAttendancePath = panelSegmentPath("admin", "kss-attendance");
 
   return (
     <PanelLayout title="Admin Panel">
-      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <OverviewCard
           label="Staff accounts"
           value={staffCount}
@@ -97,6 +98,12 @@ const AdminDashboard = () => {
           value="Track"
           description="View facial attendance logs"
           to={attendancePath}
+        />
+        <OverviewCard
+          label="KSS Attendance"
+          value="Links"
+          description="Session links and who attended"
+          to={kssAttendancePath}
         />
         <OverviewCard
           label="Built-in courses"
@@ -145,6 +152,16 @@ const AdminDashboard = () => {
               </Link>
               {" "}
               — review facial check-in records for HR/admin.
+            </li>
+            <li>
+              <Link
+                to={kssAttendancePath}
+                className="font-semibold text-blue-700 hover:underline"
+              >
+                KSS Attendance
+              </Link>
+              {" "}
+              — create session links and view who marked present.
             </li>
             <li>
               <Link
