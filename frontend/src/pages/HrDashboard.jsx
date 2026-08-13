@@ -76,10 +76,11 @@ const HrDashboard = () => {
   const assessmentsPath = panelSegmentPath("hr", "assessments");
   const attendancePath = panelSegmentPath("hr", "attendance");
   const kssAttendancePath = panelSegmentPath("hr", "kss-attendance");
+  const anonymousMessagesPath = panelSegmentPath("hr", "anonymous-messages");
 
   return (
     <PanelLayout title="HR Panel">
-      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <OverviewCard
           label="Staff directory"
           value={staffCount}
@@ -97,6 +98,12 @@ const HrDashboard = () => {
           value="Links"
           description="Session links and who attended"
           to={kssAttendancePath}
+        />
+        <OverviewCard
+          label="Anonymous Messages"
+          value="Links"
+          description="Collect feedback without identities"
+          to={anonymousMessagesPath}
         />
         <OverviewCard
           label="Learning content"
@@ -146,6 +153,16 @@ const HrDashboard = () => {
               KSS Attendance
             </Link>{" "}
             to create Knowledge Sharing Session links and see who marked present.
+          </li>
+          <li>
+            Open{" "}
+            <Link
+              to={anonymousMessagesPath}
+              className="font-semibold text-violet-700 underline"
+            >
+              Anonymous Messages
+            </Link>{" "}
+            to create shareable links for staff feedback without identities.
           </li>
           <li>
             Open{" "}

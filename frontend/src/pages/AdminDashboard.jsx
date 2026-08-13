@@ -83,6 +83,7 @@ const AdminDashboard = () => {
   const materialsPath = panelSegmentPath("admin", "materials");
   const attendancePath = panelSegmentPath("admin", "attendance");
   const kssAttendancePath = panelSegmentPath("admin", "kss-attendance");
+  const anonymousMessagesPath = panelSegmentPath("admin", "anonymous-messages");
 
   return (
     <PanelLayout title="Admin Panel">
@@ -104,6 +105,12 @@ const AdminDashboard = () => {
           value="Links"
           description="Session links and who attended"
           to={kssAttendancePath}
+        />
+        <OverviewCard
+          label="Anonymous Messages"
+          value="Links"
+          description="Collect feedback without identities"
+          to={anonymousMessagesPath}
         />
         <OverviewCard
           label="Built-in courses"
@@ -162,6 +169,16 @@ const AdminDashboard = () => {
               </Link>
               {" "}
               — create session links and view who marked present.
+            </li>
+            <li>
+              <Link
+                to={anonymousMessagesPath}
+                className="font-semibold text-blue-700 hover:underline"
+              >
+                Anonymous Messages
+              </Link>
+              {" "}
+              — create shareable links for anonymous staff feedback.
             </li>
             <li>
               <Link

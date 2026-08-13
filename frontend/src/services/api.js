@@ -167,6 +167,38 @@ export const markKssAttendance = async (token) => {
   return response.data;
 };
 
+// --- Anonymous Messages (HR shareable feedback links; no submitter identity) ---
+
+export const createAnonymousMessageSession = async (payload) => {
+  const response = await api.post("/anonymous-messages", payload);
+  return response.data;
+};
+
+export const listAnonymousMessageSessions = async (params = {}) => {
+  const response = await api.get("/anonymous-messages", { params });
+  return response.data;
+};
+
+export const getAnonymousMessageSession = async (id) => {
+  const response = await api.get(`/anonymous-messages/${id}`);
+  return response.data;
+};
+
+export const updateAnonymousMessageSession = async (id, payload) => {
+  const response = await api.patch(`/anonymous-messages/${id}`, payload);
+  return response.data;
+};
+
+export const previewAnonymousMessage = async (token) => {
+  const response = await api.get(`/anonymous-messages/public/${token}`);
+  return response.data;
+};
+
+export const submitAnonymousMessage = async (token, payload) => {
+  const response = await api.post(`/anonymous-messages/public/${token}`, payload);
+  return response.data;
+};
+
 export const listAssessments = async () => {
   const response = await api.get("/assessments");
   return response.data;

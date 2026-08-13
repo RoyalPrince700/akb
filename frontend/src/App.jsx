@@ -17,8 +17,11 @@ import HrAttendancePage from "./pages/HrAttendancePage";
 import HrDashboard from "./pages/HrDashboard";
 import HrKssAttendanceDetailPage from "./pages/HrKssAttendanceDetailPage";
 import HrKssAttendancePage from "./pages/HrKssAttendancePage";
+import HrAnonymousMessagesDetailPage from "./pages/HrAnonymousMessagesDetailPage";
+import HrAnonymousMessagesPage from "./pages/HrAnonymousMessagesPage";
 import HomePage from "./pages/HomePage";
 import KssAttendanceMarkPage from "./pages/KssAttendanceMarkPage";
+import PublicAnonymousMessagePage from "./pages/PublicAnonymousMessagePage";
 import LoginPage from "./pages/LoginPage";
 import ContentLocksPage from "./pages/ContentLocksPage";
 import MaterialsManagementPage from "./pages/MaterialsManagementPage";
@@ -67,6 +70,10 @@ const App = () => {
       <Route path="/how-it-works" element={<HowItWorksPage />} />
       <Route path="/assessments" element={<AssessmentsPage />} />
       <Route path="/crm/surveys/respond/:token" element={<PublicSurveyPage />} />
+      <Route
+        path="/anonymous-message/:token"
+        element={<PublicAnonymousMessagePage />}
+      />
       <Route
         path="/leaderboard"
         element={
@@ -162,6 +169,14 @@ const App = () => {
         path="/admin/kss-attendance/:id"
         element={hrAdminPanel(<HrKssAttendanceDetailPage />)}
       />
+      <Route
+        path="/admin/anonymous-messages"
+        element={hrAdminPanel(<HrAnonymousMessagesPage />)}
+      />
+      <Route
+        path="/admin/anonymous-messages/:id"
+        element={hrAdminPanel(<HrAnonymousMessagesDetailPage />)}
+      />
 
       <Route
         path="/hr"
@@ -187,6 +202,14 @@ const App = () => {
       <Route
         path="/hr/kss-attendance/:id"
         element={hrAdminPanel(<HrKssAttendanceDetailPage />)}
+      />
+      <Route
+        path="/hr/anonymous-messages"
+        element={hrAdminPanel(<HrAnonymousMessagesPage />)}
+      />
+      <Route
+        path="/hr/anonymous-messages/:id"
+        element={hrAdminPanel(<HrAnonymousMessagesDetailPage />)}
       />
 
       <Route

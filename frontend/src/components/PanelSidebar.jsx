@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   ListChecks,
   Lock,
+  MessageSquare,
   MessageSquareShare,
   PhoneCall,
   Presentation,
@@ -183,6 +184,11 @@ const PanelSidebar = ({
           to: panelSegmentPath(role, "kss-attendance"),
           label: "KSS Attendance",
           icon: Presentation,
+        },
+        {
+          to: panelSegmentPath(role, "anonymous-messages"),
+          label: "Anonymous",
+          icon: MessageSquare,
         },
         {
           to: panelSegmentPath(role, "completions"),
