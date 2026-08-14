@@ -2,7 +2,10 @@ const {
   createMailtrapTransport,
   getFromAddress,
 } = require("./mailtrapconfig");
-const { buildSurveyEmailTemplate } = require("./emailtemplate");
+const {
+  buildPasswordResetEmailTemplate,
+  buildSurveyEmailTemplate,
+} = require("./emailtemplate");
 
 const sendSurveyEmail = async ({ dispatch, interaction }) => {
   if (!dispatch.customerEmail) {
@@ -30,6 +33,27 @@ const sendSurveyEmail = async ({ dispatch, interaction }) => {
   });
 };
 
+const sendPasswordResetEmail = async ({ email, name, resetUrl }) => {
+  if (!email) {
+    const error = new Error("Email is required to send a password reset link");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const transporter = createMailtrapTransport();
+  const template = buildPasswordResetEmailTemplate({ name, resetUrl });
+
+  return transporter.sendMail({
+    from: getFromAddress(),
+    to: email,
+    replyTo: process.env.SMTP_REPLY_TO || process.env.SMTP_FROM_EMAIL,
+    subject: template.subject,
+    text: template.text,
+    html: template.html,
+  });
+};
+
 module.exports = {
+  sendPasswordResetEmail,
   sendSurveyEmail,
 };

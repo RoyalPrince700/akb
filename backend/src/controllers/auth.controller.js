@@ -1,6 +1,25 @@
+const crypto = require("crypto");
+
 const User = require("../models/User");
+const { sendPasswordResetEmail } = require("../mailtrap/email");
 const asyncHandler = require("../utils/asyncHandler");
 const generateToken = require("../utils/generateToken");
+
+const RESET_SUCCESS_MESSAGE =
+  "If an account exists for that email, we sent a password reset link.";
+
+const getClientUrl = () =>
+  (process.env.CLIENT_URL || "http://localhost:5173").replace(/\/$/, "");
+
+const hashResetToken = (token) =>
+  crypto.createHash("sha256").update(token).digest("hex");
+
+const findUserByResetToken = (token) => {
+  return User.findOne({
+    passwordResetToken: hashResetToken(token),
+    passwordResetExpires: { $gt: Date.now() },
+  });
+};
 
 const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/;
 
@@ -187,10 +206,105 @@ const changePassword = asyncHandler(async (req, res) => {
   res.json({ message: "Password updated successfully" });
 });
 
+const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  if (!email?.trim()) {
+    res.status(400);
+    throw new Error("Email is required");
+  }
+
+  const user = await User.findOne({
+    email: email.trim().toLowerCase(),
+  }).select("+passwordResetToken +passwordResetExpires");
+
+  if (!user || user.isActive === false) {
+    res.json({ message: RESET_SUCCESS_MESSAGE });
+    return;
+  }
+
+  const resetToken = user.createPasswordResetToken();
+  await user.save({ validateBeforeSave: false });
+
+  const resetUrl = `${getClientUrl()}/reset-password/${resetToken}`;
+
+  try {
+    await sendPasswordResetEmail({
+      email: user.email,
+      name: user.name,
+      resetUrl,
+    });
+  } catch (mailError) {
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    res.status(mailError.statusCode || 500);
+    throw new Error(
+      mailError.statusCode
+        ? mailError.message
+        : "Unable to send the reset email. Please try again later."
+    );
+  }
+
+  res.json({ message: RESET_SUCCESS_MESSAGE });
+});
+
+const verifyResetToken = asyncHandler(async (req, res) => {
+  const { token } = req.params;
+
+  if (!token) {
+    res.status(400);
+    throw new Error("Reset token is required");
+  }
+
+  const user = await findUserByResetToken(token);
+
+  if (!user || user.isActive === false) {
+    res.status(400);
+    throw new Error("This reset link is invalid or has expired");
+  }
+
+  res.json({ valid: true });
+});
+
+const resetPassword = asyncHandler(async (req, res) => {
+  const { token, password } = req.body;
+
+  if (!token || !password) {
+    res.status(400);
+    throw new Error("Reset token and new password are required");
+  }
+
+  if (!passwordPattern.test(password)) {
+    res.status(400);
+    throw new Error(
+      "Password must contain one uppercase letter, one lowercase letter, and one number"
+    );
+  }
+
+  const user = await findUserByResetToken(token);
+
+  if (!user || user.isActive === false) {
+    res.status(400);
+    throw new Error("This reset link is invalid or has expired");
+  }
+
+  user.password = password;
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+  await user.save();
+
+  res.json({ message: "Password reset successfully. You can now sign in." });
+});
+
 module.exports = {
   changePassword,
+  forgotPassword,
   getProfile,
   login,
   register,
+  resetPassword,
   updateProfile,
+  verifyResetToken,
 };

@@ -1,4 +1,5 @@
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const mongoose = require("mongoose");
 
 const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/;
@@ -86,6 +87,14 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    passwordResetToken: {
+      type: String,
+      select: false,
+    },
+    passwordResetExpires: {
+      type: Date,
+      select: false,
+    },
   },
   { timestamps: true }
 );
@@ -106,10 +115,24 @@ userSchema.methods.comparePassword = function comparePassword(password) {
   return bcrypt.compare(password, this.password);
 };
 
+userSchema.methods.createPasswordResetToken = function createPasswordResetToken() {
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  this.passwordResetToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+  this.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000);
+
+  return resetToken;
+};
+
 userSchema.methods.toSafeObject = function toSafeObject() {
   const user = this.toObject({ virtuals: true });
   delete user.password;
   delete user.faceDescriptor;
+  delete user.passwordResetToken;
+  delete user.passwordResetExpires;
   user.faceEnrolled = Boolean(
     user.facePhotoUrl || user.faceEnrolledAt
   );

@@ -104,6 +104,12 @@ const LoginPage = () => {
           assessments, and results.
         </p>
 
+        {location.state?.passwordReset && (
+          <div className="mt-5 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            Password reset successfully. Sign in with your new password.
+          </div>
+        )}
+
         <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
           <div>
             <label
@@ -150,6 +156,14 @@ const LoginPage = () => {
               >
                 <EyeIcon hidden={showPassword} />
               </button>
+            </div>
+            <div className="mt-2 text-right">
+              <Link
+                to="/forgot-password"
+                className="text-sm font-semibold text-blue-700 hover:text-blue-800"
+              >
+                Forgot password?
+              </Link>
             </div>
           </div>
 
