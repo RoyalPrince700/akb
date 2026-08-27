@@ -69,4 +69,11 @@ module.exports = [
     chapterCount: 7,
     source: "frontend",
   },
+  {
+    id: "culture-of-excellence",
+    title: "Building a Culture of Excellence and Accountability at Work",
+    category: "Professional Development",
+    chapterCount: 3,
+    source: "frontend",
+  },
 ];

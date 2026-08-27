@@ -3,6 +3,7 @@ import companyHistoryAssessment from "./company-history";
 import conflictResolutionAssessment from "./conflict-resolution";
 import consultativeSellingAssessment from "./consultative-selling";
 import criticalThinkingAssessment from "./critical-thinking";
+import cultureOfExcellenceAssessment from "./culture-of-excellence";
 import customerServiceAssessment from "./customer-service";
 import digitalTransformationAssessment from "./digital-transformation";
 import financeAssessment from "./finance";
@@ -16,6 +17,7 @@ const assessmentRegistry = [
   conflictResolutionAssessment,
   consultativeSellingAssessment,
   criticalThinkingAssessment,
+  cultureOfExcellenceAssessment,
   customerServiceAssessment,
   digitalTransformationAssessment,
   financeAssessment,

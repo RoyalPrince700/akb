@@ -1,6 +1,7 @@
 import aiForStaff from "./ai-for-staff";
 import companyHistory from "./company-history";
 import conflictResolution from "./conflict-resolution";
+import cultureOfExcellence from "./culture-of-excellence";
 import consultativeSelling from "./consultative-selling";
 import criticalThinking from "./critical-thinking";
 import customerService from "./customer-service";
@@ -20,6 +21,7 @@ const courseRegistry = [
   aiForStaff,
   companyHistory,
   conflictResolution,
+  cultureOfExcellence,
   consultativeSelling,
   criticalThinking,
   customerService,

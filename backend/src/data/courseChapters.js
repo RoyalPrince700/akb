@@ -67,4 +67,9 @@ module.exports = {
     "needs-conversations",
     "practice-and-kpis",
   ],
+  "culture-of-excellence": [
+    "understanding-culture",
+    "excellence-in-practice",
+    "building-together",
+  ],
 };
