@@ -8,6 +8,7 @@ import customerService from "./customer-service";
 import digitalTransformation from "./digital-transformation";
 import finance from "./finance";
 import humanResourceManagement from "./human-resource-management";
+import projectAdvance from "./project-advance";
 import solutionSelling from "./solution-selling";
 import {
   getAdjacentChapters,
@@ -28,6 +29,7 @@ const courseRegistry = [
   digitalTransformation,
   finance,
   humanResourceManagement,
+  projectAdvance,
   solutionSelling,
 ];
 

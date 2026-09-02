@@ -76,4 +76,11 @@ module.exports = [
     chapterCount: 3,
     source: "frontend",
   },
+  {
+    id: "project-advance",
+    title: "Project ADVANCE",
+    category: "Professional Development",
+    chapterCount: 1,
+    source: "frontend",
+  },
 ];

@@ -72,4 +72,5 @@ module.exports = {
     "excellence-in-practice",
     "building-together",
   ],
+  "project-advance": ["project-advance-overview"],
 };

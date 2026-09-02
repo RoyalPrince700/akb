@@ -7,6 +7,7 @@ const customerService = require("./customer-service");
 const digitalTransformation = require("./digital-transformation");
 const finance = require("./finance");
 const humanResourceManagement = require("./human-resource-management");
+const projectAdvance = require("./project-advance");
 const solutionSelling = require("./solution-selling");
 
 const assessments = [
@@ -19,6 +20,7 @@ const assessments = [
   digitalTransformation,
   finance,
   humanResourceManagement,
+  projectAdvance,
   solutionSelling,
 ];
 
