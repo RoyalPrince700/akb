@@ -526,4 +526,36 @@ export const submitPublicSurvey = async (token, payload) => {
   return response.data;
 };
 
+export const getPaWorkspace = async () => {
+  const response = await api.get("/project-advance/me");
+  return response.data;
+};
+
+export const joinPaGroup = async (groupKey) => {
+  const response = await api.post("/project-advance/join", { groupKey });
+  return response.data;
+};
+
+export const createPaProgress = async (body) => {
+  const response = await api.post("/project-advance/updates", { body });
+  return response.data;
+};
+
+export const getPaMonitor = async (params = {}) => {
+  const response = await api.get("/project-advance/monitor", { params });
+  return response.data;
+};
+
+export const awardPaGroupPoints = async (payload) => {
+  const response = await api.post("/project-advance/points", payload);
+  return response.data;
+};
+
+export const removePaGroupMember = async (groupId, userId) => {
+  const response = await api.delete(
+    `/project-advance/groups/${groupId}/members/${userId}`
+  );
+  return response.data;
+};
+
 export default api;

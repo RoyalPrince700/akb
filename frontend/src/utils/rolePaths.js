@@ -1,6 +1,6 @@
-export const LEARNING_ROLES = ["staff", "hr", "admin", "csr", "csrAdmin"];
+export const LEARNING_ROLES = ["staff", "hr", "admin", "csr", "csrAdmin", "pa"];
 
-export const COURSE_LEARNER_ROLES = ["staff", "csr", "csrAdmin"];
+export const COURSE_LEARNER_ROLES = ["staff", "csr", "csrAdmin", "pa"];
 
 export const isLearningRole = (role) => LEARNING_ROLES.includes(role);
 
@@ -22,6 +22,10 @@ export const getPanelBasePath = (role) => {
 
   if (role === "security") {
     return "/security";
+  }
+
+  if (role === "pa") {
+    return "/pa";
   }
 
   return null;
@@ -52,7 +56,7 @@ export const panelSegmentPath = (role, segment) => {
 };
 
 export const getResultsPath = (role) => {
-  if (role === "staff") {
+  if (role === "staff" || role === "pa") {
     return "/dashboard/results";
   }
 

@@ -16,6 +16,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
+import { formatRoleLabel } from "../constants/crm";
 import { useAuth } from "../context/AuthContext";
 import {
   changePassword,
@@ -32,15 +33,10 @@ const getFirstInitial = (name) => {
   return name.trim().split(/\s+/)[0].charAt(0).toUpperCase();
 };
 
-const roleLabel = (role) => {
-  if (role === "admin") return "Administrator";
-  if (role === "hr") return "HR";
-  return "Staff";
-};
-
 const roleBadgeClass = (role) => {
   if (role === "admin") return "bg-amber-50 text-amber-700";
   if (role === "hr") return "bg-violet-50 text-violet-700";
+  if (role === "pa") return "bg-orange-50 text-orange-700";
   return "bg-blue-50 text-blue-700";
 };
 
@@ -292,7 +288,7 @@ const ProfilePage = () => {
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-medium ${roleBadgeClass(user?.role)}`}
                   >
-                    {roleLabel(user?.role)}
+                    {formatRoleLabel(user?.role)}
                   </span>
                 </div>
                 <p className="mt-3 text-slate-600">

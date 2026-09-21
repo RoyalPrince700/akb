@@ -77,6 +77,7 @@ const HrDashboard = () => {
   const attendancePath = panelSegmentPath("hr", "attendance");
   const kssAttendancePath = panelSegmentPath("hr", "kss-attendance");
   const anonymousMessagesPath = panelSegmentPath("hr", "anonymous-messages");
+  const projectAdvancePath = panelSegmentPath("hr", "project-advance");
 
   return (
     <PanelLayout title="HR Panel">
@@ -86,6 +87,12 @@ const HrDashboard = () => {
           value={staffCount}
           description="View all staff records"
           to={staffPath}
+        />
+        <OverviewCard
+          label="Project A"
+          value="Groups"
+          description="Monitor group members and progress updates"
+          to={projectAdvancePath}
         />
         <OverviewCard
           label="Attendance"
@@ -132,6 +139,17 @@ const HrDashboard = () => {
         <ul className="mt-5 max-w-3xl list-inside list-disc space-y-2 leading-7 text-slate-600">
           <li>
             Browse the staff directory and filter by department or status.
+          </li>
+          <li>
+            Open{" "}
+            <Link
+              to={projectAdvancePath}
+              className="font-semibold text-violet-700 underline"
+            >
+              Project A
+            </Link>{" "}
+            to monitor each Project ADVANCE group, member counts, and progress
+            updates.
           </li>
           <li>
             Open{" "}

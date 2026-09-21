@@ -84,6 +84,7 @@ const AdminDashboard = () => {
   const attendancePath = panelSegmentPath("admin", "attendance");
   const kssAttendancePath = panelSegmentPath("admin", "kss-attendance");
   const anonymousMessagesPath = panelSegmentPath("admin", "anonymous-messages");
+  const projectAdvancePath = panelSegmentPath("admin", "project-advance");
 
   return (
     <PanelLayout title="Admin Panel">
@@ -105,6 +106,12 @@ const AdminDashboard = () => {
           value="Links"
           description="Session links and who attended"
           to={kssAttendancePath}
+        />
+        <OverviewCard
+          label="Project A"
+          value="Groups"
+          description="Monitor groups, members, and progress updates"
+          to={projectAdvancePath}
         />
         <OverviewCard
           label="Anonymous Messages"
@@ -169,6 +176,16 @@ const AdminDashboard = () => {
               </Link>
               {" "}
               — create session links and view who marked present.
+            </li>
+            <li>
+              <Link
+                to={projectAdvancePath}
+                className="font-semibold text-blue-700 hover:underline"
+              >
+                Project A
+              </Link>
+              {" "}
+              — monitor Project ADVANCE groups, member counts, and progress updates.
             </li>
             <li>
               <Link

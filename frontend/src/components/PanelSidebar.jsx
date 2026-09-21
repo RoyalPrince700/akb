@@ -17,6 +17,7 @@ import {
   ScanFace,
   ScrollText,
   Settings,
+  Trophy,
   Upload,
   Users,
   X,
@@ -75,6 +76,7 @@ const PanelSidebar = ({
   const isCsrPanel = role === "csr" || role === "csrAdmin";
   const isCsrAdmin = role === "csrAdmin";
   const isSecurity = role === "security";
+  const isPa = role === "pa";
   const isHubPanel = !isCsrPanel;
 
   const navItems = isSecurity
@@ -84,6 +86,15 @@ const PanelSidebar = ({
           end: true,
           label: "Attendance scan",
           icon: ScanFace,
+        },
+      ]
+    : isPa
+    ? [
+        {
+          to: "/project-advance",
+          end: true,
+          label: "Project A",
+          icon: Trophy,
         },
       ]
     : isCsrPanel
@@ -170,6 +181,15 @@ const PanelSidebar = ({
           label: "Overview",
           icon: LayoutDashboard,
         },
+        ...(isAdmin || isHr
+          ? [
+              {
+                to: panelSegmentPath(role, "project-advance"),
+                label: "Project A",
+                icon: Trophy,
+              },
+            ]
+          : []),
         {
           to: panelSegmentPath(role, "staff"),
           label: "Staff",
@@ -218,7 +238,9 @@ const PanelSidebar = ({
       ? "HR Panel"
       : isSecurity
         ? "Security Panel"
-        : "CRM Command";
+        : isPa
+          ? "Project A"
+          : "CRM Command";
 
   const toggleBtnClass = isCsrPanel
     ? "border border-white/10 bg-white/5 text-white hover:bg-white/10"
@@ -325,10 +347,12 @@ const PanelSidebar = ({
       {isHubPanel && !collapsed && (
         <div className="mx-3 mt-4 rounded-[26px] border border-slate-200/70 bg-linear-to-br from-blue-50/90 via-white to-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
           <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500">
-            Knowledge Hub
+            {isPa ? "Project A" : "Knowledge Hub"}
           </p>
           <p className="mt-2 text-sm font-semibold leading-5 tracking-[-0.02em] text-slate-950">
-            Staff development tools in one calm workspace.
+            {isPa
+              ? "Join your group, see teammates, and share progress updates."
+              : "Staff development tools in one calm workspace."}
           </p>
         </div>
       )}

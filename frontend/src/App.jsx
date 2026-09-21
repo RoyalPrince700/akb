@@ -49,6 +49,7 @@ import CrmSurveysPage from "./pages/crm/CrmSurveysPage";
 import CrmSurveyResponsesPage from "./pages/crm/CrmSurveyResponsesPage";
 import CrmUploadDataPage from "./pages/crm/CrmUploadDataPage";
 import PublicSurveyPage from "./pages/crm/PublicSurveyPage";
+import ProjectAdvancePage from "./pages/ProjectAdvancePage";
 import { LEARNING_ROLES } from "./utils/rolePaths";
 
 const hrAdminPanel = (page) => (
@@ -125,7 +126,7 @@ const App = () => {
         path="/profile"
         element={
           <ProtectedRoute
-            roles={["staff", "hr", "admin", "csr", "csrAdmin", "security"]}
+            roles={["staff", "hr", "admin", "csr", "csrAdmin", "security", "pa"]}
           >
             <ProfilePage />
           </ProtectedRoute>
@@ -144,6 +145,16 @@ const App = () => {
         element={
           <ProtectedRoute roles={LEARNING_ROLES}>
             <StaffResultsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/project-advance"
+        element={
+          <ProtectedRoute
+            roles={["staff", "hr", "admin", "csr", "csrAdmin", "security", "pa"]}
+          >
+            <ProjectAdvancePage />
           </ProtectedRoute>
         }
       />
@@ -181,6 +192,19 @@ const App = () => {
         path="/admin/anonymous-messages/:id"
         element={hrAdminPanel(<HrAnonymousMessagesDetailPage />)}
       />
+      <Route
+        path="/admin/project-advance"
+        element={hrAdminPanel(<ProjectAdvancePage />)}
+      />
+
+      <Route
+        path="/pa"
+        element={
+          <ProtectedRoute roles={["pa"]}>
+            <ProjectAdvancePage />
+          </ProtectedRoute>
+        }
+      />
 
       <Route
         path="/hr"
@@ -214,6 +238,10 @@ const App = () => {
       <Route
         path="/hr/anonymous-messages/:id"
         element={hrAdminPanel(<HrAnonymousMessagesDetailPage />)}
+      />
+      <Route
+        path="/hr/project-advance"
+        element={hrAdminPanel(<ProjectAdvancePage />)}
       />
 
       <Route

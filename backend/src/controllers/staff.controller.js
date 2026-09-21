@@ -2,10 +2,10 @@ const User = require("../models/User");
 const asyncHandler = require("../utils/asyncHandler");
 const { deleteAsset, uploadBuffer } = require("../config/cloudinary");
 
-const ROLES = ["staff", "hr", "admin", "csr", "csrAdmin", "security"];
+const ROLES = ["staff", "hr", "admin", "csr", "csrAdmin", "security", "pa"];
 const CSR_MANAGED_ROLES = ["csr", "csrAdmin"];
 
-const ROLE_LABELS = "staff, hr, admin, csr, csrAdmin, or security";
+const ROLE_LABELS = "staff, hr, admin, csr, csrAdmin, security, or pa";
 
 const parseFaceDescriptor = (raw) => {
   if (raw === undefined || raw === null || raw === "") {

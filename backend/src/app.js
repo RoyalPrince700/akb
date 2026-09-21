@@ -14,6 +14,7 @@ const progressRoutes = require("./routes/progress.routes");
 const attendanceRoutes = require("./routes/attendance.routes");
 const kssAttendanceRoutes = require("./routes/kssAttendance.routes");
 const anonymousMessagesRoutes = require("./routes/anonymousMessages.routes");
+const projectAdvanceRoutes = require("./routes/projectAdvance.routes");
 const { errorHandler, notFoundHandler } = require("./middleware/error.middleware");
 
 const app = express();
@@ -54,6 +55,7 @@ app.use("/api/crm", crmRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/kss-attendance", kssAttendanceRoutes);
 app.use("/api/anonymous-messages", anonymousMessagesRoutes);
+app.use("/api/project-advance", projectAdvanceRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

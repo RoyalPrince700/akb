@@ -337,7 +337,9 @@ const StaffManagementPage = () => {
                                   ? "bg-teal-100 text-teal-900"
                                   : member.role === "security"
                                     ? "bg-amber-100 text-amber-900"
-                                    : "bg-blue-100 text-blue-900"
+                                    : member.role === "pa"
+                                      ? "bg-orange-100 text-orange-900"
+                                      : "bg-blue-100 text-blue-900"
                         }`}
                       >
                         {formatRoleLabel(member.role || "staff")}

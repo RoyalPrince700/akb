@@ -28,7 +28,9 @@ const PanelLayout = ({ children, title }) => {
         ? "hr"
         : user?.role === "security"
           ? "security"
-          : "csr";
+          : user?.role === "pa"
+            ? "admin"
+            : "csr";
   const isCsrPanel = user?.role === "csr" || user?.role === "csrAdmin";
   /** Admin / HR / Security — share Knowledge Hub marketing visual language */
   const isHubPanel = !isCsrPanel;
@@ -206,7 +208,9 @@ const PanelLayout = ({ children, title }) => {
                       ? "HR workspace"
                       : user?.role === "security"
                         ? "Security workspace"
-                        : "Workspace"}
+                        : user?.role === "pa"
+                          ? "Project A workspace"
+                          : "Workspace"}
                 </p>
                 <h2 className="mt-4 text-3xl font-bold leading-[1.05] tracking-[-0.045em] text-slate-950 sm:text-4xl">
                   {title}

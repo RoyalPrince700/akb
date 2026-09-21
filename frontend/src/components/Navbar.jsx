@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Gem, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 
 import accessibleLogo from "../assets/accessiblelogo.png";
@@ -187,6 +187,16 @@ const NavLinks = ({ children, mobile = false, onNavigate }) => {
           Dashboard
         </NavLink>
       )}
+      {!loading && isAuthenticated && user && (
+        <NavLink
+          to="/project-advance"
+          className={linkClass}
+          onClick={onNavigate}
+          data-text="Project A"
+        >
+          Project A
+        </NavLink>
+      )}
       <NavLink to="/courses" end className={linkClass} onClick={onNavigate} data-text="Courses">
         Courses
       </NavLink>
@@ -208,40 +218,21 @@ const NavLinks = ({ children, mobile = false, onNavigate }) => {
 
   const accountLinks = !loading && isAuthenticated && user ? (
     <>
-      {canAccessLearning && (
-        <>
-          <Link
-            to="/leaderboard"
-            onClick={onNavigate}
-            className={
-              mobile
-                ? "inline-flex w-full items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50"
-                : "inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600 transition hover:text-slate-900"
-            }
-            title="Your gems"
-          >
-            <Gem className="h-4 w-4 text-blue-600" aria-hidden="true" />
-            <span>
-              {user.gems ?? 0}
-              {mobile ? " gems" : ""}
-            </span>
-          </Link>
-          <NavLink
-            to="/leaderboard"
-            className={linkClass}
-            onClick={onNavigate}
-            data-text="Leaderboard"
-          >
-            Leaderboard
-          </NavLink>
-        </>
+      {mobile && canAccessLearning && (
+        <NavLink
+          to="/leaderboard"
+          className={mobileNavLinkClass}
+          onClick={onNavigate}
+        >
+          Leaderboard · {user.gems ?? 0} gems
+        </NavLink>
       )}
-      {user.role !== "staff" && (
+      {user.role !== "staff" && !isCsrRole && (
         <NavLink to={roleDashboardPath} className={roleDashboardClass} onClick={onNavigate}>
           {formatRoleLabel(user.role)}
         </NavLink>
       )}
-      <div className={mobile ? "flex flex-col gap-2" : "flex items-center gap-2.5"}>
+      <div className={mobile ? "flex flex-col gap-2" : "flex items-center gap-2"}>
         <Link
           to="/profile"
           onClick={onNavigate}
@@ -249,15 +240,15 @@ const NavLinks = ({ children, mobile = false, onNavigate }) => {
           className={
             mobile
               ? "inline-flex w-full items-center gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 transition hover:border-slate-400 hover:bg-slate-50"
-              : "inline-flex items-center gap-2.5 transition hover:opacity-80"
+              : "inline-flex items-center gap-2 transition hover:opacity-80"
           }
         >
-          {!mobile && isCsrRole && (
-            <div className="hidden items-center gap-2 sm:flex">
-              <span className="text-sm font-semibold text-slate-700">{firstName}</span>
-            </div>
+          {!mobile && (
+            <span className="max-w-[7rem] truncate text-sm font-semibold text-slate-700">
+              {firstName}
+            </span>
           )}
-          {mobile && isCsrRole && (
+          {mobile && (
             <div className="flex min-w-0 flex-1 flex-col gap-1">
               <span className="truncate text-sm font-semibold text-slate-900">{user.name}</span>
             </div>
@@ -304,9 +295,9 @@ const NavLinks = ({ children, mobile = false, onNavigate }) => {
   if (!mobile) {
     return (
       <>
-        <div className="flex items-center gap-8">{mainLinks}</div>
+        <div className="flex items-center gap-6">{mainLinks}</div>
         {accountLinks && (
-          <div className="ml-8 flex items-center gap-6 border-l border-slate-200 pl-8">
+          <div className="ml-6 flex items-center gap-3 border-l border-slate-200 pl-6">
             {accountLinks}
           </div>
         )}
