@@ -8,6 +8,7 @@ import customerService from "./customer-service";
 import digitalTransformation from "./digital-transformation";
 import finance from "./finance";
 import humanResourceManagement from "./human-resource-management";
+import oxygenFm from "./oxygen-fm";
 import projectAdvance from "./project-advance";
 import solutionSelling from "./solution-selling";
 import {
@@ -29,6 +30,7 @@ const courseRegistry = [
   digitalTransformation,
   finance,
   humanResourceManagement,
+  oxygenFm,
   projectAdvance,
   solutionSelling,
 ];

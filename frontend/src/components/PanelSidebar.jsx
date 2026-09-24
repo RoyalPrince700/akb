@@ -3,6 +3,7 @@ import {
   BookOpenCheck,
   ChevronsLeft,
   ChevronsRight,
+  ClipboardCheck,
   ClipboardList,
   ContactRound,
   GraduationCap,
@@ -93,7 +94,7 @@ const PanelSidebar = ({
         {
           to: "/project-advance",
           end: true,
-          label: "Project A",
+          label: "Project ADVANCE",
           icon: Trophy,
         },
       ]
@@ -185,7 +186,7 @@ const PanelSidebar = ({
           ? [
               {
                 to: panelSegmentPath(role, "project-advance"),
-                label: "Project A",
+                label: "Project ADVANCE",
                 icon: Trophy,
               },
             ]
@@ -204,6 +205,11 @@ const PanelSidebar = ({
           to: panelSegmentPath(role, "kss-attendance"),
           label: "KSS Attendance",
           icon: Presentation,
+        },
+        {
+          to: panelSegmentPath(role, "staff-assessments"),
+          label: "Assessments",
+          icon: ClipboardCheck,
         },
         {
           to: panelSegmentPath(role, "anonymous-messages"),
@@ -239,7 +245,7 @@ const PanelSidebar = ({
       : isSecurity
         ? "Security Panel"
         : isPa
-          ? "Project A"
+          ? "Project ADVANCE"
           : "CRM Command";
 
   const toggleBtnClass = isCsrPanel
@@ -347,7 +353,7 @@ const PanelSidebar = ({
       {isHubPanel && !collapsed && (
         <div className="mx-3 mt-4 rounded-[26px] border border-slate-200/70 bg-linear-to-br from-blue-50/90 via-white to-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
           <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-slate-500">
-            {isPa ? "Project A" : "Knowledge Hub"}
+            {isPa ? "Project ADVANCE" : "Knowledge Hub"}
           </p>
           <p className="mt-2 text-sm font-semibold leading-5 tracking-[-0.02em] text-slate-950">
             {isPa

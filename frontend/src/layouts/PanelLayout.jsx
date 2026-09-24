@@ -209,7 +209,7 @@ const PanelLayout = ({ children, title }) => {
                       : user?.role === "security"
                         ? "Security workspace"
                         : user?.role === "pa"
-                          ? "Project A workspace"
+                          ? "Project ADVANCE workspace"
                           : "Workspace"}
                 </p>
                 <h2 className="mt-4 text-3xl font-bold leading-[1.05] tracking-[-0.045em] text-slate-950 sm:text-4xl">

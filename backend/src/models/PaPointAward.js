@@ -27,6 +27,11 @@ const paPointAwardSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    progress: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "PaProgress",
+      default: null,
+    },
   },
   { timestamps: true }
 );

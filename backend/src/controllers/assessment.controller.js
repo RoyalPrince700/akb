@@ -3,13 +3,21 @@ const {
   getAssessmentByCourseId,
 } = require("../data/assessments");
 const { GEMS_PER_CORRECT_ANSWER } = require("../constants/gems");
+const HrAssessment = require("../models/HrAssessment");
 const Result = require("../models/Result");
 const User = require("../models/User");
 const asyncHandler = require("../utils/asyncHandler");
 const {
   assertAssessmentNotLocked,
   getLockForCourse,
+  isPrivilegedRole,
 } = require("../utils/contentLocks");
+const {
+  idFromHrCourseId,
+  isHrAssessmentCourseId,
+  reviewByQuestionId,
+  toGradingAssessment,
+} = require("../utils/hrAssessment");
 const gradeAssessment = require("../utils/gradeAssessment");
 
 const listAssessments = asyncHandler(async (req, res) => {
@@ -36,14 +44,35 @@ const listAssessments = asyncHandler(async (req, res) => {
 });
 
 const submitAssessment = asyncHandler(async (req, res) => {
-  const assessment = getAssessmentByCourseId(req.params.courseId);
+  const courseId = req.params.courseId;
+  let assessment;
+  let review = null;
 
-  if (!assessment) {
-    res.status(404);
-    throw new Error("Assessment not found for this course");
+  if (isHrAssessmentCourseId(courseId)) {
+    const doc = await HrAssessment.findById(idFromHrCourseId(courseId));
+
+    if (!doc || doc.status !== "published") {
+      res.status(404);
+      throw new Error("Assessment not found");
+    }
+
+    if (doc.locked && !isPrivilegedRole(req.user?.role)) {
+      res.status(403);
+      throw new Error("This assessment is currently locked by HR");
+    }
+
+    assessment = toGradingAssessment(doc);
+    review = reviewByQuestionId(doc);
+  } else {
+    assessment = getAssessmentByCourseId(courseId);
+
+    if (!assessment) {
+      res.status(404);
+      throw new Error("Assessment not found for this course");
+    }
+
+    await assertAssessmentNotLocked(req.user, assessment.courseId);
   }
-
-  await assertAssessmentNotLocked(req.user, assessment.courseId);
 
   const { answers } = req.body;
 
@@ -106,7 +135,15 @@ const submitAssessment = asyncHandler(async (req, res) => {
       percentage: result.percentage,
       passed: result.passed,
       submittedAt: result.submittedAt,
-      answers: result.answers,
+      answers: result.answers.map((answer) => {
+        const base = {
+          questionId: answer.questionId,
+          selectedAnswer: answer.selectedAnswer,
+          isCorrect: answer.isCorrect,
+        };
+        const extra = review?.[answer.questionId];
+        return extra ? { ...base, ...extra } : base;
+      }),
       isFirstAttempt: result.isFirstAttempt,
       gemsEarned: result.gemsEarned,
     },

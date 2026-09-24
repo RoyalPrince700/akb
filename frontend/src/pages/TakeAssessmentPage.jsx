@@ -6,11 +6,19 @@ import AssessmentStartWarningModal from "../components/AssessmentStartWarningMod
 import AssessmentSubmitConfirmModal from "../components/AssessmentSubmitConfirmModal";
 import LockedAssessmentModal from "../components/LockedAssessmentModal";
 import assessments, { getAssessmentByCourseId } from "../assessments";
-import { stripCorrectAnswers } from "../assessments/utils";
+import {
+  hrAssessmentIdFromCourseId,
+  isHrAssessmentCourseId,
+  stripCorrectAnswers,
+} from "../assessments/utils";
 import { useAuth } from "../context/AuthContext";
 import courses, { getCourseById } from "../courses";
 import { useAssessmentAccess } from "../hooks/useAssessmentAccess";
-import { listMyResults, submitAssessment } from "../services/api";
+import {
+  getHrAssessmentForTake,
+  listMyResults,
+  submitAssessment,
+} from "../services/api";
 import { getResultsPath, isLearningRole } from "../utils/rolePaths";
 
 const getAssessmentTimeSeconds = (assessment) => {
@@ -39,10 +47,19 @@ const TakeAssessmentPage = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const { user, updateUser, isAuthenticated } = useAuth();
-  const { isLocked, isReady, assessmentLockedByHr } =
-    useAssessmentAccess(courseId);
-  const course = getCourseById(courses, courseId);
-  const assessment = getAssessmentByCourseId(assessments, courseId);
+  const isHrAssessment = isHrAssessmentCourseId(courseId);
+  const { isLocked, isReady, assessmentLockedByHr } = useAssessmentAccess(
+    isHrAssessment ? "" : courseId
+  );
+  const course = isHrAssessment ? null : getCourseById(courses, courseId);
+  const staticAssessment = isHrAssessment
+    ? null
+    : getAssessmentByCourseId(assessments, courseId);
+  const [hrAssessment, setHrAssessment] = useState(null);
+  const [loadedFor, setLoadedFor] = useState("");
+  const [hrMissing, setHrMissing] = useState(false);
+  const hrReady = !isHrAssessment || loadedFor === courseId;
+  const assessment = isHrAssessment ? hrAssessment : staticAssessment;
   const rawFirstName = user?.name?.split(" ")[0] || "Staff";
   const firstName =
     rawFirstName.charAt(0).toUpperCase() + rawFirstName.slice(1).toLowerCase();
@@ -65,9 +82,15 @@ const TakeAssessmentPage = () => {
   const answersRef = useRef(answers);
   const timedOutHandledRef = useRef(false);
 
-  const hasAssessment = Boolean(course && assessment);
+  const isPrivilegedUser = ["hr", "admin"].includes(user?.role);
+  const hrBlocked =
+    isHrAssessment && Boolean(hrAssessment?.locked) && !isPrivilegedUser;
+  const pageReady = isHrAssessment ? hrReady : isReady;
+  const hasAssessment = isHrAssessment
+    ? Boolean(hrAssessment)
+    : Boolean(course && assessment);
   const questions = hasAssessment
-    ? stripCorrectAnswers(assessment.questions)
+    ? stripCorrectAnswers(assessment.questions || [])
     : [];
   const currentQuestion = questions[currentIndex];
   const isFirstQuestion = currentIndex === 0;
@@ -78,6 +101,54 @@ const TakeAssessmentPage = () => {
   useEffect(() => {
     answersRef.current = answers;
   }, [answers]);
+
+  useEffect(() => {
+    if (!isHrAssessment) {
+      setHrAssessment(null);
+      setHrMissing(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setLoadedFor("");
+    setHrMissing(false);
+    setHrAssessment(null);
+
+    const loadHrAssessment = async () => {
+      try {
+        const data = await getHrAssessmentForTake(
+          hrAssessmentIdFromCourseId(courseId)
+        );
+        if (!cancelled) {
+          setHrAssessment(data.assessment || null);
+          setHrMissing(!data.assessment);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setHrAssessment(null);
+          setHrMissing(err.response?.status === 404);
+          if (err.response?.status !== 404) {
+            setError(
+              err.response?.data?.message || "Failed to load this assessment."
+            );
+          }
+        }
+      } finally {
+        if (!cancelled) setLoadedFor(courseId);
+      }
+    };
+
+    loadHrAssessment();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [courseId, isHrAssessment]);
+
+  useEffect(() => {
+    if (!isHrAssessment || !hrAssessment || timerStarted) return;
+    setSecondsLeft(getAssessmentTimeSeconds(hrAssessment));
+  }, [hrAssessment, isHrAssessment, timerStarted]);
 
   useEffect(() => {
     if (!hasAssessment || !canTake) {
@@ -202,7 +273,8 @@ const TakeAssessmentPage = () => {
     if (
       !hasAssessment ||
       isLocked ||
-      !isReady ||
+      hrBlocked ||
+      !pageReady ||
       !takenCheckReady ||
       alreadyTaken ||
       !timerStarted
@@ -228,8 +300,9 @@ const TakeAssessmentPage = () => {
   }, [
     alreadyTaken,
     hasAssessment,
+    hrBlocked,
     isLocked,
-    isReady,
+    pageReady,
     takenCheckReady,
     timerStarted,
     secondsLeft > 0,
@@ -238,10 +311,11 @@ const TakeAssessmentPage = () => {
   useEffect(() => {
     if (
       !hasAssessment ||
-      !isReady ||
+      !pageReady ||
       !takenCheckReady ||
       alreadyTaken ||
       isLocked ||
+      hrBlocked ||
       !timerStarted ||
       secondsLeft > 0 ||
       timedOutHandledRef.current ||
@@ -256,18 +330,50 @@ const TakeAssessmentPage = () => {
     alreadyTaken,
     finishSubmission,
     hasAssessment,
+    hrBlocked,
     isLocked,
-    isReady,
+    pageReady,
     secondsLeft,
     takenCheckReady,
     timerStarted,
   ]);
 
+  if (isHrAssessment && !hrReady) {
+    return (
+      <main className="min-h-screen bg-slate-50">
+        <Navbar />
+        <section className="mx-auto max-w-3xl px-6 pb-12 pt-10 lg:px-8">
+          <BackToAssessments />
+          <p className="text-center text-slate-600">Loading assessment…</p>
+        </section>
+      </main>
+    );
+  }
+
+  if (isHrAssessment && (hrMissing || !hrAssessment)) {
+    return (
+      <main className="min-h-screen bg-slate-50">
+        <Navbar />
+        <section className="mx-auto max-w-3xl px-6 pb-12 pt-10 lg:px-8">
+          <BackToAssessments />
+          <div className="rounded-[32px] border border-slate-200 bg-white p-8 text-center shadow-sm">
+            <h1 className="text-2xl font-bold text-slate-950">
+              Assessment not available
+            </h1>
+            <p className="mt-3 text-slate-600">
+              {error || "This assessment is not published."}
+            </p>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   if (!hasAssessment) {
     return <Navigate to="/courses" replace />;
   }
 
-  if (!isReady || !takenCheckReady) {
+  if (!pageReady || !takenCheckReady) {
     return (
       <main className="min-h-screen bg-slate-50">
         <Navbar />
@@ -313,7 +419,7 @@ const TakeAssessmentPage = () => {
     );
   }
 
-  if (isLocked || assessmentLockedByHr) {
+  if (isLocked || assessmentLockedByHr || hrBlocked) {
     return (
       <main className="min-h-screen bg-slate-50">
         <Navbar />
@@ -393,7 +499,7 @@ const TakeAssessmentPage = () => {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="inline-flex rounded-full bg-slate-100/80 px-3 py-1.5 text-xs font-medium leading-none text-slate-500">
-                {course.title}
+                {isHrAssessment ? "HR assessment" : course.title}
               </p>
               <h1 className="mt-6 text-4xl font-bold leading-[1.05] tracking-[-0.045em] text-slate-950">
                 {assessment.title}

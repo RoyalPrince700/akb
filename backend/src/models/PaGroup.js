@@ -26,6 +26,10 @@ const paMemberSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    isTeamLead: {
+      type: Boolean,
+      default: false,
+    },
   },
   { _id: false }
 );

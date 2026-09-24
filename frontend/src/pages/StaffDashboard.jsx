@@ -1,9 +1,11 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import CourseCard from "../components/CourseCard";
 import DashboardLayout from "../layouts/DashboardLayout";
 import assessments from "../assessments";
 import courses, { getSortedChapters } from "../courses";
+import { listPublishedHrAssessments } from "../services/api";
 
 const StatCard = ({ label, value, description, to }) => {
   const content = (
@@ -33,6 +35,21 @@ const StaffDashboard = () => {
     (sum, course) => sum + getSortedChapters(course).length,
     0
   );
+  const [publishedHrCount, setPublishedHrCount] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    listPublishedHrAssessments()
+      .then((data) => {
+        if (!cancelled) setPublishedHrCount((data.assessments || []).length);
+      })
+      .catch(() => {
+        if (!cancelled) setPublishedHrCount(0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <DashboardLayout title="Staff Dashboard">
@@ -49,7 +66,7 @@ const StaffDashboard = () => {
         />
         <StatCard
           label="Assessments"
-          value={assessments.length}
+          value={assessments.length + publishedHrCount}
           description="View your results"
           to="/dashboard/results"
         />

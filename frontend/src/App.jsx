@@ -17,6 +17,7 @@ import HrAttendancePage from "./pages/HrAttendancePage";
 import HrDashboard from "./pages/HrDashboard";
 import HrKssAttendanceDetailPage from "./pages/HrKssAttendanceDetailPage";
 import HrKssAttendancePage from "./pages/HrKssAttendancePage";
+import HrStaffAssessmentsPage from "./pages/HrStaffAssessmentsPage";
 import HrAnonymousMessagesDetailPage from "./pages/HrAnonymousMessagesDetailPage";
 import HrAnonymousMessagesPage from "./pages/HrAnonymousMessagesPage";
 import HomePage from "./pages/HomePage";
@@ -175,6 +176,10 @@ const App = () => {
       <Route path="/admin/results" element={hrAdminPanel(<AssessmentResultsPage />)} />
       <Route path="/admin/materials" element={hrAdminPanel(<MaterialsManagementPage />)} />
       <Route path="/admin/assessments" element={hrAdminPanel(<ContentLocksPage />)} />
+      <Route
+        path="/admin/staff-assessments"
+        element={hrAdminPanel(<HrStaffAssessmentsPage />)}
+      />
       <Route path="/admin/attendance" element={hrAdminPanel(<HrAttendancePage />)} />
       <Route
         path="/admin/kss-attendance"
@@ -222,6 +227,10 @@ const App = () => {
       <Route path="/hr/results" element={hrAdminPanel(<AssessmentResultsPage />)} />
       <Route path="/hr/materials" element={hrAdminPanel(<MaterialsManagementPage />)} />
       <Route path="/hr/assessments" element={hrAdminPanel(<ContentLocksPage />)} />
+      <Route
+        path="/hr/staff-assessments"
+        element={hrAdminPanel(<HrStaffAssessmentsPage />)}
+      />
       <Route path="/hr/attendance" element={hrAdminPanel(<HrAttendancePage />)} />
       <Route
         path="/hr/kss-attendance"

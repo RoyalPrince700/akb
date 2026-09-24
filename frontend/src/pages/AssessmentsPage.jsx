@@ -9,7 +9,7 @@ import assessments from "../assessments";
 import courses, { getCourseById } from "../courses";
 import { useAuth } from "../context/AuthContext";
 import { useContentLocks } from "../hooks/useContentLocks";
-import { listMyResults } from "../services/api";
+import { listMyResults, listPublishedHrAssessments } from "../services/api";
 import { isLearningRole } from "../utils/rolePaths";
 
 const AssessmentsPage = () => {
@@ -19,6 +19,28 @@ const AssessmentsPage = () => {
   const { getLock, isReady: locksReady } = useContentLocks();
   const [takenCourseIds, setTakenCourseIds] = useState(() => new Set());
   const [statusReady, setStatusReady] = useState(!canTake);
+  const [hrAssessments, setHrAssessments] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadPublished = async () => {
+      try {
+        const data = await listPublishedHrAssessments();
+        if (!cancelled) {
+          setHrAssessments(data.assessments || []);
+        }
+      } catch {
+        if (!cancelled) setHrAssessments([]);
+      }
+    };
+
+    loadPublished();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!canTake) {
@@ -56,11 +78,16 @@ const AssessmentsPage = () => {
     };
   }, [canTake]);
 
+  const visibleAssessments = useMemo(
+    () => [...assessments, ...hrAssessments],
+    [hrAssessments]
+  );
+
   const completedCount = useMemo(() => {
-    return assessments.filter((assessment) =>
+    return visibleAssessments.filter((assessment) =>
       takenCourseIds.has(assessment.courseId)
     ).length;
-  }, [takenCourseIds]);
+  }, [takenCourseIds, visibleAssessments]);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -88,8 +115,8 @@ const AssessmentsPage = () => {
 
             <div className="mt-10 flex flex-wrap gap-3 text-sm font-medium text-slate-600">
               <span className="rounded-full border border-slate-200/80 bg-white/80 px-3.5 py-2 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-                {assessments.length} assessment
-                {assessments.length !== 1 ? "s" : ""}
+                {visibleAssessments.length} assessment
+                {visibleAssessments.length !== 1 ? "s" : ""}
               </span>
               {canTake && statusReady && (
                 <span className="rounded-full border border-emerald-200/80 bg-emerald-50/80 px-3.5 py-2 text-emerald-800 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
@@ -113,15 +140,20 @@ const AssessmentsPage = () => {
         <section className="py-12 lg:py-16">
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
             <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-              {assessments.map((assessment) => {
-                const course = getCourseById(courses, assessment.courseId);
+              {visibleAssessments.map((assessment) => {
+                const isHrAssessment = assessment.source === "hr";
+                const course = isHrAssessment
+                  ? null
+                  : getCourseById(courses, assessment.courseId);
                 const isTaken =
                   canTake && takenCourseIds.has(assessment.courseId);
                 const isHrLocked =
                   canTake &&
                   !isPrivilegedUser &&
-                  locksReady &&
-                  Boolean(getLock(assessment.courseId)?.assessmentLocked);
+                  (isHrAssessment
+                    ? Boolean(assessment.locked)
+                    : locksReady &&
+                      Boolean(getLock(assessment.courseId)?.assessmentLocked));
 
                 return (
                   <article
@@ -188,7 +220,7 @@ const AssessmentsPage = () => {
                       </div>
 
                       <p className="mt-6 inline-flex w-fit rounded-full bg-slate-100/70 px-2.5 py-1 text-xs font-medium leading-none text-slate-500">
-                        {course?.category}
+                        {isHrAssessment ? assessment.category : course?.category}
                       </p>
                       <h2 className="mt-5 text-2xl font-bold leading-[1.08] tracking-tight text-slate-950">
                         {assessment.title}
@@ -197,7 +229,7 @@ const AssessmentsPage = () => {
                         {assessment.description}
                       </p>
                       <p className="mt-10 text-[13px] font-medium leading-5 text-slate-500">
-                        {assessment.totalQuestions} questions • pass{" "}
+                        {assessment.totalQuestions} question{assessment.totalQuestions === 1 ? "" : "s"} • pass{" "}
                         {assessment.passMark}/{assessment.totalQuestions}
                       </p>
                       <AssessmentCourseAction

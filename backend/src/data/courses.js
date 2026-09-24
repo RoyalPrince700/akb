@@ -83,4 +83,11 @@ module.exports = [
     chapterCount: 1,
     source: "frontend",
   },
+  {
+    id: "oxygen-fm",
+    title: "Oxygen FM 96.9",
+    category: "Professional Development",
+    chapterCount: 1,
+    source: "frontend",
+  },
 ];

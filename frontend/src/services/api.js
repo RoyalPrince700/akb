@@ -226,6 +226,46 @@ export const submitAssessment = async (courseId, answers) => {
   return response.data;
 };
 
+export const listPublishedHrAssessments = async () => {
+  const response = await api.get("/hr-assessments/published");
+  return response.data;
+};
+
+export const listHrAssessments = async () => {
+  const response = await api.get("/hr-assessments");
+  return response.data;
+};
+
+export const createHrAssessment = async (payload) => {
+  const response = await api.post("/hr-assessments", payload);
+  return response.data;
+};
+
+export const updateHrAssessment = async (id, payload) => {
+  const response = await api.patch(`/hr-assessments/${id}`, payload);
+  return response.data;
+};
+
+export const publishHrAssessment = async (id, payload) => {
+  const response = await api.post(`/hr-assessments/${id}/publish`, payload);
+  return response.data;
+};
+
+export const setHrAssessmentAccess = async (id, payload) => {
+  const response = await api.patch(`/hr-assessments/${id}/access`, payload);
+  return response.data;
+};
+
+export const deleteHrAssessment = async (id) => {
+  const response = await api.delete(`/hr-assessments/${id}`);
+  return response.data;
+};
+
+export const getHrAssessmentForTake = async (id) => {
+  const response = await api.get(`/hr-assessments/take/${id}`);
+  return response.data;
+};
+
 export const listContentLocks = async () => {
   const response = await api.get("/content-locks");
   return response.data;
@@ -536,8 +576,25 @@ export const joinPaGroup = async (groupKey) => {
   return response.data;
 };
 
-export const createPaProgress = async (body) => {
-  const response = await api.post("/project-advance/updates", { body });
+export const createPaProgress = async ({ body, receiptFile } = {}) => {
+  const formData = new FormData();
+  formData.append("body", body || "");
+
+  if (receiptFile) {
+    formData.append("receipt", receiptFile);
+  }
+
+  const response = await api.post("/project-advance/updates", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data;
+};
+
+export const reviewPaProgressReceipt = async (updateId, payload) => {
+  const response = await api.post(
+    `/project-advance/updates/${updateId}/review`,
+    payload
+  );
   return response.data;
 };
 
@@ -548,6 +605,22 @@ export const getPaMonitor = async (params = {}) => {
 
 export const awardPaGroupPoints = async (payload) => {
   const response = await api.post("/project-advance/points", payload);
+  return response.data;
+};
+
+export const assignPaGroupMember = async (groupId, payload) => {
+  const response = await api.post(
+    `/project-advance/groups/${groupId}/members`,
+    payload
+  );
+  return response.data;
+};
+
+export const setPaGroupTeamLead = async (groupId, userId, payload) => {
+  const response = await api.patch(
+    `/project-advance/groups/${groupId}/members/${userId}/team-lead`,
+    payload
+  );
   return response.data;
 };
 

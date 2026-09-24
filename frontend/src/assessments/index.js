@@ -8,6 +8,7 @@ import customerServiceAssessment from "./customer-service";
 import digitalTransformationAssessment from "./digital-transformation";
 import financeAssessment from "./finance";
 import hrmAssessment from "./human-resource-management";
+import oxygenFmAssessment from "./oxygen-fm";
 import projectAdvanceAssessment from "./project-advance";
 import solutionSellingAssessment from "./solution-selling";
 import { getAssessmentByCourseId } from "./utils";
@@ -23,6 +24,7 @@ const assessmentRegistry = [
   digitalTransformationAssessment,
   financeAssessment,
   hrmAssessment,
+  oxygenFmAssessment,
   projectAdvanceAssessment,
   solutionSellingAssessment,
 ];

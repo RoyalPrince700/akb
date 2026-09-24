@@ -74,6 +74,7 @@ const HrDashboard = () => {
   const resultsPath = panelSegmentPath("hr", "results");
   const materialsPath = panelSegmentPath("hr", "materials");
   const assessmentsPath = panelSegmentPath("hr", "assessments");
+  const staffAssessmentsPath = panelSegmentPath("hr", "staff-assessments");
   const attendancePath = panelSegmentPath("hr", "attendance");
   const kssAttendancePath = panelSegmentPath("hr", "kss-attendance");
   const anonymousMessagesPath = panelSegmentPath("hr", "anonymous-messages");
@@ -89,9 +90,9 @@ const HrDashboard = () => {
           to={staffPath}
         />
         <OverviewCard
-          label="Project A"
+          label="Project ADVANCE"
           value="Groups"
-          description="Monitor group members and progress updates"
+          description="Assign staff, set team leads, monitor progress"
           to={projectAdvancePath}
         />
         <OverviewCard
@@ -117,6 +118,12 @@ const HrDashboard = () => {
           value={courses.length + materialsCount}
           description={`${courses.length} courses plus uploaded resources`}
           to={materialsPath}
+        />
+        <OverviewCard
+          label="Assessments"
+          value="Create"
+          description="Write questions, publish, then lock or unlock"
+          to={staffAssessmentsPath}
         />
         <OverviewCard
           label="Assessment results"
@@ -146,10 +153,10 @@ const HrDashboard = () => {
               to={projectAdvancePath}
               className="font-semibold text-violet-700 underline"
             >
-              Project A
+              Project ADVANCE
             </Link>{" "}
-            to monitor each Project ADVANCE group, member counts, and progress
-            updates.
+            to monitor each Project ADVANCE group, assign staff, set team leads,
+            and review progress updates.
           </li>
           <li>
             Open{" "}
@@ -186,6 +193,17 @@ const HrDashboard = () => {
             Open{" "}
             <strong>Course Completions</strong> to see how many courses each
             staff member has finished and view their completed course list.
+          </li>
+          <li>
+            Open{" "}
+            <Link
+              to={staffAssessmentsPath}
+              className="font-semibold text-violet-700 underline"
+            >
+              Assessments
+            </Link>{" "}
+            to add a title and multiple-choice questions, publish them for
+            staff, then lock or unlock a published assessment.
           </li>
           <li>View assessment results for all staff (read-only).</li>
           <li>

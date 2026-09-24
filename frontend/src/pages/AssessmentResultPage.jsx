@@ -2,6 +2,7 @@ import { Link, Navigate, useLocation, useParams } from "react-router-dom";
 import { Gem } from "lucide-react";
 
 import assessments, { getAssessmentByCourseId } from "../assessments";
+import { isHrAssessmentCourseId } from "../assessments/utils";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import courses, { getCourseById } from "../courses";
@@ -12,8 +13,9 @@ const AssessmentResultPage = () => {
   const course = getCourseById(courses, courseId);
   const assessment = getAssessmentByCourseId(assessments, courseId);
   const result = location.state?.result;
+  const isHrAssessment = isHrAssessmentCourseId(courseId);
 
-  if (!course) {
+  if (!course && !isHrAssessment) {
     return <Navigate to="/courses" replace />;
   }
 
@@ -30,20 +32,31 @@ const AssessmentResultPage = () => {
       return {
         ...answer,
         questionNumber: index + 1,
-        questionText: question?.question || `Question ${index + 1}`,
-        correctAnswer: question?.correctAnswer || "Not available",
+        questionText:
+          answer.questionText || question?.question || `Question ${index + 1}`,
+        correctAnswer:
+          answer.correctAnswer || question?.correctAnswer || "Not available",
       };
     }) || [];
 
   return (
     <div className="min-h-screen bg-slate-50">
       <Navbar>
-        <Link
-          to={`/courses/${courseId}`}
-          className="rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-violet-700"
-        >
-          ← Back to course
-        </Link>
+        {isHrAssessment ? (
+          <Link
+            to="/assessments"
+            className="rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-violet-700"
+          >
+            ← Back to assessments
+          </Link>
+        ) : (
+          <Link
+            to={`/courses/${courseId}`}
+            className="rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 hover:text-violet-700"
+          >
+            ← Back to course
+          </Link>
+        )}
       </Navbar>
 
       <main>

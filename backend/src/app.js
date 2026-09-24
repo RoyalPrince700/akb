@@ -15,6 +15,7 @@ const attendanceRoutes = require("./routes/attendance.routes");
 const kssAttendanceRoutes = require("./routes/kssAttendance.routes");
 const anonymousMessagesRoutes = require("./routes/anonymousMessages.routes");
 const projectAdvanceRoutes = require("./routes/projectAdvance.routes");
+const hrAssessmentRoutes = require("./routes/hrAssessment.routes");
 const { errorHandler, notFoundHandler } = require("./middleware/error.middleware");
 
 const app = express();
@@ -56,6 +57,7 @@ app.use("/api/attendance", attendanceRoutes);
 app.use("/api/kss-attendance", kssAttendanceRoutes);
 app.use("/api/anonymous-messages", anonymousMessagesRoutes);
 app.use("/api/project-advance", projectAdvanceRoutes);
+app.use("/api/hr-assessments", hrAssessmentRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

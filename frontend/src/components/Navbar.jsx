@@ -192,9 +192,9 @@ const NavLinks = ({ children, mobile = false, onNavigate }) => {
           to="/project-advance"
           className={linkClass}
           onClick={onNavigate}
-          data-text="Project A"
+          data-text="Project ADVANCE"
         >
-          Project A
+          Project ADVANCE
         </NavLink>
       )}
       <NavLink to="/courses" end className={linkClass} onClick={onNavigate} data-text="Courses">

@@ -80,6 +80,7 @@ const AdminDashboard = () => {
   const staffPath = panelSegmentPath("admin", "staff");
   const completionsPath = panelSegmentPath("admin", "completions");
   const resultsPath = panelSegmentPath("admin", "results");
+  const staffAssessmentsPath = panelSegmentPath("admin", "staff-assessments");
   const materialsPath = panelSegmentPath("admin", "materials");
   const attendancePath = panelSegmentPath("admin", "attendance");
   const kssAttendancePath = panelSegmentPath("admin", "kss-attendance");
@@ -108,9 +109,9 @@ const AdminDashboard = () => {
           to={kssAttendancePath}
         />
         <OverviewCard
-          label="Project A"
+          label="Project ADVANCE"
           value="Groups"
-          description="Monitor groups, members, and progress updates"
+          description="Assign staff, set team leads, monitor groups"
           to={projectAdvancePath}
         />
         <OverviewCard
@@ -129,6 +130,12 @@ const AdminDashboard = () => {
           value={materialsCount}
           description={`${publishedCount} published in database`}
           to={materialsPath}
+        />
+        <OverviewCard
+          label="Assessments"
+          value="Create"
+          description="Write questions, publish, then lock or unlock"
+          to={staffAssessmentsPath}
         />
         <OverviewCard
           label="Assessment results"
@@ -182,10 +189,10 @@ const AdminDashboard = () => {
                 to={projectAdvancePath}
                 className="font-semibold text-blue-700 hover:underline"
               >
-                Project A
+                Project ADVANCE
               </Link>
               {" "}
-              — monitor Project ADVANCE groups, member counts, and progress updates.
+              — assign staff to groups, set team leads, monitor members and progress.
             </li>
             <li>
               <Link
@@ -216,6 +223,16 @@ const AdminDashboard = () => {
               </Link>
               {" "}
               — see which users finished each course.
+            </li>
+            <li>
+              <Link
+                to={staffAssessmentsPath}
+                className="font-semibold text-blue-700 hover:underline"
+              >
+                Assessments
+              </Link>
+              {" "}
+              — write multiple-choice questions, publish them, then lock or unlock.
             </li>
             <li>
               <Link

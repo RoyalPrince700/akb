@@ -9,16 +9,27 @@ import courses, { getCourseById } from "../courses";
 
 const AssessmentCourseAction = ({ assessment, isTaken = false }) => {
   const { user } = useAuth();
-  const { canTakeAssessment, assessmentLockedByHr, isReady } =
-    useAssessmentAccess(assessment.courseId);
+  const isHrAssessment = assessment?.source === "hr";
+  const { canTakeAssessment, assessmentLockedByHr, canAccessCourses, isReady } =
+    useAssessmentAccess(isHrAssessment ? "" : assessment.courseId);
   const [showLockedModal, setShowLockedModal] = useState(false);
-  const course = getCourseById(courses, assessment.courseId);
+  const course = isHrAssessment
+    ? null
+    : getCourseById(courses, assessment.courseId);
   const rawFirstName = user?.name?.split(" ")[0] || "Staff";
   const firstName =
     rawFirstName.charAt(0).toUpperCase() + rawFirstName.slice(1).toLowerCase();
   const resultsPath = getResultsPath(user?.role) || "/dashboard/results";
+  const isPrivilegedUser = ["hr", "admin"].includes(user?.role);
+  const locked = isHrAssessment
+    ? Boolean(assessment.locked) && !isPrivilegedUser
+    : assessmentLockedByHr;
+  const ready = isHrAssessment || isReady;
+  const canStart = isHrAssessment
+    ? canAccessCourses && !locked
+    : canTakeAssessment;
 
-  if (!isReady) {
+  if (!ready) {
     return (
       <span className="mt-10 inline-flex h-9 w-fit items-center justify-center rounded-xl border border-slate-200/80 bg-white/80 px-3.5 text-[13px] font-semibold text-slate-500">
         Checking access...
@@ -26,7 +37,7 @@ const AssessmentCourseAction = ({ assessment, isTaken = false }) => {
     );
   }
 
-  if (assessmentLockedByHr) {
+  if (locked) {
     return (
       <>
         <button
@@ -59,7 +70,7 @@ const AssessmentCourseAction = ({ assessment, isTaken = false }) => {
     );
   }
 
-  if (canTakeAssessment) {
+  if (canStart) {
     return (
       <Link
         to={`/courses/${assessment.courseId}/assessment`}
