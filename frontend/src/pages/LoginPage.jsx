@@ -44,6 +44,13 @@ const EyeIcon = ({ hidden }) => {
   );
 };
 
+const getPostLoginPath = (role, from) => {
+  if (from?.pathname && from.pathname !== "/login") {
+    return `${from.pathname}${from.search || ""}${from.hash || ""}`;
+  }
+  return getDashboardPath(role);
+};
+
 const LoginPage = () => {
   const { isAuthenticated, login, user } = useAuth();
   const navigate = useNavigate();
@@ -57,7 +64,12 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   if (isAuthenticated) {
-    return <Navigate to={getDashboardPath(user?.role)} replace />;
+    return (
+      <Navigate
+        to={getPostLoginPath(user?.role, location.state?.from)}
+        replace
+      />
+    );
   }
 
   const handleChange = (event) => {
@@ -74,12 +86,9 @@ const LoginPage = () => {
 
     try {
       const loggedInUser = await login(formData);
-      const fallbackPath = getDashboardPath(loggedInUser.role);
-      const from = location.state?.from;
-      const redirectPath = from?.pathname
-        ? `${from.pathname}${from.search || ""}${from.hash || ""}`
-        : fallbackPath;
-      navigate(redirectPath, { replace: true });
+      navigate(getPostLoginPath(loggedInUser.role, location.state?.from), {
+        replace: true,
+      });
     } catch (apiError) {
       setError(
         apiError.response?.data?.message ||
