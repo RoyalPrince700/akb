@@ -111,7 +111,7 @@ const AdminDashboard = () => {
         <OverviewCard
           label="Project ADVANCE"
           value="Groups"
-          description="Assign staff, set team leads, monitor groups"
+          description="Assign staff and award points after account officer confirmation"
           to={projectAdvancePath}
         />
         <OverviewCard
@@ -192,7 +192,7 @@ const AdminDashboard = () => {
                 Project ADVANCE
               </Link>
               {" "}
-              — assign staff to groups, set team leads, monitor members and progress.
+              — assign staff to groups, set team leads, and award points after an account officer confirms a receipt.
             </li>
             <li>
               <Link

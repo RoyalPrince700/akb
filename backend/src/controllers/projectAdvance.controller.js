@@ -10,6 +10,7 @@ const {
 } = require("../constants/projectAdvance");
 const asyncHandler = require("../utils/asyncHandler");
 
+let groupsEnsured = false;
 let seedPromise = null;
 
 const httpError = (statusCode, message) => {
@@ -20,6 +21,7 @@ const httpError = (statusCode, message) => {
 
 const isAdminUser = (user) => user?.role === "admin";
 const isMonitorRole = (user) => user?.role === "admin" || user?.role === "hr";
+const isAccountOfficer = (user) => user?.role === "accountOfficer";
 
 const serializeMember = (member) => ({
   user: member.user?._id || member.user,
@@ -55,16 +57,28 @@ const getAssignedUserIds = async () => {
   return ids;
 };
 
-const loadAssignableStaff = async () => {
-  const assignedIds = await getAssignedUserIds();
-  const staff = await User.find({
-    role: "staff",
+const loadAssignableStaff = async (existingGroups = null) => {
+  const assignedIds = existingGroups
+    ? (() => {
+        const ids = new Set();
+        for (const group of existingGroups) {
+          for (const member of group.members || []) {
+            const userId = member?.user?._id || member?.user;
+            if (userId) {
+              ids.add(String(userId));
+            }
+          }
+        }
+        return ids;
+      })()
+    : await getAssignedUserIds();
+  const users = await User.find({
     isActive: true,
   })
-    .select("name department position staffId")
+    .select("name department position staffId role")
     .sort({ name: 1 });
 
-  return staff
+  return users
     .filter((user) => !assignedIds.has(String(user._id)))
     .map((user) => ({
       _id: user._id,
@@ -72,6 +86,7 @@ const loadAssignableStaff = async () => {
       department: user.department || "",
       position: user.position || "",
       staffId: user.staffId || "",
+      role: user.role || "staff",
     }));
 };
 
@@ -118,6 +133,10 @@ const serializeProgress = (item) => {
     reviewedByName: doc.reviewedByName || "",
     reviewedAt: doc.reviewedAt || null,
     reviewNote: doc.reviewNote || "",
+    accountReviewedBy: doc.accountReviewedBy?._id || doc.accountReviewedBy || null,
+    accountReviewedByName: doc.accountReviewedByName || "",
+    accountReviewedAt: doc.accountReviewedAt || null,
+    accountReviewNote: doc.accountReviewNote || "",
     pointsAwarded: doc.pointsAwarded || 0,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
@@ -159,6 +178,10 @@ const isLinkedMember = (member) => {
 };
 
 const ensureGroupsSeeded = async () => {
+  if (groupsEnsured) {
+    return;
+  }
+
   if (!seedPromise) {
     seedPromise = (async () => {
       // One-time wipe of allocation-sheet / demo members from the old PA setup.
@@ -178,7 +201,7 @@ const ensureGroupsSeeded = async () => {
               membersReset: "self-join-v1",
             },
           },
-          { upsert: true, new: true, setDefaultsOnInsert: true }
+          { upsert: true, returnDocument: "after", setDefaultsOnInsert: true }
         );
 
         if (group.name !== groupNameForKey(key)) {
@@ -199,12 +222,52 @@ const ensureGroupsSeeded = async () => {
           await group.save();
         }
       }
+
+      groupsEnsured = true;
     })().finally(() => {
       seedPromise = null;
     });
   }
 
   await seedPromise;
+};
+
+const loadProgressStatsForGroups = async (groupIds) => {
+  if (!groupIds.length) {
+    return new Map();
+  }
+
+  const rows = await PaProgress.aggregate([
+    { $match: { group: { $in: groupIds } } },
+    {
+      $group: {
+        _id: "$group",
+        updateCount: { $sum: 1 },
+        pendingReceiptCount: {
+          $sum: {
+            $cond: [
+              {
+                $and: [
+                  { $eq: ["$receiptStatus", "pending"] },
+                  { $gt: [{ $strLenCP: { $ifNull: ["$receiptUrl", ""] } }, 0] },
+                ],
+              },
+              1,
+              0,
+            ],
+          },
+        },
+        awaitingPointsCount: {
+          $sum: {
+            $cond: [{ $eq: ["$receiptStatus", "accountApproved"] }, 1, 0],
+          },
+        },
+        latestUpdateAt: { $max: "$createdAt" },
+      },
+    },
+  ]);
+
+  return new Map(rows.map((row) => [String(row._id), row]));
 };
 
 const findGroupForUser = async (userId) => {
@@ -304,10 +367,6 @@ const assignGroupMember = asyncHandler(async (req, res) => {
   );
   if (!staffMember || !staffMember.isActive) {
     throw httpError(404, "Staff member not found or inactive");
-  }
-
-  if (staffMember.role !== "staff") {
-    throw httpError(400, "Only staff accounts can be assigned to a Project ADVANCE group");
   }
 
   const existing = await findGroupForUser(staffMember._id);
@@ -438,15 +497,15 @@ const createProgress = asyncHandler(async (req, res) => {
 
   res.status(201).json({
     message: payload.receiptStatus === "pending"
-      ? "Progress posted with receipt. HR will review it before awarding points."
+      ? "Progress posted with receipt. An account officer must confirm it before HR can award points."
       : "Progress update posted.",
     update: serializeProgress(progress),
   });
 });
 
 const reviewProgressReceipt = asyncHandler(async (req, res) => {
-  if (!isMonitorRole(req.user)) {
-    throw httpError(403, "Only HR and admin can review payment receipts");
+  if (!isAccountOfficer(req.user)) {
+    throw httpError(403, "Only an account officer can confirm payment receipts");
   }
 
   await ensureGroupsSeeded();
@@ -454,7 +513,6 @@ const reviewProgressReceipt = asyncHandler(async (req, res) => {
   const updateId = String(req.params.updateId || "").trim();
   const action = String(req.body.action || "").trim().toLowerCase();
   const note = String(req.body.note || "").trim();
-  const points = Number(req.body.points);
 
   if (!updateId) {
     throw httpError(400, "Progress update is required");
@@ -474,7 +532,7 @@ const reviewProgressReceipt = asyncHandler(async (req, res) => {
   }
 
   if (progress.receiptStatus !== "pending" || !progress.receiptUrl) {
-    throw httpError(400, "This update does not have a receipt waiting for review");
+    throw httpError(400, "This update does not have a receipt waiting for account officer review");
   }
 
   const group = await PaGroup.findById(progress.group);
@@ -482,30 +540,68 @@ const reviewProgressReceipt = asyncHandler(async (req, res) => {
     throw httpError(404, "Group not found");
   }
 
-  if (action === "reject") {
-    progress.receiptStatus = "rejected";
-    progress.reviewedBy = req.user._id;
-    progress.reviewedByName = req.user.name;
-    progress.reviewedAt = new Date();
-    progress.reviewNote = note;
-    await progress.save();
+  progress.receiptStatus = action === "reject" ? "rejected" : "accountApproved";
+  progress.accountReviewedBy = req.user._id;
+  progress.accountReviewedByName = req.user.name;
+  progress.accountReviewedAt = new Date();
+  progress.accountReviewNote = note;
+  await progress.save();
 
-    res.json({
-      message: `Receipt from ${progress.authorName} was rejected`,
-      update: serializeProgress(progress),
-    });
-    return;
+  res.json({
+    message:
+      action === "reject"
+        ? `Receipt from ${progress.authorName} in ${group.name} was rejected`
+        : `Receipt from ${progress.authorName} in ${group.name} was confirmed. HR can now award points.`,
+    update: serializeProgress(progress),
+  });
+});
+
+const awardReceiptPoints = asyncHandler(async (req, res) => {
+  if (!isMonitorRole(req.user)) {
+    throw httpError(403, "Only HR and admin can award points on a confirmed receipt");
+  }
+
+  await ensureGroupsSeeded();
+
+  const updateId = String(req.params.updateId || "").trim();
+  const note = String(req.body.note || "").trim();
+  const points = Number(req.body.points);
+
+  if (!updateId) {
+    throw httpError(400, "Progress update is required");
+  }
+
+  if (note.length > 500) {
+    throw httpError(400, "Note must be 500 characters or fewer");
   }
 
   if (!Number.isFinite(points) || !Number.isInteger(points) || points <= 0) {
-    throw httpError(
-      400,
-      "Enter a whole number of points greater than zero to approve this receipt"
-    );
+    throw httpError(400, "Enter a whole number of points greater than zero");
   }
 
   if (points > 100000) {
     throw httpError(400, "Points amount is too large");
+  }
+
+  const progress = await PaProgress.findById(updateId);
+  if (!progress || !progress.receiptUrl) {
+    throw httpError(404, "Progress update not found");
+  }
+
+  if (progress.receiptStatus !== "accountApproved") {
+    throw httpError(
+      400,
+      "Points can only be awarded after an account officer confirms the receipt"
+    );
+  }
+
+  if (progress.pointsAwarded > 0 || progress.pointAward) {
+    throw httpError(400, "Points were already awarded for this receipt");
+  }
+
+  const group = await PaGroup.findById(progress.group);
+  if (!group) {
+    throw httpError(404, "Group not found");
   }
 
   const award = await PaPointAward.create({
@@ -513,7 +609,7 @@ const reviewProgressReceipt = asyncHandler(async (req, res) => {
     points,
     note:
       note ||
-      `Approved receipt from ${progress.authorName}: ${progress.body.slice(0, 120)}`,
+      `Confirmed receipt from ${progress.authorName}: ${progress.body.slice(0, 120)}`,
     awardedBy: req.user._id,
     awardedByName: req.user.name,
     progress: progress._id,
@@ -532,7 +628,7 @@ const reviewProgressReceipt = asyncHandler(async (req, res) => {
   await progress.save();
 
   res.json({
-    message: `Approved receipt from ${progress.authorName} and awarded ${points} points to ${group.name}`,
+    message: `Awarded ${points} points to ${group.name} for the confirmed receipt from ${progress.authorName}`,
     update: serializeProgress(progress),
     award: serializePointAward(award),
     group: {
@@ -545,78 +641,40 @@ const reviewProgressReceipt = asyncHandler(async (req, res) => {
   });
 });
 
-const awardGroupPoints = asyncHandler(async (req, res) => {
-  if (!isMonitorRole(req.user)) {
-    throw httpError(403, "Only HR and admin can award Project ADVANCE points");
+const getReceiptDesk = asyncHandler(async (req, res) => {
+  if (!isAccountOfficer(req.user)) {
+    throw httpError(403, "Only an account officer can review payment receipts");
   }
 
   await ensureGroupsSeeded();
 
-  const groupId = String(req.body.groupId || "").trim();
-  const note = String(req.body.note || "").trim();
-  const points = Number(req.body.points);
-  const isAdmin = isAdminUser(req.user);
+  const groups = await PaGroup.find().sort({ key: 1 });
+  const updates = await PaProgress.find({
+    group: { $in: groups.map((group) => group._id) },
+    receiptUrl: { $nin: [null, ""] },
+  })
+    .populate("group", "name key")
+    .sort({ createdAt: -1 });
 
-  if (!groupId) {
-    throw httpError(400, "Select a group to award points");
-  }
+  res.json({
+    groups: groups.map((group) => {
+      const receipts = updates
+        .filter(
+          (item) => String(item.group?._id || item.group) === String(group._id)
+        )
+        .map(serializeProgress);
 
-  if (!Number.isFinite(points) || !Number.isInteger(points) || points === 0) {
-    throw httpError(400, "Enter a whole number of points other than zero");
-  }
-
-  if (!isAdmin && points < 0) {
-    throw httpError(
-      403,
-      "Only an administrator can reduce group points. Ask admin to correct a mistaken award."
-    );
-  }
-
-  if (Math.abs(points) > 100000) {
-    throw httpError(400, "Points amount is too large");
-  }
-
-  if (note.length > 500) {
-    throw httpError(400, "Note must be 500 characters or fewer");
-  }
-
-  const group = await PaGroup.findById(groupId);
-  if (!group) {
-    throw httpError(404, "Group not found");
-  }
-
-  const nextTotal = (group.totalPoints || 0) + points;
-  if (nextTotal < 0) {
-    throw httpError(
-      400,
-      `${group.name} only has ${group.totalPoints || 0} points. You cannot subtract more than that.`
-    );
-  }
-
-  const award = await PaPointAward.create({
-    group: group._id,
-    points,
-    note,
-    awardedBy: req.user._id,
-    awardedByName: req.user.name,
-  });
-
-  group.totalPoints = nextTotal;
-  await group.save();
-
-  res.status(201).json({
-    message:
-      points > 0
-        ? `Awarded ${points} points to ${group.name}`
-        : `Removed ${Math.abs(points)} points from ${group.name}`,
-    award: serializePointAward(award),
-    group: {
-      _id: group._id,
-      key: group.key,
-      name: group.name,
-      totalPoints: group.totalPoints,
-      headcount: group.members.length,
-    },
+      return {
+        _id: group._id,
+        key: group.key,
+        name: group.name,
+        headcount: group.members.length,
+        totalPoints: group.totalPoints || 0,
+        pendingCount: receipts.filter((item) => item.receiptStatus === "pending")
+          .length,
+        receipts,
+      };
+    }),
   });
 });
 
@@ -676,40 +734,25 @@ const getMonitor = asyncHandler(async (req, res) => {
   const groups = await PaGroup.find().sort({ key: 1 });
   const groupIds = groups.map((group) => group._id);
 
-  const [updates, pointAwards] = await Promise.all([
-    PaProgress.find({ group: { $in: groupIds } })
-      .populate("group", "name key")
-      .sort({ createdAt: -1 }),
-    PaPointAward.find({ group: { $in: groupIds } })
-      .populate("group", "name key")
-      .sort({ createdAt: -1 }),
-  ]);
-
   const selectedId = req.query.groupId ? String(req.query.groupId) : "";
   const selectedGroup =
     groups.find((group) => String(group._id) === selectedId) || groups[0] || null;
 
-  const selectedUpdates = selectedGroup
-    ? updates.filter(
-        (item) => String(item.group?._id || item.group) === String(selectedGroup._id)
-      )
-    : [];
-  const selectedAwards = selectedGroup
-    ? pointAwards.filter(
-        (item) => String(item.group?._id || item.group) === String(selectedGroup._id)
-      )
-    : [];
+  const [progressStats, assignableStaff, selectedUpdates, selectedAwards] =
+    await Promise.all([
+      loadProgressStatsForGroups(groupIds),
+      loadAssignableStaff(groups),
+      selectedGroup ? loadUpdatesForGroup(selectedGroup._id) : Promise.resolve([]),
+      selectedGroup
+        ? loadPointAwardsForGroup(selectedGroup._id)
+        : Promise.resolve([]),
+    ]);
 
   res.json({
     maxMembers: MAX_MEMBERS_PER_GROUP,
-    assignableStaff: await loadAssignableStaff(),
+    assignableStaff,
     groups: groups.map((group) => {
-      const related = updates.filter(
-        (item) => String(item.group?._id || item.group) === String(group._id)
-      );
-      const pendingReceipts = related.filter(
-        (item) => item.receiptStatus === "pending" && item.receiptUrl
-      );
+      const stats = progressStats.get(String(group._id));
       const teamLead = group.members.find((member) => member.isTeamLead);
 
       return {
@@ -718,9 +761,10 @@ const getMonitor = asyncHandler(async (req, res) => {
         name: group.name,
         headcount: group.members.length,
         totalPoints: group.totalPoints || 0,
-        updateCount: related.length,
-        pendingReceiptCount: pendingReceipts.length,
-        latestUpdateAt: related[0]?.createdAt || null,
+        updateCount: stats?.updateCount || 0,
+        pendingReceiptCount: stats?.pendingReceiptCount || 0,
+        awaitingPointsCount: stats?.awaitingPointsCount || 0,
+        latestUpdateAt: stats?.latestUpdateAt || null,
         teamLeadName: teamLead?.name || null,
       };
     }),
@@ -732,10 +776,11 @@ const getMonitor = asyncHandler(async (req, res) => {
 
 module.exports = {
   assignGroupMember,
-  awardGroupPoints,
+  awardReceiptPoints,
   createProgress,
   getMonitor,
   getMyWorkspace,
+  getReceiptDesk,
   joinGroup,
   removeGroupMember,
   reviewProgressReceipt,

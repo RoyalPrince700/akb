@@ -598,13 +598,21 @@ export const reviewPaProgressReceipt = async (updateId, payload) => {
   return response.data;
 };
 
-export const getPaMonitor = async (params = {}) => {
-  const response = await api.get("/project-advance/monitor", { params });
+export const getPaReceiptDesk = async () => {
+  const response = await api.get("/project-advance/receipts");
   return response.data;
 };
 
-export const awardPaGroupPoints = async (payload) => {
-  const response = await api.post("/project-advance/points", payload);
+export const awardPaReceiptPoints = async (updateId, payload) => {
+  const response = await api.post(
+    `/project-advance/updates/${updateId}/points`,
+    payload
+  );
+  return response.data;
+};
+
+export const getPaMonitor = async (params = {}) => {
+  const response = await api.get("/project-advance/monitor", { params });
   return response.data;
 };
 

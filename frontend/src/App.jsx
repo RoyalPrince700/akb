@@ -4,6 +4,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AssessmentsPage from "./pages/AssessmentsPage";
 import AssessmentResultPage from "./pages/AssessmentResultPage";
 import AssessmentResultsPage from "./pages/AssessmentResultsPage";
+import AccountOfficerDashboard from "./pages/AccountOfficerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import ChapterReaderPage from "./pages/ChapterReaderPage";
 import CsrDashboard from "./pages/CsrDashboard";
@@ -127,7 +128,7 @@ const App = () => {
         path="/profile"
         element={
           <ProtectedRoute
-            roles={["staff", "hr", "admin", "csr", "csrAdmin", "security", "pa"]}
+            roles={["staff", "hr", "admin", "csr", "csrAdmin", "security", "pa", "accountOfficer"]}
           >
             <ProfilePage />
           </ProtectedRoute>
@@ -153,7 +154,7 @@ const App = () => {
         path="/project-advance"
         element={
           <ProtectedRoute
-            roles={["staff", "hr", "admin", "csr", "csrAdmin", "security", "pa"]}
+            roles={["staff", "hr", "admin", "csr", "csrAdmin", "security", "pa", "accountOfficer"]}
           >
             <ProjectAdvancePage />
           </ProtectedRoute>
@@ -251,6 +252,15 @@ const App = () => {
       <Route
         path="/hr/project-advance"
         element={hrAdminPanel(<ProjectAdvancePage />)}
+      />
+
+      <Route
+        path="/account-officer"
+        element={
+          <ProtectedRoute roles={["accountOfficer"]}>
+            <AccountOfficerDashboard />
+          </ProtectedRoute>
+        }
       />
 
       <Route

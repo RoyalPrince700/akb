@@ -2,16 +2,18 @@ const express = require("express");
 
 const {
   assignGroupMember,
-  awardGroupPoints,
+  awardReceiptPoints,
   createProgress,
   getMonitor,
   getMyWorkspace,
+  getReceiptDesk,
   joinGroup,
   removeGroupMember,
   reviewProgressReceipt,
   setGroupTeamLead,
 } = require("../controllers/projectAdvance.controller");
 const {
+  authorize,
   authorizeAdmin,
   authorizeHrOrAdmin,
   protect,
@@ -25,13 +27,18 @@ router.use(protect);
 router.get("/me", getMyWorkspace);
 router.post("/join", joinGroup);
 router.post("/updates", uploadImage.single("receipt"), createProgress);
+router.get("/receipts", authorize("accountOfficer"), getReceiptDesk);
 router.post(
   "/updates/:updateId/review",
-  authorizeHrOrAdmin,
+  authorize("accountOfficer"),
   reviewProgressReceipt
 );
+router.post(
+  "/updates/:updateId/points",
+  authorizeHrOrAdmin,
+  awardReceiptPoints
+);
 router.get("/monitor", authorizeHrOrAdmin, getMonitor);
-router.post("/points", authorizeHrOrAdmin, awardGroupPoints);
 router.post(
   "/groups/:groupId/members",
   authorizeHrOrAdmin,

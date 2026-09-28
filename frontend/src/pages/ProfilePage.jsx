@@ -37,6 +37,7 @@ const roleBadgeClass = (role) => {
   if (role === "admin") return "bg-amber-50 text-amber-700";
   if (role === "hr") return "bg-violet-50 text-violet-700";
   if (role === "pa") return "bg-orange-50 text-orange-700";
+  if (role === "accountOfficer") return "bg-sky-50 text-sky-800";
   return "bg-blue-50 text-blue-700";
 };
 

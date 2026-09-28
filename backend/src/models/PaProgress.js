@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const RECEIPT_STATUSES = ["none", "pending", "approved", "rejected"];
+const RECEIPT_STATUSES = ["none", "pending", "accountApproved", "approved", "rejected"];
 
 const paProgressSchema = new mongoose.Schema(
   {
@@ -53,6 +53,26 @@ const paProgressSchema = new mongoose.Schema(
       default: null,
     },
     reviewNote: {
+      type: String,
+      trim: true,
+      default: "",
+      maxlength: [500, "Review note must be 500 characters or fewer"],
+    },
+    accountReviewedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    accountReviewedByName: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    accountReviewedAt: {
+      type: Date,
+      default: null,
+    },
+    accountReviewNote: {
       type: String,
       trim: true,
       default: "",

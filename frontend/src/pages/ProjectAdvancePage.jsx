@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CheckCircle2,
+  ChevronDown,
   Crown,
   MessageSquareText,
   Receipt,
@@ -8,9 +9,9 @@ import {
   UserMinus,
   UserPlus,
   Users,
-  XCircle,
 } from "lucide-react";
 
+import { formatRoleLabel } from "../constants/crm";
 import {
   formatJoinedDate,
   formatProgressTime,
@@ -20,24 +21,25 @@ import DashboardLayout from "../layouts/DashboardLayout";
 import PanelLayout from "../layouts/PanelLayout";
 import {
   assignPaGroupMember,
-  awardPaGroupPoints,
+  awardPaReceiptPoints,
   createPaProgress,
   getPaMonitor,
   getPaWorkspace,
   joinPaGroup,
   removePaGroupMember,
-  reviewPaProgressReceipt,
   setPaGroupTeamLead,
 } from "../services/api";
 
 const receiptStatusLabel = (status) => {
   switch (status) {
     case "pending":
-      return "Receipt pending review";
+      return "Awaiting account officer";
+    case "accountApproved":
+      return "Confirmed · awaiting HR points";
     case "approved":
-      return "Receipt approved";
+      return "Points awarded";
     case "rejected":
-      return "Receipt rejected";
+      return "Rejected by account officer";
     default:
       return null;
   }
@@ -47,6 +49,8 @@ const receiptStatusClass = (status) => {
   switch (status) {
     case "pending":
       return "bg-amber-50 text-amber-800";
+    case "accountApproved":
+      return "bg-sky-50 text-sky-800";
     case "approved":
       return "bg-emerald-50 text-emerald-800";
     case "rejected":
@@ -261,9 +265,7 @@ const UpdatesFeed = ({ updates, emptyLabel }) => (
                     )}`}
                   >
                     {statusText}
-                    {item.receiptStatus === "approved" && item.pointsAwarded
-                      ? ` · ${item.pointsAwarded} pts`
-                      : ""}
+                    {item.pointsAwarded ? ` · ${item.pointsAwarded} pts` : ""}
                   </span>
                 ) : null}
                 <a
@@ -278,6 +280,11 @@ const UpdatesFeed = ({ updates, emptyLabel }) => (
                     className="max-h-48 w-full object-contain bg-slate-50"
                   />
                 </a>
+                {item.accountReviewNote ? (
+                  <p className="text-xs text-slate-500">
+                    Account officer: {item.accountReviewNote}
+                  </p>
+                ) : null}
                 {item.reviewNote ? (
                   <p className="text-xs text-slate-500">
                     HR note: {item.reviewNote}
@@ -295,17 +302,10 @@ const UpdatesFeed = ({ updates, emptyLabel }) => (
   </div>
 );
 
-const PendingReceiptsPanel = ({
-  updates,
-  reviewingId,
-  onApprove,
-  onReject,
-}) => {
+const AwaitingAccountOfficerPanel = ({ updates }) => {
   const pending = (updates || []).filter(
     (item) => item.receiptStatus === "pending" && item.receiptUrl
   );
-  const [pointsById, setPointsById] = useState({});
-  const [noteById, setNoteById] = useState({});
 
   if (!pending.length) {
     return null;
@@ -319,120 +319,162 @@ const PendingReceiptsPanel = ({
         </span>
         <div>
           <h2 className="text-lg font-bold tracking-tight text-slate-950">
-            Receipts awaiting approval
+            Waiting for account officer
           </h2>
           <p className="text-sm text-slate-600">
-            Review payment proof, then approve with points or reject.
+            These receipts are with the account officer. Points stay locked until they confirm.
+          </p>
+        </div>
+      </div>
+      <div className="mt-5 space-y-3">
+        {pending.map((item) => (
+          <article
+            key={item._id}
+            className="rounded-2xl border border-amber-100 bg-white px-4 py-4"
+          >
+            <p className="text-sm font-semibold text-slate-950">{item.authorName}</p>
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+              {item.body}
+            </p>
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const AwardReceiptPointsPanel = ({ updates, reviewingId, onAward }) => {
+  const ready = (updates || []).filter(
+    (item) => item.receiptStatus === "accountApproved" && item.receiptUrl
+  );
+  const [pointsById, setPointsById] = useState({});
+  const [noteById, setNoteById] = useState({});
+
+  return (
+    <div className="rounded-[28px] border border-emerald-200/80 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)]">
+      <div className="flex items-center gap-3">
+        <span className="grid h-10 w-10 place-items-center rounded-2xl bg-emerald-50 text-emerald-800">
+          <Trophy className="h-5 w-5" />
+        </span>
+        <div>
+          <h2 className="text-lg font-bold tracking-tight text-slate-950">
+            Award points on confirmed receipts
+          </h2>
+          <p className="text-sm text-slate-600">
+            Points can be assigned only after an account officer confirms the receipt.
           </p>
         </div>
       </div>
 
       <div className="mt-5 space-y-4">
-        {pending.map((item) => {
-          const busy = reviewingId === String(item._id);
-          const points = pointsById[item._id] ?? "";
-          const note = noteById[item._id] ?? "";
+        {ready.length ? (
+          ready.map((item) => {
+            const busy = reviewingId === String(item._id);
+            const points = pointsById[item._id] ?? "";
+            const note = noteById[item._id] ?? "";
 
-          return (
-            <article
-              key={item._id}
-              className="rounded-2xl border border-amber-100 bg-white px-4 py-4"
-            >
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <p className="text-sm font-semibold text-slate-950">
-                  {item.authorName}
-                </p>
-                <p className="text-xs text-slate-500">
-                  {formatProgressTime(item.createdAt)}
-                </p>
-              </div>
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                {item.body}
-              </p>
-              <a
-                href={item.receiptUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 block overflow-hidden rounded-xl border border-slate-100"
+            return (
+              <article
+                key={item._id}
+                className="rounded-2xl border border-slate-100 bg-slate-50/60 px-4 py-4"
               >
-                <img
-                  src={item.receiptUrl}
-                  alt={`Payment receipt from ${item.authorName}`}
-                  className="max-h-56 w-full object-contain bg-slate-50"
-                />
-              </a>
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_1.2fr]">
-                <div>
-                  <label
-                    className="text-xs font-medium text-slate-700"
-                    htmlFor={`approve-points-${item._id}`}
-                  >
-                    Points to award
-                  </label>
-                  <input
-                    id={`approve-points-${item._id}`}
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={points}
-                    onChange={(event) =>
-                      setPointsById((current) => ({
-                        ...current,
-                        [item._id]: event.target.value,
-                      }))
-                    }
-                    placeholder="e.g. 50"
-                    className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-                  />
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="text-sm font-semibold text-slate-950">
+                    {item.authorName}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {formatProgressTime(item.createdAt)}
+                  </p>
                 </div>
-                <div>
-                  <label
-                    className="text-xs font-medium text-slate-700"
-                    htmlFor={`review-note-${item._id}`}
-                  >
-                    Note (optional)
-                  </label>
-                  <input
-                    id={`review-note-${item._id}`}
-                    type="text"
-                    maxLength={500}
-                    value={note}
-                    onChange={(event) =>
-                      setNoteById((current) => ({
-                        ...current,
-                        [item._id]: event.target.value,
-                      }))
-                    }
-                    placeholder="Reason or comment"
-                    className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+                <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                  {item.body}
+                </p>
+                {item.accountReviewedByName ? (
+                  <p className="mt-2 text-xs text-sky-800">
+                    Confirmed by {item.accountReviewedByName}
+                    {item.accountReviewNote ? ` · ${item.accountReviewNote}` : ""}
+                  </p>
+                ) : null}
+                <a
+                  href={item.receiptUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 block overflow-hidden rounded-xl border border-slate-100 bg-white"
+                >
+                  <img
+                    src={item.receiptUrl}
+                    alt={`Payment receipt from ${item.authorName}`}
+                    className="max-h-56 w-full object-contain bg-slate-50"
                   />
-                </div>
-              </div>
+                </a>
 
-              <div className="mt-4 flex flex-wrap justify-end gap-2">
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => onReject?.(item, note)}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-60"
-                >
-                  <XCircle className="h-4 w-4" />
-                  {busy ? "Working..." : "Reject"}
-                </button>
-                <button
-                  type="button"
-                  disabled={busy || !points}
-                  onClick={() => onApprove?.(item, points, note)}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:opacity-60"
-                >
-                  <CheckCircle2 className="h-4 w-4" />
-                  {busy ? "Working..." : "Approve & award"}
-                </button>
-              </div>
-            </article>
-          );
-        })}
+                <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_1.2fr]">
+                  <div>
+                    <label
+                      className="text-xs font-medium text-slate-700"
+                      htmlFor={`award-points-${item._id}`}
+                    >
+                      Points to award
+                    </label>
+                    <input
+                      id={`award-points-${item._id}`}
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={points}
+                      onChange={(event) =>
+                        setPointsById((current) => ({
+                          ...current,
+                          [item._id]: event.target.value,
+                        }))
+                      }
+                      placeholder="e.g. 50"
+                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      className="text-xs font-medium text-slate-700"
+                      htmlFor={`award-note-${item._id}`}
+                    >
+                      Note (optional)
+                    </label>
+                    <input
+                      id={`award-note-${item._id}`}
+                      type="text"
+                      maxLength={500}
+                      value={note}
+                      onChange={(event) =>
+                        setNoteById((current) => ({
+                          ...current,
+                          [item._id]: event.target.value,
+                        }))
+                      }
+                      placeholder="Reason or comment"
+                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-4 flex justify-end">
+                  <button
+                    type="button"
+                    disabled={busy || !points}
+                    onClick={() => onAward?.(item, points, note)}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:opacity-60"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    {busy ? "Saving..." : "Award points"}
+                  </button>
+                </div>
+              </article>
+            );
+          })
+        ) : (
+          <p className="text-sm text-slate-500">
+            No confirmed receipts are waiting for points in this group.
+          </p>
+        )}
       </div>
     </div>
   );
@@ -712,6 +754,168 @@ const StaffWorkspace = () => {
   );
 };
 
+const staffOptionLabel = (staff) =>
+  [
+    staff?.name,
+    staff?.role ? formatRoleLabel(staff.role) : "",
+    staff?.department,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+const staffMatchesQuery = (staff, query) => {
+  const needle = query.trim().toLowerCase();
+  if (!needle) {
+    return true;
+  }
+
+  const haystack = [
+    staff?.name,
+    staff?.department,
+    staff?.position,
+    staff?.staffId,
+    staff?.role ? formatRoleLabel(staff.role) : "",
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return haystack.includes(needle);
+};
+
+const StaffSearchSelect = ({ id, staff, value, onChange, disabled }) => {
+  const containerRef = useRef(null);
+  const listboxId = `${id}-listbox`;
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const selected = staff.find((item) => String(item._id) === String(value)) || null;
+
+  useEffect(() => {
+    if (open) {
+      return;
+    }
+
+    setQuery(selected ? staffOptionLabel(selected) : "");
+  }, [open, selected]);
+
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
+
+  const filteredStaff = useMemo(
+    () => staff.filter((item) => staffMatchesQuery(item, query)),
+    [staff, query]
+  );
+
+  const chooseStaff = (item) => {
+    onChange(String(item._id));
+    setQuery(staffOptionLabel(item));
+    setOpen(false);
+  };
+
+  return (
+    <div ref={containerRef} className="relative mt-1">
+      <div className="relative">
+        <input
+          id={id}
+          type="text"
+          role="combobox"
+          aria-expanded={open}
+          aria-controls={listboxId}
+          aria-autocomplete="list"
+          autoComplete="off"
+          disabled={disabled}
+          placeholder={
+            staff.length ? "Search or select a user" : "No unassigned users available"
+          }
+          value={query}
+          onFocus={() => {
+            if (disabled) {
+              return;
+            }
+            setQuery("");
+            setOpen(true);
+          }}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setOpen(true);
+            if (value) {
+              onChange("");
+            }
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              setOpen(false);
+            }
+            if (event.key === "Enter" && open && filteredStaff.length === 1) {
+              event.preventDefault();
+              chooseStaff(filteredStaff[0]);
+            }
+          }}
+          className="w-full rounded-xl border border-slate-300 py-2.5 pr-10 pl-4 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-50"
+        />
+        <button
+          type="button"
+          aria-label="Show staff list"
+          disabled={disabled}
+          onClick={() => {
+            if (disabled) {
+              return;
+            }
+            setOpen((current) => !current);
+            if (!open) {
+              setQuery("");
+            }
+          }}
+          className="absolute top-1/2 right-2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+        >
+          <ChevronDown className="h-4 w-4" />
+        </button>
+      </div>
+
+      {open && !disabled ? (
+        <ul
+          id={listboxId}
+          role="listbox"
+          className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+        >
+          {filteredStaff.length ? (
+            filteredStaff.map((item) => (
+              <li key={item._id} role="option" aria-selected={String(item._id) === String(value)}>
+                <button
+                  type="button"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => chooseStaff(item)}
+                  className="w-full px-4 py-2.5 text-left text-sm text-slate-950 hover:bg-violet-50"
+                >
+                  <span className="font-medium">{item.name}</span>
+                  <span className="text-slate-500">
+                    {item.role ? ` · ${formatRoleLabel(item.role)}` : ""}
+                    {item.department ? ` · ${item.department}` : ""}
+                  </span>
+                </button>
+              </li>
+            ))
+          ) : (
+            <li className="px-4 py-2.5 text-sm text-slate-500">No matching users</li>
+          )}
+        </ul>
+      ) : null}
+    </div>
+  );
+};
+
 const MonitorWorkspace = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
@@ -722,11 +926,9 @@ const MonitorWorkspace = () => {
   });
   const [selectedGroupId, setSelectedGroupId] = useState("");
   const [assignUserId, setAssignUserId] = useState("");
+  const [assignGroupId, setAssignGroupId] = useState("");
   const [assignAsLead, setAssignAsLead] = useState(false);
-  const [pointsValue, setPointsValue] = useState("");
-  const [pointsNote, setPointsNote] = useState("");
   const [loading, setLoading] = useState(true);
-  const [awarding, setAwarding] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [removingUserId, setRemovingUserId] = useState("");
   const [leadingUserId, setLeadingUserId] = useState("");
@@ -763,42 +965,15 @@ const MonitorWorkspace = () => {
     loadMonitor();
   }, [loadMonitor]);
 
-  const handleAwardPoints = async (event) => {
-    event.preventDefault();
-    if (!selectedGroupId || !pointsValue) {
-      return;
+  useEffect(() => {
+    if (!assignGroupId && selectedGroupId) {
+      setAssignGroupId(selectedGroupId);
     }
-
-    const points = Number(pointsValue);
-    if (!isAdmin && points < 0) {
-      setError("Only an administrator can reduce group points.");
-      return;
-    }
-
-    setAwarding(true);
-    setError("");
-    setNotice("");
-
-    try {
-      const data = await awardPaGroupPoints({
-        groupId: selectedGroupId,
-        points,
-        note: pointsNote.trim(),
-      });
-      setPointsValue("");
-      setPointsNote("");
-      setNotice(data.message);
-      await loadMonitor();
-    } catch (err) {
-      setError(err.response?.data?.message || "Could not update points.");
-    } finally {
-      setAwarding(false);
-    }
-  };
+  }, [assignGroupId, selectedGroupId]);
 
   const handleAssignMember = async (event) => {
     event.preventDefault();
-    if (!selectedGroupId || !assignUserId) {
+    if (!assignGroupId || !assignUserId) {
       return;
     }
 
@@ -807,14 +982,18 @@ const MonitorWorkspace = () => {
     setNotice("");
 
     try {
-      const data = await assignPaGroupMember(selectedGroupId, {
+      const data = await assignPaGroupMember(assignGroupId, {
         userId: assignUserId,
         isTeamLead: assignAsLead,
       });
       setAssignUserId("");
       setAssignAsLead(false);
       setNotice(data.message);
-      await loadMonitor();
+      if (assignGroupId !== selectedGroupId) {
+        setSelectedGroupId(assignGroupId);
+      } else {
+        await loadMonitor();
+      }
     } catch (err) {
       setError(err.response?.data?.message || "Could not assign that staff member.");
     } finally {
@@ -871,10 +1050,10 @@ const MonitorWorkspace = () => {
     }
   };
 
-  const handleApproveReceipt = async (item, pointsValue, note) => {
+  const handleAwardReceiptPoints = async (item, pointsValue, note) => {
     const points = Number(pointsValue);
     if (!item?._id || !Number.isFinite(points) || points <= 0) {
-      setError("Enter points greater than zero to approve this receipt.");
+      setError("Enter points greater than zero for this confirmed receipt.");
       return;
     }
 
@@ -883,45 +1062,14 @@ const MonitorWorkspace = () => {
     setNotice("");
 
     try {
-      const data = await reviewPaProgressReceipt(item._id, {
-        action: "approve",
+      const data = await awardPaReceiptPoints(item._id, {
         points,
         note: String(note || "").trim(),
       });
       setNotice(data.message);
       await loadMonitor();
     } catch (err) {
-      setError(err.response?.data?.message || "Could not approve that receipt.");
-    } finally {
-      setReviewingId("");
-    }
-  };
-
-  const handleRejectReceipt = async (item, note) => {
-    if (!item?._id) {
-      return;
-    }
-
-    const confirmed = window.confirm(
-      `Reject the receipt from ${item.authorName}? No points will be awarded.`
-    );
-    if (!confirmed) {
-      return;
-    }
-
-    setReviewingId(String(item._id));
-    setError("");
-    setNotice("");
-
-    try {
-      const data = await reviewPaProgressReceipt(item._id, {
-        action: "reject",
-        note: String(note || "").trim(),
-      });
-      setNotice(data.message);
-      await loadMonitor();
-    } catch (err) {
-      setError(err.response?.data?.message || "Could not reject that receipt.");
+      setError(err.response?.data?.message || "Could not award points for that receipt.");
     } finally {
       setReviewingId("");
     }
@@ -929,8 +1077,12 @@ const MonitorWorkspace = () => {
 
   const selected = monitor.selectedGroup;
   const assignableStaff = monitor.assignableStaff || [];
-  const groupIsFull =
-    (selected?.members?.length || 0) >= (monitor.maxMembers || 6);
+  const groups = monitor.groups || [];
+  const maxMembers = monitor.maxMembers || 6;
+  const assignGroup =
+    groups.find((group) => group._id === assignGroupId) || null;
+  const assignGroupIsFull =
+    Boolean(assignGroup) && (assignGroup.headcount || 0) >= maxMembers;
 
   if (loading) {
     return (
@@ -981,9 +1133,10 @@ const MonitorWorkspace = () => {
               pts · {group.headcount} staff · {group.updateCount} update
               {group.updateCount === 1 ? "" : "s"}
               {group.pendingReceiptCount
-                ? ` · ${group.pendingReceiptCount} receipt${
-                    group.pendingReceiptCount === 1 ? "" : "s"
-                  } pending`
+                ? ` · ${group.pendingReceiptCount} with account officer`
+                : ""}
+              {group.awaitingPointsCount
+                ? ` · ${group.awaitingPointsCount} ready for points`
                 : ""}
             </p>
             {group.teamLeadName ? (
@@ -1018,11 +1171,11 @@ const MonitorWorkspace = () => {
           </div>
 
           <div className="space-y-6">
-            <PendingReceiptsPanel
+            <AwaitingAccountOfficerPanel updates={selected.updates || []} />
+            <AwardReceiptPointsPanel
               updates={selected.updates || []}
               reviewingId={reviewingId}
-              onApprove={handleApproveReceipt}
-              onReject={handleRejectReceipt}
+              onAward={handleAwardReceiptPoints}
             />
 
             <form
@@ -1035,10 +1188,10 @@ const MonitorWorkspace = () => {
                 </span>
                 <div>
                   <h2 className="text-lg font-bold tracking-tight text-slate-950">
-                    Assign staff to {selected.name}
+                    Assign staff to a group
                   </h2>
                   <p className="text-sm text-slate-500">
-                    Staff can still join on their own. HR can also place them here.
+                    Choose a person, then choose their group. Any registered user who is not already in a group can be assigned, including admin and HR.
                   </p>
                 </div>
               </div>
@@ -1051,28 +1204,43 @@ const MonitorWorkspace = () => {
                   >
                     Staff member
                   </label>
-                  <select
+                  <StaffSearchSelect
                     id="assignUserId"
-                    name="assignUserId"
-                    required
+                    staff={assignableStaff}
                     value={assignUserId}
-                    onChange={(event) => setAssignUserId(event.target.value)}
-                    disabled={groupIsFull || !assignableStaff.length}
+                    onChange={setAssignUserId}
+                    disabled={!assignableStaff.length}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    className="text-sm font-medium text-slate-700"
+                    htmlFor="assignGroupId"
+                  >
+                    Group
+                  </label>
+                  <select
+                    id="assignGroupId"
+                    name="assignGroupId"
+                    required
+                    value={assignGroupId}
+                    onChange={(event) => setAssignGroupId(event.target.value)}
+                    disabled={!groups.length}
                     className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:bg-slate-50"
                   >
-                    <option value="">
-                      {groupIsFull
-                        ? "Group is full"
-                        : assignableStaff.length
-                          ? "Select staff not yet in a group"
-                          : "No unassigned staff available"}
-                    </option>
-                    {assignableStaff.map((staff) => (
-                      <option key={staff._id} value={staff._id}>
-                        {staff.name}
-                        {staff.department ? ` · ${staff.department}` : ""}
-                      </option>
-                    ))}
+                    <option value="">Select a group</option>
+                    {groups.map((group) => {
+                      const isFull = (group.headcount || 0) >= maxMembers;
+                      return (
+                        <option key={group._id} value={group._id} disabled={isFull}>
+                          {group.name}
+                          {isFull
+                            ? " (full)"
+                            : ` (${group.headcount || 0}/${maxMembers})`}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
 
@@ -1081,9 +1249,11 @@ const MonitorWorkspace = () => {
                     type="checkbox"
                     checked={assignAsLead}
                     onChange={(event) => setAssignAsLead(event.target.checked)}
+                    disabled={!assignGroup || assignGroupIsFull}
                     className="h-4 w-4 rounded border-slate-300 text-amber-700 focus:ring-amber-200"
                   />
-                  Make this person the team lead for {selected.name}
+                  Make this person the team lead
+                  {assignGroup ? ` for ${assignGroup.name}` : ""}
                 </label>
               </div>
 
@@ -1091,93 +1261,15 @@ const MonitorWorkspace = () => {
                 <button
                   type="submit"
                   disabled={
-                    assigning || !assignUserId || groupIsFull || !assignableStaff.length
+                    assigning ||
+                    !assignUserId ||
+                    !assignGroupId ||
+                    assignGroupIsFull ||
+                    !assignableStaff.length
                   }
                   className="rounded-full bg-violet-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-800 disabled:opacity-60"
                 >
                   {assigning ? "Assigning..." : "Assign to group"}
-                </button>
-              </div>
-            </form>
-
-            <form
-              onSubmit={handleAwardPoints}
-              className="rounded-[28px] border border-slate-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)]"
-            >
-              <div className="flex items-center gap-3">
-                <span className="grid h-10 w-10 place-items-center rounded-2xl bg-amber-50 text-amber-700">
-                  <Trophy className="h-5 w-5" />
-                </span>
-                <div>
-                  <h2 className="text-lg font-bold tracking-tight text-slate-950">
-                    {isAdmin
-                      ? `Update points for ${selected.name}`
-                      : `Award points to ${selected.name}`}
-                  </h2>
-                  <p className="text-sm text-slate-500">
-                    Current total: {selected.totalPoints ?? 0} points
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-5 space-y-4">
-                <div>
-                  <label
-                    className="text-sm font-medium text-slate-700"
-                    htmlFor="pointsValue"
-                  >
-                    Points
-                  </label>
-                  <input
-                    id="pointsValue"
-                    name="pointsValue"
-                    type="number"
-                    required
-                    step="1"
-                    min={isAdmin ? undefined : "1"}
-                    value={pointsValue}
-                    onChange={(event) => setPointsValue(event.target.value)}
-                    placeholder={isAdmin ? "e.g. 50 or -10" : "e.g. 50"}
-                    className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-                  />
-                  <p className="mt-1 text-xs text-slate-500">
-                    {isAdmin
-                      ? "Admin can increase or reduce points to correct mistakes."
-                      : "HR can award points only. Ask an admin to reduce points if needed."}
-                  </p>
-                </div>
-
-                <div>
-                  <label
-                    className="text-sm font-medium text-slate-700"
-                    htmlFor="pointsNote"
-                  >
-                    Reason / note
-                  </label>
-                  <textarea
-                    id="pointsNote"
-                    name="pointsNote"
-                    rows={3}
-                    maxLength={500}
-                    value={pointsNote}
-                    onChange={(event) => setPointsNote(event.target.value)}
-                    placeholder="Optional note for this change"
-                    className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-5 flex justify-end">
-                <button
-                  type="submit"
-                  disabled={awarding || !pointsValue}
-                  className="rounded-full bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
-                >
-                  {awarding
-                    ? "Saving..."
-                    : isAdmin
-                      ? "Update points"
-                      : "Award points"}
                 </button>
               </div>
             </form>
@@ -1190,7 +1282,7 @@ const MonitorWorkspace = () => {
         </div>
       ) : (
         <div className="rounded-[28px] border border-slate-200/70 bg-white p-8 text-sm text-slate-600">
-          Select a group to review its members, assign staff, and award points.
+          Select a group to review its members, assign staff, and award points on confirmed receipts.
         </div>
       )}
     </div>
@@ -1212,8 +1304,8 @@ const ProjectAdvancePage = () => {
         Everyone Sells. Everyone Grows. Join one Project ADVANCE group, see your
         teammates, and share progress updates together.
         {isMonitor
-          ? " HR and admin can assign staff, set team leads, and approve payment receipts before awarding points."
-          : " Attach a payment receipt with your progress when you have proof."}
+          ? " HR and admin assign staff and award points only after an account officer confirms the receipt."
+          : " Attach a payment receipt with your progress. An account officer confirms it before HR can award points."}
       </p>
 
       {isMonitor ? (

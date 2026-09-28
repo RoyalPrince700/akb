@@ -435,7 +435,7 @@ const getAttendanceSummary = asyncHandler(async (req, res) => {
       ]),
       User.countDocuments({
         isActive: true,
-        role: { $in: ["staff", "hr", "admin", "csr", "csrAdmin", "security", "pa"] },
+        role: { $in: ["staff", "hr", "admin", "csr", "csrAdmin", "security", "pa", "accountOfficer"] },
       }),
     ]);
 

@@ -28,7 +28,7 @@ const PanelLayout = ({ children, title }) => {
         ? "hr"
         : user?.role === "security"
           ? "security"
-          : user?.role === "pa"
+          : user?.role === "pa" || user?.role === "accountOfficer"
             ? "admin"
             : "csr";
   const isCsrPanel = user?.role === "csr" || user?.role === "csrAdmin";
@@ -210,7 +210,9 @@ const PanelLayout = ({ children, title }) => {
                         ? "Security workspace"
                         : user?.role === "pa"
                           ? "Project ADVANCE workspace"
-                          : "Workspace"}
+                          : user?.role === "accountOfficer"
+                            ? "Account officer workspace"
+                            : "Workspace"}
                 </p>
                 <h2 className="mt-4 text-3xl font-bold leading-[1.05] tracking-[-0.045em] text-slate-950 sm:text-4xl">
                   {title}

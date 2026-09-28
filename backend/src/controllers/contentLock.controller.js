@@ -88,7 +88,7 @@ const updateContentLock = asyncHandler(async (req, res) => {
   const lock = await ContentLock.findOneAndUpdate(
     { courseId: course.id },
     { $set: updates, $setOnInsert: { courseId: course.id } },
-    { new: true, upsert: true, runValidators: true }
+    { returnDocument: "after", upsert: true, runValidators: true }
   );
 
   res.json({

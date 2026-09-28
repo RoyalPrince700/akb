@@ -28,6 +28,10 @@ export const getPanelBasePath = (role) => {
     return "/pa";
   }
 
+  if (role === "accountOfficer") {
+    return "/account-officer";
+  }
+
   return null;
 };
 

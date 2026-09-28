@@ -15,6 +15,7 @@ import {
   MessageSquareShare,
   PhoneCall,
   Presentation,
+  Receipt,
   ScanFace,
   ScrollText,
   Settings,
@@ -78,6 +79,7 @@ const PanelSidebar = ({
   const isCsrAdmin = role === "csrAdmin";
   const isSecurity = role === "security";
   const isPa = role === "pa";
+  const isAccountOfficer = role === "accountOfficer";
   const isHubPanel = !isCsrPanel;
 
   const navItems = isSecurity
@@ -96,6 +98,15 @@ const PanelSidebar = ({
           end: true,
           label: "Project ADVANCE",
           icon: Trophy,
+        },
+      ]
+    : isAccountOfficer
+    ? [
+        {
+          to: overviewPath,
+          end: true,
+          label: "Receipts",
+          icon: Receipt,
         },
       ]
     : isCsrPanel

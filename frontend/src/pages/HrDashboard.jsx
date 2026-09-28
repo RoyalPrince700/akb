@@ -92,7 +92,7 @@ const HrDashboard = () => {
         <OverviewCard
           label="Project ADVANCE"
           value="Groups"
-          description="Assign staff, set team leads, monitor progress"
+          description="Assign staff and award points after account officer confirmation"
           to={projectAdvancePath}
         />
         <OverviewCard
@@ -156,7 +156,7 @@ const HrDashboard = () => {
               Project ADVANCE
             </Link>{" "}
             to monitor each Project ADVANCE group, assign staff, set team leads,
-            and review progress updates.
+            and award points after an account officer confirms a receipt.
           </li>
           <li>
             Open{" "}
