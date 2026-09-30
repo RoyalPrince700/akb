@@ -59,6 +59,12 @@ export const listStaff = async (params = {}) => {
   return response.data;
 };
 
+/** Filtered staff list for HR Excel (not paginated). */
+export const exportStaffList = async (params = {}) => {
+  const response = await api.get("/staff/export", { params });
+  return response.data;
+};
+
 export const getStaffMember = async (id) => {
   const response = await api.get(`/staff/${id}`);
   return response.data;

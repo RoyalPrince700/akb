@@ -5,6 +5,7 @@ const {
   createStaff,
   deleteStaff,
   enrollStaffFace,
+  exportStaff,
   getStaff,
   listStaff,
   updateStaff,
@@ -22,6 +23,7 @@ const router = express.Router();
 router.use(protect);
 
 router.get("/", authorize("hr", "admin", "csrAdmin"), listStaff);
+router.get("/export", authorize("hr"), exportStaff);
 router.get("/:id", authorize("hr", "admin", "csrAdmin"), getStaff);
 
 router.post("/", authorize("admin", "csrAdmin"), createStaff);

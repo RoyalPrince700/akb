@@ -196,6 +196,26 @@ const listStaff = asyncHandler(async (req, res) => {
   });
 });
 
+/** Full filtered staff list for HR Excel (not paginated). */
+const exportStaff = asyncHandler(async (req, res) => {
+  const scope = getStaffAccessScope(req.user);
+  const filter = buildUserFilter(req.query, scope);
+  const limit = Math.min(
+    10000,
+    Math.max(1, parseInt(req.query.limit, 10) || 5000)
+  );
+
+  const staff = await User.find(filter)
+    .select("-password -faceDescriptor")
+    .sort({ name: 1 })
+    .limit(limit);
+
+  res.json({
+    staff: staff.map((user) => user.toSafeObject()),
+    total: staff.length,
+  });
+});
+
 const getStaff = asyncHandler(async (req, res) => {
   const scope = getStaffAccessScope(req.user);
   const filter = { _id: req.params.id };
@@ -501,6 +521,7 @@ module.exports = {
   createStaff,
   deleteStaff,
   enrollStaffFace,
+  exportStaff,
   getStaff,
   listStaff,
   updateStaff,

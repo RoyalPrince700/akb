@@ -4,6 +4,8 @@ const {
 } = require("./mailtrapconfig");
 const {
   buildPasswordResetEmailTemplate,
+  buildReceiptApprovedEmailTemplate,
+  buildReceiptPostedEmailTemplate,
   buildSurveyEmailTemplate,
 } = require("./emailtemplate");
 
@@ -53,7 +55,88 @@ const sendPasswordResetEmail = async ({ email, name, resetUrl }) => {
   });
 };
 
+const sendNotificationEmail = async ({ to, subject, text, html }) => {
+  if (!to) {
+    return null;
+  }
+
+  const transporter = createMailtrapTransport();
+
+  return transporter.sendMail({
+    from: getFromAddress(),
+    to,
+    replyTo: process.env.SMTP_REPLY_TO || process.env.SMTP_FROM_EMAIL,
+    subject,
+    text,
+    html,
+  });
+};
+
+const sendReceiptPostedEmails = async ({
+  recipients,
+  authorName,
+  groupName,
+  body,
+  receiptUrl,
+  reviewUrl,
+}) => {
+  const deliveries = (recipients || []).filter((recipient) => recipient?.email);
+
+  await Promise.all(
+    deliveries.map(async (recipient) => {
+      const template = buildReceiptPostedEmailTemplate({
+        officerName: recipient.name,
+        authorName,
+        groupName,
+        body,
+        receiptUrl,
+        reviewUrl,
+      });
+
+      await sendNotificationEmail({
+        to: recipient.email,
+        subject: template.subject,
+        text: template.text,
+        html: template.html,
+      });
+    })
+  );
+};
+
+const sendReceiptApprovedEmails = async ({
+  recipients,
+  authorName,
+  groupName,
+  officerName,
+  note,
+  reviewUrl,
+}) => {
+  const deliveries = (recipients || []).filter((recipient) => recipient?.email);
+
+  await Promise.all(
+    deliveries.map(async (recipient) => {
+      const template = buildReceiptApprovedEmailTemplate({
+        hrName: recipient.name,
+        authorName,
+        groupName,
+        officerName,
+        note,
+        reviewUrl,
+      });
+
+      await sendNotificationEmail({
+        to: recipient.email,
+        subject: template.subject,
+        text: template.text,
+        html: template.html,
+      });
+    })
+  );
+};
+
 module.exports = {
   sendPasswordResetEmail,
+  sendReceiptApprovedEmails,
+  sendReceiptPostedEmails,
   sendSurveyEmail,
 };

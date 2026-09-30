@@ -4,6 +4,10 @@ const PaProgress = require("../models/PaProgress");
 const User = require("../models/User");
 const { uploadBuffer, hasCloudinaryConfig } = require("../config/cloudinary");
 const {
+  sendReceiptApprovedEmails,
+  sendReceiptPostedEmails,
+} = require("../mailtrap/email");
+const {
   GROUP_KEYS,
   MAX_MEMBERS_PER_GROUP,
   groupNameForKey,
@@ -22,6 +26,57 @@ const httpError = (statusCode, message) => {
 const isAdminUser = (user) => user?.role === "admin";
 const isMonitorRole = (user) => user?.role === "admin" || user?.role === "hr";
 const isAccountOfficer = (user) => user?.role === "accountOfficer";
+
+const clientBaseUrl = () =>
+  (process.env.CLIENT_URL || "http://localhost:5173").replace(/\/$/, "");
+
+const loadActiveUsersByRole = (role) =>
+  User.find({ role, isActive: true }).select("name email");
+
+const notifyReceiptPosted = async ({ authorName, groupName, body, receiptUrl }) => {
+  try {
+    const officers = await loadActiveUsersByRole("accountOfficer");
+    if (!officers.length) {
+      return;
+    }
+
+    await sendReceiptPostedEmails({
+      recipients: officers,
+      authorName,
+      groupName,
+      body,
+      receiptUrl,
+      reviewUrl: `${clientBaseUrl()}/account-officer`,
+    });
+  } catch (error) {
+    console.error("Project ADVANCE receipt notification failed:", error.message);
+  }
+};
+
+const notifyReceiptApproved = async ({
+  authorName,
+  groupName,
+  officerName,
+  note,
+}) => {
+  try {
+    const hrUsers = await loadActiveUsersByRole("hr");
+    if (!hrUsers.length) {
+      return;
+    }
+
+    await sendReceiptApprovedEmails({
+      recipients: hrUsers,
+      authorName,
+      groupName,
+      officerName,
+      note,
+      reviewUrl: `${clientBaseUrl()}/hr/project-advance`,
+    });
+  } catch (error) {
+    console.error("Project ADVANCE approval notification failed:", error.message);
+  }
+};
 
 const serializeMember = (member) => ({
   user: member.user?._id || member.user,
@@ -495,6 +550,15 @@ const createProgress = asyncHandler(async (req, res) => {
 
   const progress = await PaProgress.create(payload);
 
+  if (payload.receiptStatus === "pending" && payload.receiptUrl) {
+    await notifyReceiptPosted({
+      authorName: req.user.name,
+      groupName: group.name,
+      body,
+      receiptUrl: payload.receiptUrl,
+    });
+  }
+
   res.status(201).json({
     message: payload.receiptStatus === "pending"
       ? "Progress posted with receipt. An account officer must confirm it before HR can award points."
@@ -546,6 +610,15 @@ const reviewProgressReceipt = asyncHandler(async (req, res) => {
   progress.accountReviewedAt = new Date();
   progress.accountReviewNote = note;
   await progress.save();
+
+  if (action === "approve") {
+    await notifyReceiptApproved({
+      authorName: progress.authorName,
+      groupName: group.name,
+      officerName: req.user.name,
+      note,
+    });
+  }
 
   res.json({
     message:

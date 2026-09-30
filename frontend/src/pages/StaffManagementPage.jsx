@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Download } from "lucide-react";
 
 import FaceEnrollmentModal from "../components/FaceEnrollmentModal";
 import StaffFormModal from "../components/StaffFormModal";
@@ -9,10 +9,12 @@ import PanelLayout from "../layouts/PanelLayout";
 import {
   createStaffMember,
   deleteStaffMember,
+  exportStaffList,
   listStaff,
   updateStaffMember,
   updateStaffStatus,
 } from "../services/api";
+import { downloadStaffListXlsx } from "../utils/staffListXlsx";
 
 const StaffManagementPage = () => {
   const { user } = useAuth();
@@ -42,6 +44,7 @@ const StaffManagementPage = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [faceStaff, setFaceStaff] = useState(null);
 
   const fetchStaff = useCallback(async () => {
@@ -168,6 +171,26 @@ const StaffManagementPage = () => {
     }
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    setError("");
+
+    try {
+      const params = {};
+      if (search.trim()) params.search = search.trim();
+      if (department.trim()) params.department = department.trim();
+      if (statusFilter !== "") params.isActive = statusFilter;
+      if (faceFilter !== "") params.faceEnrolled = faceFilter;
+
+      const data = await exportStaffList(params);
+      downloadStaffListXlsx({ staff: data.staff || [] });
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to download staff list.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const handleFaceSaved = (updatedStaff) => {
     setStaff((prev) =>
       prev.map((member) =>
@@ -205,15 +228,28 @@ const StaffManagementPage = () => {
               {pagination.total} user{pagination.total !== 1 ? "s" : ""}
             </p>
           </div>
-          {canManageUsers && (
-            <button
-              type="button"
-              onClick={openCreateModal}
-              className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-950 px-6 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(15,23,42,0.08),0_8px_18px_rgba(15,23,42,0.1)] transition hover:bg-blue-600"
-            >
-              {isCsrAdmin ? "Add CSR" : "Add user"}
-            </button>
-          )}
+          <div className="flex flex-wrap gap-2">
+            {isHr && (
+              <button
+                type="button"
+                onClick={handleExport}
+                disabled={exporting}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(15,23,42,0.08),0_8px_18px_rgba(15,23,42,0.1)] transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Download className="h-4 w-4" />
+                {exporting ? "Exporting…" : "Download Excel"}
+              </button>
+            )}
+            {canManageUsers && (
+              <button
+                type="button"
+                onClick={openCreateModal}
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-950 px-6 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(15,23,42,0.08),0_8px_18px_rgba(15,23,42,0.1)] transition hover:bg-blue-600"
+              >
+                {isCsrAdmin ? "Add CSR" : "Add user"}
+              </button>
+            )}
+          </div>
         </div>
 
         <form
