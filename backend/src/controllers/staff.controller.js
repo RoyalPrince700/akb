@@ -40,7 +40,7 @@ const parseFaceDescriptor = (raw) => {
 };
 
 const getStaffAccessScope = (user) => {
-  if (user.role === "admin") {
+  if (user.role === "admin" || user.role === "hr") {
     return "admin";
   }
 

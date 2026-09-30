@@ -56,7 +56,7 @@ const StaffManagementPage = () => {
       if (search.trim()) params.search = search.trim();
       if (department.trim()) params.department = department.trim();
       if (statusFilter !== "") params.isActive = statusFilter;
-      if (canManageUsers && roleFilter) params.role = roleFilter;
+      if (roleFilter) params.role = roleFilter;
       if (faceFilter !== "") params.faceEnrolled = faceFilter;
 
       const data = await listStaff(params);
@@ -69,7 +69,6 @@ const StaffManagementPage = () => {
       setLoading(false);
     }
   }, [
-    canManageUsers,
     department,
     faceFilter,
     page,
@@ -181,6 +180,7 @@ const StaffManagementPage = () => {
       if (department.trim()) params.department = department.trim();
       if (statusFilter !== "") params.isActive = statusFilter;
       if (faceFilter !== "") params.faceEnrolled = faceFilter;
+      if (roleFilter) params.role = roleFilter;
 
       const data = await exportStaffList(params);
       downloadStaffListXlsx({ staff: data.staff || [] });
@@ -222,7 +222,7 @@ const StaffManagementPage = () => {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-xl font-bold text-slate-950">
-              {isCsrAdmin ? "CSR team" : isAdmin ? "All users" : "All staff"}
+              {isCsrAdmin ? "CSR team" : "All users"}
             </h2>
             <p className="mt-1 text-sm text-slate-600">
               {pagination.total} user{pagination.total !== 1 ? "s" : ""}
@@ -270,7 +270,7 @@ const StaffManagementPage = () => {
             onChange={(e) => setDepartment(e.target.value)}
             className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
           />
-          {canManageUsers && (
+          {(canManageUsers || isHr) && (
             <select
               value={roleFilter}
               onChange={(e) => {
@@ -444,14 +444,16 @@ const StaffManagementPage = () => {
                               </button>
                             </>
                           )}
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(member)}
-                            disabled={member._id === user?._id}
-                            className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
-                          >
-                            Delete
-                          </button>
+                          {(!isHr || member.role === "staff") && (
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(member)}
+                              disabled={member._id === user?._id}
+                              className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              Delete
+                            </button>
+                          )}
                         </div>
                       </td>
                     )}
