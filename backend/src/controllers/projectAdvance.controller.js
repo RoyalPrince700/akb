@@ -397,6 +397,94 @@ const joinGroup = asyncHandler(async (req, res) => {
   });
 });
 
+const leaveGroup = asyncHandler(async (req, res) => {
+  await ensureGroupsSeeded();
+
+  const current = await findGroupForUser(req.user._id);
+  if (!current) {
+    throw httpError(400, "You are not in a Project ADVANCE group");
+  }
+
+  const groupName = current.name;
+  current.members = current.members.filter(
+    (entry) => String(entry.user) !== String(req.user._id)
+  );
+  await current.save();
+
+  res.json({
+    message: `You left ${groupName}. You can join another group.`,
+  });
+});
+
+const switchGroup = asyncHandler(async (req, res) => {
+  await ensureGroupsSeeded();
+
+  const groupKey = String(req.body.groupKey || "")
+    .trim()
+    .toUpperCase();
+
+  if (!GROUP_KEYS.includes(groupKey)) {
+    throw httpError(400, "Select a valid group from A to M");
+  }
+
+  const current = await findGroupForUser(req.user._id);
+  if (!current) {
+    throw httpError(400, "Join a Project ADVANCE group before switching");
+  }
+
+  if (current.key === groupKey) {
+    throw httpError(400, `You are already in ${current.name}`);
+  }
+
+  const next = await PaGroup.findOne({ key: groupKey });
+  if (!next) {
+    throw httpError(404, "Group not found");
+  }
+
+  if (next.members.length >= MAX_MEMBERS_PER_GROUP) {
+    throw httpError(
+      400,
+      `${next.name} is full (maximum ${MAX_MEMBERS_PER_GROUP} staff)`
+    );
+  }
+
+  const previousName = current.name;
+  const previousMember = current.members.find(
+    (entry) => String(entry.user) === String(req.user._id)
+  );
+  current.members = current.members.filter(
+    (entry) => String(entry.user) !== String(req.user._id)
+  );
+  await current.save();
+
+  try {
+    await addUserToGroup(next, req.user);
+  } catch (error) {
+    if (previousMember) {
+      current.members.push({
+        user: previousMember.user,
+        name: previousMember.name,
+        department: previousMember.department,
+        position: previousMember.position,
+        joinedAt: previousMember.joinedAt,
+        isTeamLead: previousMember.isTeamLead,
+      });
+      await current.save();
+    }
+    throw error;
+  }
+
+  const [updates, pointAwards] = await Promise.all([
+    loadUpdatesForGroup(next._id),
+    loadPointAwardsForGroup(next._id),
+  ]);
+
+  res.json({
+    message: `You left ${previousName} and joined ${next.name}`,
+    myGroup: summarizeGroup(next, updates, pointAwards),
+  });
+});
+
 const assignGroupMember = asyncHandler(async (req, res) => {
   if (!isMonitorRole(req.user)) {
     throw httpError(403, "Only HR and admin can assign staff to a group");
@@ -855,7 +943,9 @@ module.exports = {
   getMyWorkspace,
   getReceiptDesk,
   joinGroup,
+  leaveGroup,
   removeGroupMember,
+  switchGroup,
   reviewProgressReceipt,
   setGroupTeamLead,
 };

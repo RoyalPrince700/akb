@@ -8,6 +8,21 @@ module.exports = {
     "security",
   ],
   finance: ["financial-literacy", "budgeting", "invoicing", "integrity"],
+  "conflict-resolution": [
+    "understanding-conflict",
+    "causes-of-conflict",
+    "communication-in-conflict",
+    "active-listening",
+    "resolution-strategies",
+    "positive-culture",
+  ],
+  "critical-thinking": [
+    "what-is-critical-thinking",
+    "why-it-matters",
+    "the-process",
+    "barriers-and-biases",
+    "applying-it-daily",
+  ],
   "company-history": [
     "who-we-are",
     "scale-and-reach",

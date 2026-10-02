@@ -8,7 +8,9 @@ const {
   getMyWorkspace,
   getReceiptDesk,
   joinGroup,
+  leaveGroup,
   removeGroupMember,
+  switchGroup,
   reviewProgressReceipt,
   setGroupTeamLead,
 } = require("../controllers/projectAdvance.controller");
@@ -26,6 +28,8 @@ router.use(protect);
 
 router.get("/me", getMyWorkspace);
 router.post("/join", joinGroup);
+router.post("/leave", leaveGroup);
+router.post("/switch", switchGroup);
 router.post("/updates", uploadImage.single("receipt"), createProgress);
 router.get("/receipts", authorize("accountOfficer"), getReceiptDesk);
 router.post(

@@ -6,6 +6,7 @@ import {
   MessageSquareText,
   Receipt,
   Trophy,
+  LogOut,
   UserMinus,
   UserPlus,
   Users,
@@ -26,7 +27,9 @@ import {
   getPaMonitor,
   getPaWorkspace,
   joinPaGroup,
+  leavePaGroup,
   removePaGroupMember,
+  switchPaGroup,
   setPaGroupTeamLead,
 } from "../services/api";
 
@@ -486,14 +489,18 @@ const StaffWorkspace = () => {
     groups: [],
   });
   const [selectedKey, setSelectedKey] = useState("");
+  const [switchKey, setSwitchKey] = useState("");
   const [progressBody, setProgressBody] = useState("");
   const [receiptFile, setReceiptFile] = useState(null);
   const [receiptInputKey, setReceiptInputKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const [switching, setSwitching] = useState(false);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const myGroup = workspace.myGroup;
 
   const loadWorkspace = useCallback(async () => {
     setLoading(true);
@@ -544,6 +551,68 @@ const StaffWorkspace = () => {
     }
   };
 
+  const handleLeave = async () => {
+    if (!myGroup) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Leave ${myGroup.name}? You can join a different group afterward. Updates already posted stay with ${myGroup.name}.`
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setLeaving(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const data = await leavePaGroup();
+      setSwitchKey("");
+      setSelectedKey("");
+      setNotice(data.message);
+      await loadWorkspace();
+    } catch (err) {
+      setError(err.response?.data?.message || "Could not leave that group.");
+    } finally {
+      setLeaving(false);
+    }
+  };
+
+  const handleSwitch = async (event) => {
+    event.preventDefault();
+    if (!myGroup || !switchKey || switchKey === myGroup.key) {
+      return;
+    }
+
+    const nextGroup = (workspace.groups || []).find(
+      (group) => group.key === switchKey
+    );
+    const nextName = nextGroup?.name || `Group ${switchKey}`;
+    const confirmed = window.confirm(
+      `Leave ${myGroup.name} and join ${nextName}? Updates already posted stay with ${myGroup.name}.`
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setSwitching(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const data = await switchPaGroup(switchKey);
+      setSwitchKey("");
+      setNotice(data.message);
+      await loadWorkspace();
+    } catch (err) {
+      setError(err.response?.data?.message || "Could not move to that group.");
+    } finally {
+      setSwitching(false);
+    }
+  };
+
   const handlePost = async (event) => {
     event.preventDefault();
     if (!progressBody.trim()) {
@@ -570,8 +639,6 @@ const StaffWorkspace = () => {
       setPosting(false);
     }
   };
-
-  const myGroup = workspace.myGroup;
 
   if (loading) {
     return (
@@ -603,8 +670,8 @@ const StaffWorkspace = () => {
             Choose your group
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-            Select which group you belong to. Once you join, you cannot switch to
-            another group.
+            Select which group you belong to. If you join the wrong group, you can
+            leave it and join another.
           </p>
 
           <div className="mt-6 max-w-md">
@@ -649,7 +716,7 @@ const StaffWorkspace = () => {
             <SummaryCard
               label="Your group"
               value={myGroup.name}
-              description="You can only belong to this group"
+              description="Leave this group if you joined by mistake"
             />
             <SummaryCard
               label="Group points"
@@ -662,6 +729,75 @@ const StaffWorkspace = () => {
               description="Shared with everyone in your group"
             />
           </div>
+
+          <form
+            onSubmit={handleSwitch}
+            className="rounded-[28px] border border-slate-200/70 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.05),0_18px_48px_rgba(15,23,42,0.08)]"
+          >
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-2xl bg-rose-50 text-rose-700">
+                <LogOut className="h-5 w-5" />
+              </span>
+              <div>
+                <h2 className="text-lg font-bold tracking-tight text-slate-950">
+                  Joined the wrong group?
+                </h2>
+                <p className="text-sm text-slate-500">
+                  Leave {myGroup.name} and join a different one. Updates already
+                  posted stay with {myGroup.name}.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="min-w-0 flex-1">
+                <label
+                  className="text-sm font-medium text-slate-700"
+                  htmlFor="switchGroupKey"
+                >
+                  Move to
+                </label>
+                <select
+                  id="switchGroupKey"
+                  name="switchGroupKey"
+                  value={switchKey}
+                  onChange={(event) => setSwitchKey(event.target.value)}
+                  className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-slate-950 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+                >
+                  <option value="">Select another group</option>
+                  {(workspace.groups || [])
+                    .filter((group) => group.key !== myGroup.key)
+                    .map((group) => (
+                      <option
+                        key={group.key}
+                        value={group.key}
+                        disabled={group.isFull}
+                      >
+                        {group.name}
+                        {group.isFull ? " (full)" : ""}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <button
+                type="submit"
+                disabled={
+                  switching || leaving || !switchKey || switchKey === myGroup.key
+                }
+                className="rounded-full bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+              >
+                {switching ? "Moving..." : "Leave and join"}
+              </button>
+              <button
+                type="button"
+                disabled={leaving || switching}
+                onClick={handleLeave}
+                className="rounded-full border border-rose-200 bg-rose-50 px-5 py-2.5 text-sm font-semibold text-rose-800 transition hover:bg-rose-100 disabled:opacity-60"
+              >
+                {leaving ? "Leaving..." : "Leave group"}
+              </button>
+            </div>
+          </form>
 
           <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
             <div className="space-y-6">

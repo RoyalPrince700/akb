@@ -582,6 +582,16 @@ export const joinPaGroup = async (groupKey) => {
   return response.data;
 };
 
+export const leavePaGroup = async () => {
+  const response = await api.post("/project-advance/leave");
+  return response.data;
+};
+
+export const switchPaGroup = async (groupKey) => {
+  const response = await api.post("/project-advance/switch", { groupKey });
+  return response.data;
+};
+
 export const createPaProgress = async ({ body, receiptFile } = {}) => {
   const formData = new FormData();
   formData.append("body", body || "");
