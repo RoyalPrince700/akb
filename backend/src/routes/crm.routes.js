@@ -21,6 +21,7 @@ const {
   importSchools,
   listCustomers,
   listInteractions,
+  listSalesRecordAuditLogs,
   listSalesRecords,
   listSalesReps,
   listBookshops,
@@ -32,6 +33,7 @@ const {
   sendSurveyReminder,
   submitPublicSurveyResponse,
   updateInteraction,
+  updateSalesRecord,
   updateSalesRep,
 } = require("../controllers/crm.controller");
 const {
@@ -62,6 +64,8 @@ router.delete("/interactions/:id", authorizeCsrAdmin, deleteInteraction);
 
 router.get("/sales-records", authorizeCsrOrAdmin, listSalesRecords);
 router.post("/sales-records", authorizeCsrOrAdmin, createSalesRecord);
+router.put("/sales-records/:id", authorizeCsrAdmin, updateSalesRecord);
+router.get("/sales-record-logs", authorizeCsrAdmin, listSalesRecordAuditLogs);
 
 router.get("/sales-reps", authorizeCsrOrAdmin, listSalesReps);
 router.post("/sales-reps", authorizeCsrAdmin, createSalesRep);

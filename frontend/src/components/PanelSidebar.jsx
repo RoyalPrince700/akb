@@ -8,6 +8,7 @@ import {
   ContactRound,
   GraduationCap,
   Globe,
+  History,
   LayoutDashboard,
   ListChecks,
   Lock,
@@ -182,6 +183,11 @@ const PanelSidebar = ({
                 to: panelSegmentPath(role, "survey-responses"),
                 label: "Survey Responses",
                 icon: ClipboardList,
+              },
+              {
+                to: panelSegmentPath(role, "sales-logs"),
+                label: "Logs",
+                icon: History,
               },
             ]
           : []),

@@ -44,6 +44,7 @@ import CrmInteractionDetailPage from "./pages/crm/CrmInteractionDetailPage";
 import CrmInteractionFormPage from "./pages/crm/CrmInteractionFormPage";
 import CrmInteractionsPage from "./pages/crm/CrmInteractionsPage";
 import CrmReportsPage from "./pages/crm/CrmReportsPage";
+import CrmSalesRecordLogsPage from "./pages/crm/CrmSalesRecordLogsPage";
 import CrmSalesRecordsPage from "./pages/crm/CrmSalesRecordsPage";
 import CrmSalesRepPage from "./pages/crm/CrmSalesRepPage";
 import CrmSettingsPage from "./pages/crm/CrmSettingsPage";
@@ -292,6 +293,7 @@ const App = () => {
       />
       <Route path="/csr/csr-tickets" element={csrAdminPanel(<CrmCsrTicketsPage />)} />
       <Route path="/csr/csr-sales" element={csrAdminPanel(<CrmCsrSalesPage />)} />
+      <Route path="/csr/sales-logs" element={csrAdminPanel(<CrmSalesRecordLogsPage />)} />
       <Route path="/csr/sales-records" element={csrPanel(<CrmSalesRecordsPage />)} />
       <Route path="/csr/customers" element={csrPanel(<CrmCustomerHistoryPage />)} />
       <Route path="/csr/surveys" element={csrPanel(<CrmSurveysPage />)} />

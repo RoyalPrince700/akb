@@ -399,6 +399,16 @@ export const createCrmSalesRecord = async (payload) => {
   return response.data;
 };
 
+export const updateCrmSalesRecord = async (id, payload) => {
+  const response = await api.put(`/crm/sales-records/${id}`, payload);
+  return response.data;
+};
+
+export const listCrmSalesRecordLogs = async (params = {}) => {
+  const response = await api.get("/crm/sales-record-logs", { params });
+  return response.data;
+};
+
 export const listCrmCustomers = async (params = {}) => {
   const response = await api.get("/crm/customers", { params });
   return response.data;

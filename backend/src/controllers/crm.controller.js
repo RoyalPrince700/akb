@@ -3,13 +3,15 @@ const mongoose = require("mongoose");
 
 const CrmInteraction = require("../models/CrmInteraction");
 const CrmSalesRecord = require("../models/CrmSalesRecord");
+const CrmSalesRecordAuditLog = require("../models/CrmSalesRecordAuditLog");
+const User = require("../models/User");
 const SalesRep = require("../models/SalesRep");
 const Bookshop = require("../models/Bookshop");
 const Country = require("../models/Country");
 const Individual = require("../models/Individual");
 const School = require("../models/School");
 const SurveyDispatch = require("../models/SurveyDispatch");
-const { NIGERIAN_STATES, isFollowUpDirection } = require("../constants/crm");
+const { NIGERIAN_STATES, ORGANIZATION_TYPES, isFollowUpDirection } = require("../constants/crm");
 const asyncHandler = require("../utils/asyncHandler");
 const { sendSurveyEmail } = require("../mailtrap/email");
 const { sendSurveyReminderSms, sendSurveySms } = require("../sms/xwireless");
@@ -95,10 +97,47 @@ const parseDashboardDateRange = (query) => {
     return { period, startDate: start, endDate: endOfToday };
   }
 
+  if (period === "lastWeek") {
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    const day = start.getDay();
+    const diffToMonday = day === 0 ? 6 : day - 1;
+    start.setDate(start.getDate() - diffToMonday - 7);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+    return { period, startDate: start, endDate: end };
+  }
+
   if (period === "month") {
     const start = new Date(now.getFullYear(), now.getMonth(), 1);
     start.setHours(0, 0, 0, 0);
     return { period, startDate: start, endDate: endOfToday };
+  }
+
+  if (period === "selectedMonth") {
+    const match = String(query.month || "").match(/^(\d{4})-(\d{2})$/);
+
+    if (!match) {
+      const error = new Error("Choose a month in YYYY-MM format");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const year = Number(match[1]);
+    const monthIndex = Number(match[2]) - 1;
+
+    if (monthIndex < 0 || monthIndex > 11) {
+      const error = new Error("Choose a valid month");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const start = new Date(year, monthIndex, 1);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(year, monthIndex + 1, 0);
+    end.setHours(23, 59, 59, 999);
+    return { period, startDate: start, endDate: end };
   }
 
   if (period === "year") {
@@ -1841,6 +1880,245 @@ const createSalesRecord = asyncHandler(async (req, res) => {
   res.status(201).json({ record: populated });
 });
 
+const formatAuditMoney = (value) => roundMoney(value).toFixed(2);
+
+const describeAuditBooks = (items = []) =>
+  items
+    .map((item) => {
+      const classLabel = item.bookClass || "no class";
+      return `${item.title} · ${classLabel} · qty ${item.quantity} · unit ${formatAuditMoney(
+        item.price
+      )} · discount ${item.discountPercent || 0}% · line ${formatAuditMoney(item.totalPrice)}`;
+    })
+    .join(" | ");
+
+const pushAuditChange = (changes, field, label, before, after) => {
+  const previous = before === undefined || before === null ? "" : String(before);
+  const next = after === undefined || after === null ? "" : String(after);
+
+  if (previous !== next) {
+    changes.push({ field, label, before: previous, after: next });
+  }
+};
+
+const collectSalesRecordChanges = (before, after) => {
+  const changes = [];
+
+  pushAuditChange(changes, "organizationType", "Customer type", before.organizationType, after.organizationType);
+  pushAuditChange(changes, "schoolName", "Name", before.schoolName, after.schoolName);
+  pushAuditChange(changes, "location", "Location", before.location, after.location);
+  pushAuditChange(
+    changes,
+    "books",
+    "Books",
+    describeAuditBooks(before.bookItems),
+    describeAuditBooks(after.bookItems)
+  );
+  pushAuditChange(changes, "quantitySold", "Quantity", before.quantitySold, after.quantitySold);
+  pushAuditChange(
+    changes,
+    "subtotalPrice",
+    "Subtotal",
+    formatAuditMoney(before.subtotalPrice),
+    formatAuditMoney(after.subtotalPrice)
+  );
+  pushAuditChange(
+    changes,
+    "discountAmount",
+    "Discount",
+    formatAuditMoney(before.discountAmount),
+    formatAuditMoney(after.discountAmount)
+  );
+  pushAuditChange(
+    changes,
+    "totalPrice",
+    "Total",
+    formatAuditMoney(before.totalPrice),
+    formatAuditMoney(after.totalPrice)
+  );
+
+  const previousTime = new Date(before.saleDate || before.createdAt).getTime();
+  const nextTime = new Date(after.saleDate).getTime();
+
+  if (previousTime !== nextTime) {
+    changes.push({
+      field: "saleDate",
+      label: "Sale date and time",
+      before: new Date(previousTime).toISOString(),
+      after: new Date(nextTime).toISOString(),
+    });
+  }
+
+  return changes;
+};
+
+const updateSalesRecord = asyncHandler(async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    res.status(400);
+    throw new Error("Invalid sales record");
+  }
+
+  const record = await CrmSalesRecord.findById(req.params.id);
+
+  if (!record) {
+    res.status(404);
+    throw new Error("Sales record not found");
+  }
+
+  const organizationType = req.body.organizationType || record.organizationType || "school";
+
+  if (!ORGANIZATION_TYPES.includes(organizationType)) {
+    res.status(400);
+    throw new Error("Choose a valid customer type");
+  }
+
+  const schoolName = capitalizeWords(req.body.schoolName || "");
+  const location = capitalizeWords(req.body.location || "");
+
+  if (!schoolName) {
+    res.status(400);
+    throw new Error("Name is required");
+  }
+
+  if (!location) {
+    res.status(400);
+    throw new Error("Location is required");
+  }
+
+  const submittedItems = Array.isArray(req.body.bookItems) ? req.body.bookItems : [];
+  const bookRows = submittedItems.filter((item) => String(item.title || "").trim());
+
+  if (!bookRows.length) {
+    res.status(400);
+    throw new Error("Add at least one book title");
+  }
+
+  if (
+    bookRows.some((item) => {
+      const quantity = Number(item.quantity);
+      const price = Number(item.price);
+      return !Number.isFinite(quantity) || quantity < 1 || !Number.isFinite(price) || price < 0;
+    })
+  ) {
+    res.status(400);
+    throw new Error("Each book needs a title, a quantity of at least 1, and a valid price");
+  }
+
+  const nextSaleDate = new Date(req.body.saleDate);
+
+  if (!req.body.saleDate || Number.isNaN(nextSaleDate.getTime())) {
+    res.status(400);
+    throw new Error("A valid sale date and time is required");
+  }
+
+  const books = buildSalesRecordBookPayload({ ...req.body, bookItems: bookRows });
+  const nextBookClass = (books.bookItems[0]?.bookClass || "").trim();
+  const before = record.toObject();
+  const after = {
+    organizationType,
+    schoolName,
+    location,
+    bookItems: books.bookItems,
+    quantitySold: books.quantitySold,
+    subtotalPrice: books.subtotalPrice,
+    discountAmount: books.discountAmount,
+    totalPrice: books.totalPrice,
+    saleDate: nextSaleDate,
+  };
+  const changes = collectSalesRecordChanges(before, after);
+
+  if (!changes.length) {
+    const unchanged = await CrmSalesRecord.findById(record._id).populate("owner", CSR_USER_FIELDS);
+    res.json({
+      record: unchanged,
+      unchanged: true,
+      message: "No changes to save",
+    });
+    return;
+  }
+
+  const [ownerUser, changedByUser] = await Promise.all([
+    User.findById(record.owner).select(CSR_USER_FIELDS),
+    User.findById(req.user._id).select(CSR_USER_FIELDS),
+  ]);
+
+  record.organizationType = organizationType;
+  record.schoolName = schoolName;
+  record.location = location;
+  record.bookTitles = books.bookTitles;
+  record.bookItems = books.bookItems;
+  record.quantitySold = books.quantitySold;
+  record.subtotalPrice = books.subtotalPrice;
+  record.discountPercent = books.discountPercent;
+  record.discountAmount = books.discountAmount;
+  record.totalPrice = books.totalPrice;
+  record.bookClass = nextBookClass || undefined;
+  record.saleDate = nextSaleDate;
+  record.updatedBy = req.user._id;
+  await record.save();
+
+  await CrmSalesRecordAuditLog.create({
+    salesRecord: record._id,
+    schoolName: record.schoolName,
+    location: record.location,
+    bookTitles: record.bookTitles,
+    organizationType: record.organizationType,
+    owner: record.owner,
+    ownerName: getCsrDisplayName(ownerUser),
+    previousSaleDate: before.saleDate || before.createdAt,
+    newSaleDate: nextSaleDate,
+    changes,
+    changedBy: req.user._id,
+    changedByName: getCsrDisplayName(changedByUser),
+  });
+
+  const populated = await CrmSalesRecord.findById(record._id).populate("owner", CSR_USER_FIELDS);
+
+  res.json({
+    record: populated,
+    message: "Sales record updated",
+  });
+});
+
+const listSalesRecordAuditLogs = asyncHandler(async (req, res) => {
+  const { limit, page, skip } = parsePagination(req.query);
+  const filter = {};
+
+  if (req.query.search) {
+    const search = new RegExp(escapeRegex(req.query.search.trim()), "i");
+    filter.$or = [
+      { schoolName: search },
+      { location: search },
+      { bookTitles: search },
+      { ownerName: search },
+      { changedByName: search },
+      { "changes.label": search },
+      { "changes.before": search },
+      { "changes.after": search },
+    ];
+  }
+
+  const [logs, total] = await Promise.all([
+    CrmSalesRecordAuditLog.find(filter)
+      .populate("changedBy", CSR_USER_FIELDS)
+      .populate("owner", CSR_USER_FIELDS)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    CrmSalesRecordAuditLog.countDocuments(filter),
+  ]);
+
+  res.json({
+    logs,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit) || 1,
+    },
+  });
+});
+
 const buildSurveyUrl = (token) => {
   const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
   return `${clientUrl}/crm/surveys/respond/${token}`;
@@ -2829,6 +3107,7 @@ module.exports = {
   listIndividuals,
   listCustomers,
   listInteractions,
+  listSalesRecordAuditLogs,
   listSalesRecords,
   listSalesReps,
   listSchools,
@@ -2837,5 +3116,6 @@ module.exports = {
   sendSurveyReminder,
   submitPublicSurveyResponse,
   updateInteraction,
+  updateSalesRecord,
   updateSalesRep,
 };

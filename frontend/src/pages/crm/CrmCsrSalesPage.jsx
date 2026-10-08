@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { CalendarRange, Search } from "lucide-react";
 
+import SalesRecordEditModal from "../../components/crm/SalesRecordEditModal";
 import {
   bookSaleClassOptions,
   formatBookSaleClass,
@@ -13,11 +14,9 @@ import { getCrmReports, listCrmSalesRecords, listStaff } from "../../services/ap
 import { capitalizeWords } from "../../utils/textFormat";
 
 const periodOptions = [
-  { value: "all", label: "All time" },
-  { value: "week", label: "This week" },
+  { value: "lastWeek", label: "Last week" },
   { value: "month", label: "This month" },
-  { value: "year", label: "This year" },
-  { value: "custom", label: "Custom range" },
+  { value: "all", label: "All time" },
 ];
 
 const formatCurrency = (value) =>
@@ -42,44 +41,40 @@ const formatDisplayDate = (value) => {
   });
 };
 
-const getPeriodDescription = (period) => {
+const formatMonthLabel = (value) => {
+  const match = String(value || "").match(/^(\d{4})-(\d{2})$/);
+
+  if (!match) {
+    return "";
+  }
+
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, 1);
+  return date.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+};
+
+const getPeriodDescription = (period, selectedMonth = "") => {
   if (!period || period.type === "all") {
-    return "Showing all sales logged by the CSR team";
+    return "All time. Every sale is listed so you can find one and change its date.";
   }
 
   const start = formatDisplayDate(period.startDate);
   const end = formatDisplayDate(period.endDate);
+  const range = start && end ? ` (${start} – ${end})` : "";
 
-  if (period.type === "week") {
-    return `Showing sales from this week (${start} – ${end})`;
+  if (period.type === "lastWeek") {
+    return `Last week${range}.`;
   }
 
   if (period.type === "month") {
-    return `Showing sales from this month (${start} – ${end})`;
+    return `This month${range}.`;
   }
 
-  if (period.type === "year") {
-    return `Showing sales from this year (${start} – ${end})`;
+  if (period.type === "selectedMonth") {
+    const label = formatMonthLabel(selectedMonth);
+    return label ? `${label}${range}.` : `Selected month${range}.`;
   }
 
-  if (period.type === "custom") {
-    const start = period.startDate ? formatDisplayDate(period.startDate) : "";
-    const end = period.endDate ? formatDisplayDate(period.endDate) : "";
-
-    if (start && end) {
-      return `Showing sales from ${start} to ${end}`;
-    }
-
-    if (start) {
-      return `Showing sales from ${start} onwards`;
-    }
-
-    if (end) {
-      return `Showing sales up to ${end}`;
-    }
-  }
-
-  return "Showing all sales logged by the CSR team";
+  return "All time. Every sale is listed so you can find one and change its date.";
 };
 
 const SummaryCard = ({ label, value, helper }) => (
@@ -104,11 +99,13 @@ const CrmCsrSalesPage = () => {
     totalSalesValue: 0,
   });
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
-  const period = searchParams.get("period") || "month";
-  const startDateFilter = searchParams.get("startDate") || "";
-  const endDateFilter = searchParams.get("endDate") || "";
-  const [customStartDraft, setCustomStartDraft] = useState(startDateFilter);
-  const [customEndDraft, setCustomEndDraft] = useState(endDateFilter);
+  const requestedPeriod = searchParams.get("period") || "all";
+  const monthFilter = searchParams.get("month") || "";
+  const period = periodOptions.some((option) => option.value === requestedPeriod)
+    ? requestedPeriod
+    : requestedPeriod === "selectedMonth" && monthFilter
+      ? "selectedMonth"
+      : "all";
   const [activePeriod, setActivePeriod] = useState({ type: period });
   const ownerFilter = searchParams.get("owner") || "";
   const appliedSearch = searchParams.get("search") || "";
@@ -118,6 +115,8 @@ const CrmCsrSalesPage = () => {
   const [csrSearch, setCsrSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [editingRecord, setEditingRecord] = useState(null);
 
   const emptySummary = {
     totalRecords: 0,
@@ -169,38 +168,16 @@ const CrmCsrSalesPage = () => {
   }, []);
 
   useEffect(() => {
-    setCustomStartDraft(startDateFilter);
-    setCustomEndDraft(endDateFilter);
-  }, [endDateFilter, startDateFilter]);
-
-  useEffect(() => {
     setSearchDraft(appliedSearch);
   }, [appliedSearch]);
 
   const buildPeriodParams = useCallback(() => {
-    const params = { period };
-
-    if (period === "custom") {
-      if (!startDateFilter || !endDateFilter) {
-        return null;
-      }
-
-      params.startDate = startDateFilter;
-      params.endDate = endDateFilter;
-      return params;
+    if (period === "selectedMonth") {
+      return { period: "selectedMonth", month: monthFilter };
     }
 
-    if (period === "all" && (startDateFilter || endDateFilter)) {
-      if (startDateFilter) {
-        params.startDate = startDateFilter;
-      }
-      if (endDateFilter) {
-        params.endDate = endDateFilter;
-      }
-    }
-
-    return params;
-  }, [endDateFilter, period, startDateFilter]);
+    return { period };
+  }, [monthFilter, period]);
 
   const loadSalesData = useCallback(async () => {
     setLoading(true);
@@ -222,7 +199,7 @@ const CrmCsrSalesPage = () => {
       const salesParams = {
         ...periodParams,
         page,
-        limit: 12,
+        limit: 20,
       };
 
       if (appliedSearch.trim()) {
@@ -285,12 +262,13 @@ const CrmCsrSalesPage = () => {
   ]);
 
   useEffect(() => {
-    if (csrOptions.length) {
-      loadSalesData();
-    }
-  }, [csrOptions.length, loadSalesData]);
+    loadSalesData();
+  }, [loadSalesData]);
 
-  const periodDescription = useMemo(() => getPeriodDescription(activePeriod), [activePeriod]);
+  const periodDescription = useMemo(
+    () => getPeriodDescription(activePeriod, monthFilter),
+    [activePeriod, monthFilter]
+  );
 
   const filteredCsrRows = useMemo(() => {
     const term = csrSearch.trim().toLowerCase();
@@ -315,72 +293,34 @@ const CrmCsrSalesPage = () => {
     return getCsrDisplayName(match, "Selected CSR");
   }, [csrOptions, ownerFilter]);
 
-  const handlePeriodChange = (event) => {
-    const nextPeriod = event.target.value;
-
-    if (nextPeriod === "custom") {
-      updateFilterParams({ period: nextPeriod }, { resetPage: true });
-      return;
-    }
-
-    updateFilterParams(
-      { period: nextPeriod, startDate: "", endDate: "" },
-      { resetPage: true }
-    );
-  };
-
-  const handleApplyCustomRange = (event) => {
-    event.preventDefault();
-
-    if (!customStartDraft || !customEndDraft) {
-      setError("Choose both a start date and an end date for the custom range.");
-      return;
-    }
-
-    if (customStartDraft > customEndDraft) {
-      setError("Start date must be before or equal to the end date.");
-      return;
-    }
-
+  const selectPeriod = (nextPeriod) => {
     setError("");
     updateFilterParams(
       {
-        period: "custom",
-        startDate: customStartDraft,
-        endDate: customEndDraft,
+        period: nextPeriod,
+        month: "",
+        startDate: "",
+        endDate: "",
       },
       { resetPage: true }
     );
   };
 
-  const handleDateFilterChange = (key, value) => {
-    const nextStartDate = key === "startDate" ? value : startDateFilter;
-    const nextEndDate = key === "endDate" ? value : endDateFilter;
-
-    if (nextStartDate && nextEndDate && nextStartDate > nextEndDate) {
-      setError("Start date must be before or equal to end date.");
-      return;
-    }
-
+  const handleMonthChange = (event) => {
+    const nextMonth = event.target.value;
     setError("");
 
-    if (nextStartDate && nextEndDate) {
-      updateFilterParams(
-        {
-          period: "custom",
-          startDate: nextStartDate,
-          endDate: nextEndDate,
-        },
-        { resetPage: true }
-      );
+    if (!nextMonth) {
+      selectPeriod("all");
       return;
     }
 
     updateFilterParams(
       {
-        period: "all",
-        startDate: nextStartDate,
-        endDate: nextEndDate,
+        period: "selectedMonth",
+        month: nextMonth,
+        startDate: "",
+        endDate: "",
       },
       { resetPage: true }
     );
@@ -399,6 +339,18 @@ const CrmCsrSalesPage = () => {
     updateFilterParams({ page: nextPage > 1 ? String(nextPage) : "" });
   };
 
+  const openRecordEditor = (record) => {
+    setEditingRecord(record);
+    setError("");
+    setSuccessMessage("");
+  };
+
+  const handleRecordSaved = async (message) => {
+    setEditingRecord(null);
+    setSuccessMessage(message);
+    await loadSalesData();
+  };
+
   return (
     <PanelLayout title="All Sales">
       {error && (
@@ -406,66 +358,56 @@ const CrmCsrSalesPage = () => {
           {error}
         </p>
       )}
+      {successMessage && (
+        <p className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          {successMessage}
+        </p>
+      )}
 
       <div className="mb-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-lg shadow-emerald-900/5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-emerald-700">
-              <CalendarRange className="h-4 w-4" aria-hidden />
-              <p className="text-sm font-semibold">Sales period</p>
-            </div>
-            <p className="mt-2 text-sm text-slate-600">{periodDescription}</p>
-          </div>
-
-          <div className="flex w-full flex-col gap-3 lg:max-w-3xl">
-            <label className="block">
-              <span className="text-sm font-medium text-slate-700">Filter by period</span>
-              <select
-                value={period}
-                onChange={handlePeriodChange}
-                className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-              >
-                {periodOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            {period === "custom" && (
-              <form
-                className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]"
-                onSubmit={handleApplyCustomRange}
-              >
-                <label className="block">
-                  <span className="text-sm font-medium text-slate-700">Start date</span>
-                  <input
-                    type="date"
-                    value={customStartDraft}
-                    onChange={(event) => setCustomStartDraft(event.target.value)}
-                    className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-sm font-medium text-slate-700">End date</span>
-                  <input
-                    type="date"
-                    value={customEndDraft}
-                    onChange={(event) => setCustomEndDraft(event.target.value)}
-                    className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-                  />
-                </label>
-                <button
-                  type="submit"
-                  className="self-end rounded-full bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800"
-                >
-                  Apply range
-                </button>
-              </form>
-            )}
-          </div>
+        <div className="flex items-center gap-2 text-emerald-700">
+          <CalendarRange className="h-4 w-4" aria-hidden />
+          <p className="text-sm font-semibold">Show sales from</p>
         </div>
+        <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Sales period">
+            {periodOptions.map((option) => {
+              const isActive = period === option.value;
+
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => selectPeriod(option.value)}
+                  aria-pressed={isActive}
+                  className={`rounded-full px-4 py-2.5 text-sm font-semibold transition ${
+                    isActive
+                      ? "bg-emerald-700 text-white"
+                      : "border border-slate-300 bg-white text-slate-800 hover:border-emerald-300 hover:bg-emerald-50"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <label className="block w-full lg:max-w-xs">
+            <span className="text-sm font-medium text-slate-700">Or pick a month</span>
+            <input
+              type="month"
+              value={period === "selectedMonth" ? monthFilter : ""}
+              onChange={handleMonthChange}
+              aria-label="Pick a month"
+              className={`mt-1 w-full rounded-xl border px-4 py-2.5 text-sm text-slate-950 outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 ${
+                period === "selectedMonth"
+                  ? "border-emerald-600 ring-4 ring-emerald-100"
+                  : "border-slate-300"
+              }`}
+            />
+          </label>
+        </div>
+        <p className="mt-3 text-sm text-slate-600">{periodDescription}</p>
       </div>
 
       <div className="mb-5 grid gap-4 sm:grid-cols-3">
@@ -491,12 +433,214 @@ const CrmCsrSalesPage = () => {
       </div>
 
       <div className="mb-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-emerald-900/5">
+        <div>
+          <h2 className="text-xl font-bold text-slate-950">Sales to edit</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            {selectedCsrLabel
+              ? `${summary.totalRecords ?? 0} sales logged by ${selectedCsrLabel}. Use Edit on a row to update the sale.`
+              : `${summary.totalRecords ?? 0} sales in this view. Use Edit on a row to update the sale.`}
+          </p>
+        </div>
+
+        <form
+          className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-[1.4fr_1fr_1fr_auto]"
+          onSubmit={handleSearchSubmit}
+        >
+          <label className="block sm:col-span-2 xl:col-span-1">
+            <span className="mb-1 block text-sm font-medium text-slate-700">Search sale</span>
+            <input
+              type="search"
+              placeholder="School, bookshop, location, or title"
+              value={searchDraft}
+              onChange={(event) => setSearchDraft(event.target.value)}
+              className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-slate-700">CSR</span>
+            <select
+              value={ownerFilter}
+              onChange={handleOwnerFilterChange}
+              className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+            >
+              <option value="">All CSRs</option>
+              {csrOptions.map((csr) => (
+                <option key={csr._id} value={csr._id}>
+                  {getCsrDisplayName(csr)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-slate-700">Book class</span>
+            <select
+              value={bookClassFilter}
+              onChange={(event) => {
+                updateFilterParams({ bookClass: event.target.value }, { resetPage: true });
+              }}
+              className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+            >
+              <option value="">All classes</option>
+              {bookSaleClassOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="submit"
+            className="inline-flex items-center justify-center self-end rounded-full bg-emerald-700 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-800"
+          >
+            Search
+          </button>
+        </form>
+
+        <div className="mt-6 overflow-x-auto">
+          {loading ? (
+            <p className="py-8 text-center text-sm text-slate-600">Loading sales records...</p>
+          ) : records.length === 0 ? (
+            <div className="py-8 text-center">
+              <p className="text-sm text-slate-600">No sales in this view.</p>
+              {period !== "all" && (
+                <button
+                  type="button"
+                  onClick={() => selectPeriod("all")}
+                  className="mt-3 rounded-full bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-800"
+                >
+                  Show all time
+                </button>
+              )}
+            </div>
+          ) : (
+            <table className="w-full min-w-[1400px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-slate-500">
+                  <th className="pb-3 pr-4 font-medium">Logged by</th>
+                  <th className="pb-3 pr-4 font-medium">Type</th>
+                  <th className="pb-3 pr-4 font-medium">Name</th>
+                  <th className="pb-3 pr-4 font-medium">Location</th>
+                  <th className="pb-3 pr-4 font-medium">Titles, class, quantity, and price</th>
+                  <th className="pb-3 pr-4 font-medium">Quantity</th>
+                  <th className="pb-3 pr-4 font-medium">Subtotal</th>
+                  <th className="pb-3 pr-4 font-medium">Discount</th>
+                  <th className="pb-3 pr-4 font-medium">Total</th>
+                  <th className="pb-3 pr-4 font-medium">Date</th>
+                  <th className="pb-3 pr-4 font-medium">Time</th>
+                  <th className="pb-3 text-right font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {records.map((record) => (
+                  <tr key={record._id} className="border-b border-slate-100 last:border-0">
+                    <td className="py-3 pr-4 font-medium text-slate-950">
+                      {getCsrDisplayName(record.owner, "Unknown")}
+                    </td>
+                    <td className="py-3 pr-4 text-slate-700">
+                      {formatOrganizationType(record.organizationType || "school")}
+                    </td>
+                    <td className="py-3 pr-4 font-medium text-slate-950">
+                      {capitalizeWords(record.schoolName)}
+                    </td>
+                    <td className="py-3 pr-4 text-slate-700">{record.location}</td>
+                    <td className="max-w-[320px] py-3 pr-4 text-slate-700">
+                      {record.bookItems?.length ? (
+                        <div className="space-y-1">
+                          {record.bookItems.map((item, index) => (
+                            <div
+                              key={`${item.title}-${index}`}
+                              className="grid gap-1 sm:grid-cols-[1fr_auto_auto_auto] sm:items-center sm:gap-3"
+                            >
+                              <span>{item.title}</span>
+                              <span className="text-xs font-semibold text-slate-500">
+                                {item.bookClass || record.bookClass
+                                  ? formatBookSaleClass(item.bookClass || record.bookClass)
+                                  : "-"}
+                              </span>
+                              <span className="text-xs font-semibold text-slate-500">
+                                Qty {item.quantity || 1}
+                              </span>
+                              <span className="font-semibold text-slate-900">
+                                {formatCurrency(item.totalPrice ?? item.price)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span title={record.bookTitles} className="line-clamp-2">
+                          {record.bookTitles}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 pr-4 font-semibold text-emerald-700">
+                      {record.quantitySold}
+                    </td>
+                    <td className="py-3 pr-4 font-semibold text-slate-700">
+                      {formatCurrency(record.subtotalPrice)}
+                    </td>
+                    <td className="py-3 pr-4 text-slate-700">
+                      {record.discountPercent ? `${record.discountPercent}% ` : ""}
+                      {record.discountAmount
+                        ? `(${formatCurrency(record.discountAmount)})`
+                        : "-"}
+                    </td>
+                    <td className="py-3 pr-4 font-bold text-emerald-700">
+                      {formatCurrency(record.totalPrice)}
+                    </td>
+                    <td className="py-3 pr-4 text-slate-700">
+                      {new Date(record.saleDate || record.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="py-3 pr-4 text-slate-700">
+                      {new Date(record.saleDate || record.createdAt).toLocaleTimeString()}
+                    </td>
+                    <td className="py-3 text-right">
+                      <button
+                        type="button"
+                        onClick={() => openRecordEditor(record)}
+                        className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-50"
+                      >
+                        Edit
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {pagination.pages > 1 && (
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-slate-600">
+              Page {pagination.page} of {pagination.pages}
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handlePageChange(page - 1)}
+                disabled={page <= 1}
+                className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                onClick={() => handlePageChange(page + 1)}
+                disabled={page >= pagination.pages}
+                className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-emerald-900/5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h2 className="text-xl font-bold text-slate-950">Sales by CSR</h2>
+            <h2 className="text-xl font-bold text-slate-950">CSR totals</h2>
             <p className="mt-2 text-sm text-slate-600">
-              See which CSR staff logged sales in the selected period and open their full sales
-              list.
+              Totals for the same period. Choose a CSR to open only their sales.
             </p>
           </div>
 
@@ -570,197 +714,14 @@ const CrmCsrSalesPage = () => {
         </div>
       </div>
 
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-lg shadow-emerald-900/5">
-        <div>
-          <h2 className="text-xl font-bold text-slate-950">All sales records</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            {selectedCsrLabel
-              ? `Showing sales logged by ${selectedCsrLabel}.`
-              : "Review every sale logged by CSR staff in the selected period."}
-          </p>
-        </div>
 
-        <form
-          className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
-          onSubmit={handleSearchSubmit}
-        >
-          <input
-            type="search"
-            placeholder="Search school, bookshop, location, or title..."
-            value={searchDraft}
-            onChange={(event) => setSearchDraft(event.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100 sm:col-span-2"
-          />
-          <select
-            value={ownerFilter}
-            onChange={handleOwnerFilterChange}
-            className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-          >
-            <option value="">All CSRs</option>
-            {csrOptions.map((csr) => (
-              <option key={csr._id} value={csr._id}>
-                {getCsrDisplayName(csr)}
-              </option>
-            ))}
-          </select>
-          <select
-            value={bookClassFilter}
-            onChange={(event) => {
-              updateFilterParams({ bookClass: event.target.value }, { resetPage: true });
-            }}
-            className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-          >
-            <option value="">All classes</option>
-            {bookSaleClassOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-slate-600">From date</span>
-            <input
-              type="date"
-              value={startDateFilter}
-              onChange={(event) => handleDateFilterChange("startDate", event.target.value)}
-              className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-slate-600">To date</span>
-            <input
-              type="date"
-              value={endDateFilter}
-              onChange={(event) => handleDateFilterChange("endDate", event.target.value)}
-              className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
-            />
-          </label>
-          <button
-            type="submit"
-            className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 sm:col-span-2 xl:col-span-4 xl:w-fit"
-          >
-            Apply filters
-          </button>
-        </form>
-
-        <div className="mt-6 overflow-x-auto">
-          {loading ? (
-            <p className="py-8 text-center text-sm text-slate-600">Loading sales records...</p>
-          ) : records.length === 0 ? (
-            <p className="py-8 text-center text-sm text-slate-600">No sales records found.</p>
-          ) : (
-            <table className="w-full min-w-[1280px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 text-slate-500">
-                  <th className="pb-3 pr-4 font-medium">Logged by</th>
-                  <th className="pb-3 pr-4 font-medium">Type</th>
-                  <th className="pb-3 pr-4 font-medium">Name</th>
-                  <th className="pb-3 pr-4 font-medium">Location</th>
-                  <th className="pb-3 pr-4 font-medium">Titles, class, quantity, and price</th>
-                  <th className="pb-3 pr-4 font-medium">Quantity</th>
-                  <th className="pb-3 pr-4 font-medium">Subtotal</th>
-                  <th className="pb-3 pr-4 font-medium">Discount</th>
-                  <th className="pb-3 pr-4 font-medium">Total</th>
-                  <th className="pb-3 pr-4 font-medium">Date</th>
-                  <th className="pb-3 font-medium">Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {records.map((record) => (
-                  <tr key={record._id} className="border-b border-slate-100 last:border-0">
-                    <td className="py-3 pr-4 font-medium text-slate-950">
-                      {getCsrDisplayName(record.owner, "Unknown")}
-                    </td>
-                    <td className="py-3 pr-4 text-slate-700">
-                      {formatOrganizationType(record.organizationType || "school")}
-                    </td>
-                    <td className="py-3 pr-4 font-medium text-slate-950">
-                      {capitalizeWords(record.schoolName)}
-                    </td>
-                    <td className="py-3 pr-4 text-slate-700">{record.location}</td>
-                    <td className="max-w-[320px] py-3 pr-4 text-slate-700">
-                      {record.bookItems?.length ? (
-                        <div className="space-y-1">
-                          {record.bookItems.map((item, index) => (
-                            <div
-                              key={`${item.title}-${index}`}
-                              className="grid gap-1 sm:grid-cols-[1fr_auto_auto_auto] sm:items-center sm:gap-3"
-                            >
-                              <span>{item.title}</span>
-                              <span className="text-xs font-semibold text-slate-500">
-                                {item.bookClass || record.bookClass
-                                  ? formatBookSaleClass(item.bookClass || record.bookClass)
-                                  : "-"}
-                              </span>
-                              <span className="text-xs font-semibold text-slate-500">
-                                Qty {item.quantity || 1}
-                              </span>
-                              <span className="font-semibold text-slate-900">
-                                {formatCurrency(item.totalPrice ?? item.price)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <span title={record.bookTitles} className="line-clamp-2">
-                          {record.bookTitles}
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 pr-4 font-semibold text-emerald-700">
-                      {record.quantitySold}
-                    </td>
-                    <td className="py-3 pr-4 font-semibold text-slate-700">
-                      {formatCurrency(record.subtotalPrice)}
-                    </td>
-                    <td className="py-3 pr-4 text-slate-700">
-                      {record.discountPercent ? `${record.discountPercent}% ` : ""}
-                      {record.discountAmount
-                        ? `(${formatCurrency(record.discountAmount)})`
-                        : "-"}
-                    </td>
-                    <td className="py-3 pr-4 font-bold text-emerald-700">
-                      {formatCurrency(record.totalPrice)}
-                    </td>
-                    <td className="py-3 pr-4 text-slate-700">
-                      {new Date(record.saleDate || record.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="py-3 text-slate-700">
-                      {new Date(record.saleDate || record.createdAt).toLocaleTimeString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        {pagination.pages > 1 && (
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-slate-600">
-              Page {pagination.page} of {pagination.pages}
-            </p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => handlePageChange(page - 1)}
-                disabled={page <= 1}
-                className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Previous
-              </button>
-              <button
-                type="button"
-                onClick={() => handlePageChange(page + 1)}
-                disabled={page >= pagination.pages}
-                className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      {editingRecord && (
+        <SalesRecordEditModal
+          record={editingRecord}
+          onClose={() => setEditingRecord(null)}
+          onSaved={handleRecordSaved}
+        />
+      )}
     </PanelLayout>
   );
 };
