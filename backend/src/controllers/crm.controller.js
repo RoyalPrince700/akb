@@ -1870,6 +1870,17 @@ const listSalesRecords = asyncHandler(async (req, res) => {
 });
 
 const createSalesRecord = asyncHandler(async (req, res) => {
+  if (req.body.saleDate) {
+    const saleDate = new Date(req.body.saleDate);
+
+    if (Number.isNaN(saleDate.getTime())) {
+      res.status(400);
+      throw new Error("Choose a valid sale date and time");
+    }
+
+    req.body.saleDate = saleDate;
+  }
+
   const payload = buildSalesRecordPayload(req.body, req.user);
   const record = await CrmSalesRecord.create(payload);
   const populated = await CrmSalesRecord.findById(record._id).populate(

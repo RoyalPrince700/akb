@@ -19,10 +19,25 @@ const createEmptyBookItem = () => ({
   discountPercent: "",
 });
 
+const toDateTimeLocalValue = (value = new Date()) => {
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const pad = (part) => String(part).padStart(2, "0");
+
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+    date.getHours()
+  )}:${pad(date.getMinutes())}`;
+};
+
 const createEmptyForm = () => ({
   organizationType: "school",
   schoolName: "",
   location: "",
+  saleDate: toDateTimeLocalValue(),
   bookItems: [createEmptyBookItem()],
 });
 
@@ -317,6 +332,12 @@ const CrmSalesRecordsPage = () => {
         throw new Error("Each book row must include a title, quantity, and valid price.");
       }
 
+      const saleDate = new Date(formData.saleDate);
+
+      if (!formData.saleDate || Number.isNaN(saleDate.getTime())) {
+        throw new Error("Choose a valid sale date and time.");
+      }
+
       await createCrmSalesRecord({
         organizationType: formData.organizationType,
         schoolName: formData.schoolName,
@@ -324,6 +345,7 @@ const CrmSalesRecordsPage = () => {
         bookItems,
         bookTitles: bookItems.map((item) => item.title).join(", "),
         quantitySold: totalQuantity,
+        saleDate: saleDate.toISOString(),
       });
       setFormData(createEmptyForm());
       setSuccessMessage("Sales record saved successfully.");
@@ -366,7 +388,8 @@ const CrmSalesRecordsPage = () => {
             <div>
               <h2 className="text-xl font-bold text-slate-950">Log a new sale</h2>
               <p className="mt-1 text-sm text-slate-600">
-                Record each school or bookshop sale with the titles sold, quantity, and class group.
+                Record each school or bookshop sale with the titles sold, quantity, class group, and
+                the date the sale happened.
               </p>
             </div>
 
@@ -429,6 +452,24 @@ const CrmSalesRecordsPage = () => {
                   placeholder="Town, state, or area"
                   required
                 />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="saleDate">
+                  Sale date and time
+                </label>
+                <input
+                  id="saleDate"
+                  type="datetime-local"
+                  name="saleDate"
+                  value={formData.saleDate}
+                  onChange={handleInputChange}
+                  className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-100"
+                  required
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Defaults to now. Change it when you are logging a sale from another day.
+                </p>
               </div>
 
               <div className="space-y-3 lg:col-span-3">
