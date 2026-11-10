@@ -7,6 +7,8 @@ const {
   buildReceiptApprovedEmailTemplate,
   buildReceiptPostedEmailTemplate,
   buildSurveyEmailTemplate,
+  buildTaskAssignedEmailTemplate,
+  buildTaskDoneEmailTemplate,
 } = require("./emailtemplate");
 
 const sendSurveyEmail = async ({ dispatch, interaction }) => {
@@ -134,9 +136,48 @@ const sendReceiptApprovedEmails = async ({
   );
 };
 
+const deliverTaskEmails = async (recipients, buildTemplate) => {
+  const deliveries = (recipients || []).filter((recipient) => recipient?.email);
+
+  await Promise.all(
+    deliveries.map(async (recipient) => {
+      const template = buildTemplate(recipient);
+
+      try {
+        await sendNotificationEmail({
+          to: recipient.email,
+          subject: template.subject,
+          text: template.text,
+          html: template.html,
+        });
+      } catch (error) {
+        console.error(`Task email to ${recipient.email} failed:`, error.message);
+      }
+    })
+  );
+};
+
+const sendTaskAssignedEmails = ({ recipients, ...details }) =>
+  deliverTaskEmails(recipients, (recipient) =>
+    buildTaskAssignedEmailTemplate({
+      recipientName: recipient.name,
+      ...details,
+    })
+  );
+
+const sendTaskDoneEmails = ({ recipients, ...details }) =>
+  deliverTaskEmails(recipients, (recipient) =>
+    buildTaskDoneEmailTemplate({
+      recipientName: recipient.name,
+      ...details,
+    })
+  );
+
 module.exports = {
   sendPasswordResetEmail,
   sendReceiptApprovedEmails,
   sendReceiptPostedEmails,
   sendSurveyEmail,
+  sendTaskAssignedEmails,
+  sendTaskDoneEmails,
 };

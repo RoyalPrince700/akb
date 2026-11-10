@@ -194,9 +194,123 @@ const buildReceiptApprovedEmailTemplate = ({
   return { html, subject, text };
 };
 
+const taskDetailLines = ({ title, priorityLabel, dueDateLabel, description }) => {
+  const excerpt = String(description || "").trim();
+  const lines = [
+    `Task: ${title}`,
+    priorityLabel ? `Priority: ${priorityLabel}` : null,
+    dueDateLabel ? `Due: ${dueDateLabel}` : null,
+    excerpt ? "" : null,
+    excerpt ? excerpt : null,
+  ].filter((line) => line !== null);
+
+  return lines;
+};
+
+const taskDetailHtml = ({ title, priorityLabel, dueDateLabel, description }) => {
+  const excerpt = String(description || "").trim();
+
+  return `
+    <p><strong>Task:</strong> ${escapeHtml(title)}</p>
+    ${priorityLabel ? `<p><strong>Priority:</strong> ${escapeHtml(priorityLabel)}</p>` : ""}
+    ${dueDateLabel ? `<p><strong>Due:</strong> ${escapeHtml(dueDateLabel)}</p>` : ""}
+    ${excerpt ? `<p>${escapeHtml(excerpt)}</p>` : ""}
+  `;
+};
+
+const buildTaskAssignedEmailTemplate = ({
+  recipientName,
+  actorName,
+  title,
+  description,
+  priorityLabel,
+  dueDateLabel,
+  taskUrl,
+}) => {
+  const greetingName = recipientName || "there";
+  const assigner = actorName || "A teammate";
+  const subject = `You've been assigned: ${title}`;
+  const text = [
+    `Hello ${greetingName},`,
+    "",
+    `${assigner} assigned you to a task on the taskboard.`,
+    "",
+    ...taskDetailLines({ title, priorityLabel, dueDateLabel, description }),
+    "",
+    taskUrl ? `Open the task: ${taskUrl}` : null,
+    "",
+    "Thank you,",
+    "Accessible Publishers Ltd",
+  ]
+    .filter((line) => line !== null)
+    .join("\n");
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.6;">
+      <p>Hello ${escapeHtml(greetingName)},</p>
+      <p><strong>${escapeHtml(assigner)}</strong> assigned you to a task on the taskboard.</p>
+      ${taskDetailHtml({ title, priorityLabel, dueDateLabel, description })}
+      ${
+        taskUrl
+          ? `<p><a href="${escapeHtml(taskUrl)}" style="display: inline-block; background: #1d4ed8; color: #ffffff; padding: 12px 18px; border-radius: 999px; text-decoration: none; font-weight: 700;">Open task</a></p>`
+          : ""
+      }
+      <p>Thank you,<br />Accessible Publishers Ltd</p>
+    </div>
+  `;
+
+  return { html, subject, text };
+};
+
+const buildTaskDoneEmailTemplate = ({
+  recipientName,
+  actorName,
+  title,
+  description,
+  priorityLabel,
+  dueDateLabel,
+  taskUrl,
+}) => {
+  const greetingName = recipientName || "there";
+  const actor = actorName || "A teammate";
+  const subject = `Task completed: ${title}`;
+  const text = [
+    `Hello ${greetingName},`,
+    "",
+    `${actor} marked "${title}" as done on the taskboard.`,
+    "",
+    ...taskDetailLines({ title, priorityLabel, dueDateLabel, description }),
+    "",
+    taskUrl ? `Open the task: ${taskUrl}` : null,
+    "",
+    "Thank you,",
+    "Accessible Publishers Ltd",
+  ]
+    .filter((line) => line !== null)
+    .join("\n");
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.6;">
+      <p>Hello ${escapeHtml(greetingName)},</p>
+      <p><strong>${escapeHtml(actor)}</strong> marked <strong>${escapeHtml(title)}</strong> as done on the taskboard.</p>
+      ${taskDetailHtml({ title, priorityLabel, dueDateLabel, description })}
+      ${
+        taskUrl
+          ? `<p><a href="${escapeHtml(taskUrl)}" style="display: inline-block; background: #047857; color: #ffffff; padding: 12px 18px; border-radius: 999px; text-decoration: none; font-weight: 700;">Open task</a></p>`
+          : ""
+      }
+      <p>Thank you,<br />Accessible Publishers Ltd</p>
+    </div>
+  `;
+
+  return { html, subject, text };
+};
+
 module.exports = {
   buildPasswordResetEmailTemplate,
   buildReceiptApprovedEmailTemplate,
   buildReceiptPostedEmailTemplate,
   buildSurveyEmailTemplate,
+  buildTaskAssignedEmailTemplate,
+  buildTaskDoneEmailTemplate,
 };

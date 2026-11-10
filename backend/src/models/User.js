@@ -55,6 +55,14 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    // Taskboard avatar (1-9 maps to frontend/src/assets/avatar/avatar_N.jpg).
+    // Null means "use the automatically assigned avatar".
+    avatar: {
+      type: Number,
+      min: 1,
+      max: 9,
+      default: null,
+    },
     gems: {
       type: Number,
       default: 0,

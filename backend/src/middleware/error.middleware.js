@@ -15,6 +15,11 @@ const errorHandler = (error, req, res, next) => {
       .join(", ");
   }
 
+  if (error.code === "LIMIT_FILE_SIZE") {
+    statusCode = 400;
+    message = "File is too large (max 2MB)";
+  }
+
   if (error.code === 11000) {
     statusCode = 409;
     if (error.keyPattern?.staffId) {

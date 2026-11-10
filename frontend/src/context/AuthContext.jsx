@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 import { getProfile, loginUser, registerUser } from "../services/api";
+import { connectRealtime, disconnectRealtime } from "../services/realtime";
 
 const AuthContext = createContext(null);
 
@@ -29,6 +30,14 @@ export const AuthProvider = ({ children }) => {
     };
 
     loadUser();
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) {
+      disconnectRealtime();
+      return;
+    }
+    connectRealtime(token);
   }, [token]);
 
   const login = async (credentials) => {

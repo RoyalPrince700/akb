@@ -665,4 +665,110 @@ export const removePaGroupMember = async (groupId, userId) => {
   return response.data;
 };
 
+export const listTaskPeople = async () => {
+  const response = await api.get("/tasks/directory");
+  return response.data;
+};
+
+export const listTasks = async (params = {}) => {
+  const response = await api.get("/tasks", { params });
+  return response.data;
+};
+
+export const createTask = async (payload) => {
+  const response = await api.post("/tasks", payload);
+  return response.data;
+};
+
+export const updateTask = async (id, payload) => {
+  const response = await api.patch(`/tasks/${id}`, payload);
+  return response.data;
+};
+
+export const uploadTaskCompletionFile = async (taskId, file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await api.post(`/tasks/${taskId}/completion-attachments`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data;
+};
+
+export const deleteTask = async (id) => {
+  const response = await api.delete(`/tasks/${id}`);
+  return response.data;
+};
+
+export const listTaskChat = async (taskId) => {
+  const response = await api.get(`/tasks/${taskId}/chat`);
+  return response.data;
+};
+
+export const sendTaskChatMessage = async (taskId, body) => {
+  const response = await api.post(`/tasks/${taskId}/chat`, { body });
+  return response.data;
+};
+
+export const listStaffConversations = async () => {
+  const response = await api.get("/staff-chat/conversations");
+  return response.data;
+};
+
+export const openStaffConversation = async (peerId) => {
+  const response = await api.post("/staff-chat/conversations", { peerId });
+  return response.data;
+};
+
+export const listStaffChatMessages = async (conversationId) => {
+  const response = await api.get(`/staff-chat/conversations/${conversationId}/messages`);
+  return response.data;
+};
+
+export const sendStaffChatMessage = async (conversationId, body) => {
+  const response = await api.post(`/staff-chat/conversations/${conversationId}/messages`, {
+    body,
+  });
+  return response.data;
+};
+
+export const listDailyTodos = async (date) => {
+  const response = await api.get("/tasks/todos", { params: { date } });
+  return response.data;
+};
+
+export const createDailyTodo = async (payload) => {
+  const response = await api.post("/tasks/todos", payload);
+  return response.data;
+};
+
+export const updateDailyTodo = async (id, payload) => {
+  const response = await api.patch(`/tasks/todos/${id}`, payload);
+  return response.data;
+};
+
+export const deleteDailyTodo = async (id) => {
+  const response = await api.delete(`/tasks/todos/${id}`);
+  return response.data;
+};
+
+export const listNotifications = async () => {
+  const response = await api.get("/notifications");
+  return response.data;
+};
+
+export const getUnreadNotificationCount = async () => {
+  const response = await api.get("/notifications/unread-count");
+  return response.data;
+};
+
+export const markNotificationRead = async (id) => {
+  const response = await api.patch(`/notifications/${id}/read`);
+  return response.data;
+};
+
+export const markAllNotificationsRead = async () => {
+  const response = await api.post("/notifications/read-all");
+  return response.data;
+};
+
 export default api;

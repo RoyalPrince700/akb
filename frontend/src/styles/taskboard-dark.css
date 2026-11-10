@@ -1,0 +1,456 @@
+/* Scoped dark theme for the taskboard (.taskboard--dark on the page root). */
+
+.taskboard--dark {
+  color-scheme: dark;
+  --tb-page: #0b1020;
+  --tb-surface: #141c2e;
+  --tb-surface-2: #1b253a;
+  --tb-raised: #243049;
+  --tb-border: #3b4a63;
+  --tb-border-soft: #2a3548;
+  --tb-text: #f1f5f9;
+  --tb-text-secondary: #cbd5e1;
+  --tb-text-muted: #94a3b8;
+  --tb-text-faint: #8494ab;
+  --tb-accent: #a78bfa;
+  --tb-accent-soft: rgb(139 92 246 / 0.2);
+  background-color: var(--tb-page);
+  color: var(--tb-text);
+}
+
+/* ---------- Navbar ---------- */
+
+.taskboard--dark > header {
+  border-color: var(--tb-border-soft) !important;
+  background-color: rgb(11 16 32 / 0.94) !important;
+}
+
+.taskboard--dark > header .text-slate-950,
+.taskboard--dark > header .text-slate-900 {
+  color: var(--tb-text) !important;
+}
+
+.taskboard--dark > header .text-slate-500,
+.taskboard--dark > header .text-slate-600,
+.taskboard--dark > header .text-slate-700,
+.taskboard--dark > header .text-slate-800 {
+  color: var(--tb-text-muted) !important;
+}
+
+.taskboard--dark > header .hover\:text-slate-900:hover {
+  color: var(--tb-text) !important;
+}
+
+.taskboard--dark > header .border-slate-100,
+.taskboard--dark > header .border-slate-200,
+.taskboard--dark > header .border-slate-300 {
+  border-color: var(--tb-border-soft) !important;
+}
+
+.taskboard--dark > header .bg-white,
+.taskboard--dark > header .bg-white\/80,
+.taskboard--dark > header .bg-slate-50,
+.taskboard--dark > header .bg-slate-100 {
+  background-color: var(--tb-surface-2) !important;
+}
+
+.taskboard--dark > header .hover\:bg-slate-50:hover {
+  background-color: var(--tb-raised) !important;
+}
+
+.taskboard--dark > header .after\:bg-slate-950::after {
+  background-color: var(--tb-accent) !important;
+}
+
+.taskboard--dark > aside.fixed {
+  background-color: var(--tb-surface) !important;
+  border-color: var(--tb-border-soft) !important;
+}
+
+/* ---------- Surfaces ---------- */
+
+.taskboard--dark .bg-white,
+.taskboard--dark .bg-white\/70,
+.taskboard--dark .bg-white\/80,
+.taskboard--dark .bg-white\/90 {
+  background-color: var(--tb-surface) !important;
+}
+
+.taskboard--dark .bg-white\/50 {
+  background-color: rgb(20 28 46 / 0.55) !important;
+}
+
+.taskboard--dark .bg-slate-50,
+.taskboard--dark .bg-slate-50\/80,
+.taskboard--dark .bg-slate-50\/70 {
+  background-color: var(--tb-surface-2) !important;
+}
+
+.taskboard--dark .bg-slate-100 {
+  background-color: var(--tb-raised) !important;
+}
+
+.taskboard--dark .bg-\[\#fbfafd\],
+.taskboard--dark .bg-\[\#f4f1fb\] {
+  background-color: var(--tb-surface) !important;
+}
+
+.taskboard--dark .border-slate-100,
+.taskboard--dark .border-slate-200,
+.taskboard--dark .border-slate-200\/70,
+.taskboard--dark .border-slate-200\/80,
+.taskboard--dark .border-slate-200\/90,
+.taskboard--dark .border-slate-300,
+.taskboard--dark .border-white,
+.taskboard--dark .border-white\/70,
+.taskboard--dark .border-white\/80 {
+  border-color: var(--tb-border-soft) !important;
+}
+
+.taskboard--dark .ring-white,
+.taskboard--dark .ring-slate-200 {
+  --tw-ring-color: var(--tb-border) !important;
+}
+
+.taskboard--dark .ring-offset-1 {
+  --tw-ring-offset-color: var(--tb-surface) !important;
+}
+
+/* ---------- Text ---------- */
+
+.taskboard--dark .text-slate-950,
+.taskboard--dark .text-slate-900,
+.taskboard--dark .text-slate-800 {
+  color: var(--tb-text) !important;
+}
+
+.taskboard--dark .text-slate-700,
+.taskboard--dark .text-slate-600 {
+  color: var(--tb-text-secondary) !important;
+}
+
+.taskboard--dark .text-slate-500 {
+  color: var(--tb-text-muted) !important;
+}
+
+.taskboard--dark .text-slate-400,
+.taskboard--dark .text-slate-300 {
+  color: var(--tb-text-faint) !important;
+}
+
+.taskboard--dark .hover\:text-slate-900:hover,
+.taskboard--dark .hover\:text-slate-950:hover,
+.taskboard--dark .hover\:text-slate-800:hover {
+  color: var(--tb-text) !important;
+}
+
+.taskboard--dark .hover\:bg-slate-50:hover,
+.taskboard--dark .hover\:bg-white:hover,
+.taskboard--dark .hover\:bg-white\/80:hover,
+.taskboard--dark .hover\:bg-white\/70:hover {
+  background-color: var(--tb-raised) !important;
+}
+
+.taskboard--dark .hover\:bg-slate-100:hover {
+  background-color: #334155 !important;
+}
+
+.taskboard--dark .hover\:bg-violet-50:hover {
+  background-color: rgb(139 92 246 / 0.16) !important;
+}
+
+/* Accent labels — lighten on dark backgrounds */
+.taskboard--dark .text-violet-800,
+.taskboard--dark .text-violet-700,
+.taskboard--dark .text-violet-600 {
+  color: #c4b5fd !important;
+}
+
+.taskboard--dark .hover\:text-violet-800:hover {
+  color: #ddd6fe !important;
+}
+
+.taskboard--dark .text-sky-700,
+.taskboard--dark .text-sky-600,
+.taskboard--dark .text-sky-500 {
+  color: #7dd3fc !important;
+}
+
+.taskboard--dark .text-amber-800,
+.taskboard--dark .text-amber-700,
+.taskboard--dark .text-amber-600 {
+  color: #fbbf24 !important;
+}
+
+.taskboard--dark .text-emerald-700,
+.taskboard--dark .text-emerald-600 {
+  color: #6ee7b7 !important;
+}
+
+.taskboard--dark .text-rose-800,
+.taskboard--dark .text-rose-700,
+.taskboard--dark .text-rose-600 {
+  color: #fda4af !important;
+}
+
+.taskboard--dark .hover\:text-rose-700:hover,
+.taskboard--dark .hover\:text-rose-600:hover {
+  color: #fecdd3 !important;
+}
+
+.taskboard--dark .text-orange-700,
+.taskboard--dark .text-orange-500 {
+  color: #fdba74 !important;
+}
+
+/* Keep solid filled buttons readable */
+.taskboard--dark .bg-violet-600,
+.taskboard--dark .bg-emerald-500,
+.taskboard--dark .bg-slate-950 {
+  color: #fff;
+}
+
+/* ---------- Forms (before chip colors so chips can override) ---------- */
+
+.taskboard--dark textarea,
+.taskboard--dark input:not([type="checkbox"]):not([type="radio"]),
+.taskboard--dark select {
+  background-color: var(--tb-surface-2) !important;
+  border-color: var(--tb-border) !important;
+  color: var(--tb-text) !important;
+}
+
+.taskboard--dark textarea::placeholder,
+.taskboard--dark input::placeholder {
+  color: var(--tb-text-faint) !important;
+}
+
+.taskboard--dark textarea:focus,
+.taskboard--dark input:not([type="checkbox"]):not([type="radio"]):focus,
+.taskboard--dark select:focus {
+  background-color: #0f172a !important;
+  border-color: #8b5cf6 !important;
+}
+
+.taskboard--dark .disabled\:bg-slate-50:disabled {
+  background-color: rgb(30 41 59 / 0.55) !important;
+}
+
+.taskboard--dark .disabled\:text-slate-500:disabled {
+  color: var(--tb-text-faint) !important;
+}
+
+.taskboard--dark option {
+  background-color: var(--tb-surface);
+  color: var(--tb-text);
+}
+
+/* ---------- Soft chips / washes / metric tones (after forms) ---------- */
+
+.taskboard--dark .bg-violet-100 {
+  background-color: rgb(139 92 246 / 0.24) !important;
+  color: #ddd6fe;
+}
+
+.taskboard--dark .bg-sky-100 {
+  background-color: rgb(14 165 233 / 0.22) !important;
+  color: #bae6fd;
+}
+
+.taskboard--dark .bg-amber-100 {
+  background-color: rgb(245 158 11 / 0.22) !important;
+  color: #fde68a;
+}
+
+.taskboard--dark .bg-emerald-100 {
+  background-color: rgb(16 185 129 / 0.22) !important;
+  color: #a7f3d0;
+}
+
+.taskboard--dark .bg-orange-100 {
+  background-color: rgb(249 115 22 / 0.22) !important;
+  color: #fed7aa;
+}
+
+.taskboard--dark .bg-rose-100 {
+  background-color: rgb(244 63 94 / 0.22) !important;
+  color: #fecdd3;
+}
+
+.taskboard--dark .bg-violet-50 {
+  background-color: rgb(139 92 246 / 0.14) !important;
+}
+
+.taskboard--dark .bg-sky-50 {
+  background-color: rgb(14 165 233 / 0.12) !important;
+}
+
+.taskboard--dark .bg-amber-50 {
+  background-color: rgb(245 158 11 / 0.14) !important;
+}
+
+.taskboard--dark .bg-emerald-50,
+.taskboard--dark .bg-emerald-50\/60 {
+  background-color: rgb(16 185 129 / 0.12) !important;
+}
+
+.taskboard--dark .bg-rose-50 {
+  background-color: rgb(244 63 94 / 0.14) !important;
+}
+
+.taskboard--dark select.bg-violet-100,
+.taskboard--dark select.bg-sky-100,
+.taskboard--dark select.bg-amber-100,
+.taskboard--dark select.bg-emerald-100 {
+  border-color: transparent !important;
+}
+
+.taskboard--dark .border-violet-100,
+.taskboard--dark .border-violet-200 {
+  border-color: rgb(139 92 246 / 0.35) !important;
+}
+
+.taskboard--dark .border-amber-100 {
+  border-color: rgb(245 158 11 / 0.35) !important;
+}
+
+.taskboard--dark .border-emerald-100 {
+  border-color: rgb(16 185 129 / 0.35) !important;
+}
+
+.taskboard--dark .border-rose-200 {
+  border-color: rgb(244 63 94 / 0.4) !important;
+}
+
+.taskboard--dark .ring-violet-100 {
+  --tw-ring-color: rgb(139 92 246 / 0.35) !important;
+}
+
+.taskboard--dark .ring-violet-500 {
+  --tw-ring-color: #8b5cf6 !important;
+}
+
+/* ---------- Gradients ---------- */
+
+.taskboard--dark .from-slate-50 {
+  --tw-gradient-from: var(--tb-surface-2) !important;
+}
+
+.taskboard--dark .to-violet-50\/20,
+.taskboard--dark .to-violet-50\/30 {
+  --tw-gradient-to: rgb(139 92 246 / 0.08) !important;
+}
+
+.taskboard--dark [class*="from-violet-50"][class*="via-sky-50"][class*="to-emerald-50"],
+.taskboard--dark .bg-gradient-to-br.from-violet-50 {
+  background-image: linear-gradient(
+    to bottom right,
+    rgb(139 92 246 / 0.18),
+    rgb(14 165 233 / 0.1),
+    rgb(16 185 129 / 0.1)
+  ) !important;
+}
+
+.taskboard--dark .bg-gradient-to-b.from-slate-50 {
+  background-image: linear-gradient(
+    to bottom,
+    var(--tb-surface-2),
+    rgb(139 92 246 / 0.07)
+  ) !important;
+}
+
+/* ---------- Tables / rows ---------- */
+
+.taskboard--dark table thead tr {
+  background-color: var(--tb-surface-2) !important;
+}
+
+.taskboard--dark tbody tr {
+  border-color: var(--tb-border-soft);
+}
+
+.taskboard--dark tbody tr[role="button"]:hover > td {
+  background-color: rgb(36 48 73 / 0.55);
+}
+
+/* ---------- Shadows ---------- */
+
+.taskboard--dark .shadow-\[0_1px_2px_rgba\(15\,23\,42\,0\.04\)\],
+.taskboard--dark .shadow-\[0_1px_2px_rgba\(15\,23\,42\,0\.04\)\,0_16px_40px_rgba\(15\,23\,42\,0\.05\)\],
+.taskboard--dark .shadow-\[0_1px_2px_rgba\(15\,23\,42\,0\.04\)\,0_12px_32px_rgba\(15\,23\,42\,0\.04\)\],
+.taskboard--dark .shadow-\[0_1px_2px_rgba\(15\,23\,42\,0\.05\)\],
+.taskboard--dark .shadow-sm,
+.taskboard--dark .shadow-xl,
+.taskboard--dark .shadow-2xl {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 28px rgba(0, 0, 0, 0.28) !important;
+}
+
+.taskboard--dark .hover\:shadow-\[0_10px_24px_rgba\(15\,23\,42\,0\.08\)\]:hover {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* ---------- Controls ---------- */
+
+.taskboard--dark .taskboard-theme-toggle {
+  border-color: var(--tb-border) !important;
+  background-color: var(--tb-surface-2) !important;
+  color: var(--tb-text-secondary) !important;
+}
+
+.taskboard--dark .taskboard-theme-toggle:hover {
+  background-color: var(--tb-raised) !important;
+  color: var(--tb-text) !important;
+}
+
+/* Layout toggle active state — keep contrast without hijacking every slate-950 control */
+.taskboard--dark .inline-flex.rounded-full.border .bg-slate-950 {
+  background-color: #6366f1 !important;
+  box-shadow: 0 6px 14px rgba(99, 102, 241, 0.35) !important;
+}
+
+/* Sidebar active view */
+.taskboard--dark nav button[aria-current="page"] {
+  background-color: var(--tb-accent-soft) !important;
+  color: #ddd6fe !important;
+}
+
+.taskboard--dark nav button[aria-current="page"] .text-violet-500 {
+  color: #c4b5fd !important;
+}
+
+/* Aside rail */
+.taskboard--dark > div > aside {
+  border-color: var(--tb-border-soft) !important;
+}
+
+.taskboard--dark > div > aside .bg-white {
+  background-color: var(--tb-surface) !important;
+}
+
+/* Board columns: slightly lifted so cards separate from page */
+.taskboard--dark .min-h-\[28rem\].rounded-2xl {
+  background-color: var(--tb-surface-2) !important;
+  box-shadow: inset 0 0 0 1px var(--tb-border-soft);
+}
+
+/* Task cards on board */
+.taskboard--dark article.rounded-xl.border {
+  background-color: var(--tb-surface) !important;
+  border-color: var(--tb-border) !important;
+}
+
+.taskboard--dark article.rounded-xl.border:hover {
+  border-color: #475569 !important;
+}
+
+/* Drawer / modal shells */
+.taskboard--dark .fixed .max-w-md.bg-white,
+.taskboard--dark .fixed .max-w-lg.bg-white,
+.taskboard--dark .fixed .rounded-\[28px\].bg-white {
+  background-color: var(--tb-surface) !important;
+}
+
+/* Empty / dashed states */
+.taskboard--dark .border-dashed {
+  border-color: var(--tb-border) !important;
+}

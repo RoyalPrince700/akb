@@ -123,12 +123,26 @@ const getProfile = asyncHandler(async (req, res) => {
 });
 
 const updateProfile = asyncHandler(async (req, res) => {
-  const { name, email, department, position, csrDisplayName, csrPhoneNumbers } = req.body;
+  const { name, email, department, position, csrDisplayName, csrPhoneNumbers, avatar } =
+    req.body;
   const user = await User.findById(req.user._id);
 
   if (!user) {
     res.status(404);
     throw new Error("User not found");
+  }
+
+  if (avatar !== undefined) {
+    if (avatar === null || avatar === "") {
+      user.avatar = null;
+    } else {
+      const avatarNumber = Number(avatar);
+      if (!Number.isInteger(avatarNumber) || avatarNumber < 1 || avatarNumber > 9) {
+        res.status(400);
+        throw new Error("Choose a valid avatar");
+      }
+      user.avatar = avatarNumber;
+    }
   }
 
   if (name?.trim()) {

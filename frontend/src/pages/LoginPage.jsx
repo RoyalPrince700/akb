@@ -3,7 +3,6 @@ import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
-import { getDashboardPath } from "../utils/rolePaths";
 
 const EyeIcon = ({ hidden }) => {
   return hidden ? (
@@ -44,11 +43,11 @@ const EyeIcon = ({ hidden }) => {
   );
 };
 
-const getPostLoginPath = (role, from) => {
+const getPostLoginPath = (from) => {
   if (from?.pathname && from.pathname !== "/login") {
     return `${from.pathname}${from.search || ""}${from.hash || ""}`;
   }
-  return getDashboardPath(role);
+  return "/";
 };
 
 const LoginPage = () => {
@@ -66,7 +65,7 @@ const LoginPage = () => {
   if (isAuthenticated) {
     return (
       <Navigate
-        to={getPostLoginPath(user?.role, location.state?.from)}
+        to={getPostLoginPath(location.state?.from)}
         replace
       />
     );
@@ -85,8 +84,8 @@ const LoginPage = () => {
     setSubmitting(true);
 
     try {
-      const loggedInUser = await login(formData);
-      navigate(getPostLoginPath(loggedInUser.role, location.state?.from), {
+      await login(formData);
+      navigate(getPostLoginPath(location.state?.from), {
         replace: true,
       });
     } catch (apiError) {

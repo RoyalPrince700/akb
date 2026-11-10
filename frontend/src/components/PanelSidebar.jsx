@@ -9,6 +9,8 @@ import {
   GraduationCap,
   Globe,
   History,
+  Home,
+  Kanban,
   LayoutDashboard,
   ListChecks,
   Lock,
@@ -83,7 +85,12 @@ const PanelSidebar = ({
   const isAccountOfficer = role === "accountOfficer";
   const isHubPanel = !isCsrPanel;
 
-  const navItems = isSecurity
+  const siteNavItems = [
+    { to: "/", end: true, label: "Home", icon: Home },
+    { to: "/taskboard", label: "Taskboard", icon: Kanban },
+  ];
+
+  const roleNavItems = isSecurity
     ? [
         {
           to: overviewPath,
@@ -254,6 +261,8 @@ const PanelSidebar = ({
           icon: BookOpen,
         },
       ];
+
+  const navItems = [...siteNavItems, ...roleNavItems];
 
   const panelLabel = isAdmin
     ? "Admin Panel"

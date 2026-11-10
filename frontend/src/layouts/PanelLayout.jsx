@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Home, LogOut, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Home, Kanban, LogOut, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 
 import PanelSidebar from "../components/PanelSidebar";
@@ -168,7 +168,14 @@ const PanelLayout = ({ children, title }) => {
                     className="hidden items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-blue-700 sm:inline-flex"
                   >
                     <Home className="h-4 w-4" aria-hidden />
-                    Site home
+                    Home
+                  </Link>
+                  <Link
+                    to="/taskboard"
+                    className="hidden items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-blue-700 sm:inline-flex"
+                  >
+                    <Kanban className="h-4 w-4" aria-hidden />
+                    Taskboard
                   </Link>
                   <button
                     type="button"
@@ -181,13 +188,29 @@ const PanelLayout = ({ children, title }) => {
                 </>
               )}
               {isCsrPanel && (
-                <Link to="/" className="inline-flex shrink-0 items-center">
-                  <img
-                    src={accessibleLogo}
-                    alt="Accessible Publishers Ltd — Accessible Knowledge Base"
-                    className="h-9 w-auto max-w-[min(100%,180px)] object-contain object-left sm:h-10 sm:max-w-[min(100%,220px)]"
-                  />
-                </Link>
+                <>
+                  <Link
+                    to="/"
+                    className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-emerald-700"
+                  >
+                    <Home className="h-4 w-4" aria-hidden />
+                    <span className="hidden sm:inline">Home</span>
+                  </Link>
+                  <Link
+                    to="/taskboard"
+                    className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-emerald-700"
+                  >
+                    <Kanban className="h-4 w-4" aria-hidden />
+                    <span className="hidden sm:inline">Taskboard</span>
+                  </Link>
+                  <Link to="/" className="inline-flex shrink-0 items-center">
+                    <img
+                      src={accessibleLogo}
+                      alt="Accessible Publishers Ltd — Accessible Knowledge Base"
+                      className="h-9 w-auto max-w-[min(100%,180px)] object-contain object-left sm:h-10 sm:max-w-[min(100%,220px)]"
+                    />
+                  </Link>
+                </>
               )}
             </div>
           </div>

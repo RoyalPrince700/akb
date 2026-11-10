@@ -53,6 +53,7 @@ import CrmSurveyResponsesPage from "./pages/crm/CrmSurveyResponsesPage";
 import CrmUploadDataPage from "./pages/crm/CrmUploadDataPage";
 import PublicSurveyPage from "./pages/crm/PublicSurveyPage";
 import ProjectAdvancePage from "./pages/ProjectAdvancePage";
+import TaskboardPage from "./pages/TaskboardPage";
 import { LEARNING_ROLES } from "./utils/rolePaths";
 
 const hrAdminPanel = (page) => (
@@ -161,7 +162,16 @@ const App = () => {
           </ProtectedRoute>
         }
       />
-
+      <Route
+        path="/taskboard"
+        element={
+          <ProtectedRoute
+            roles={["staff", "hr", "admin", "csr", "csrAdmin", "security", "pa", "accountOfficer"]}
+          >
+            <TaskboardPage />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/admin"
         element={
