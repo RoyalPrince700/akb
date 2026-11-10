@@ -9,6 +9,7 @@ const {
   TASK_STATUSES,
 } = require("../models/Task");
 const {
+  deleteAsset,
   deliveryUrlForAttachment,
   extensionForUpload,
   hasCloudinaryConfig,
@@ -228,15 +229,17 @@ const serializeTask = (task) => {
   const completionAttachments = (plain.completionAttachments || []).map((item) => {
     const originalName = item.originalName || "";
     const mimeType = item.mimeType || "";
-    const resourceType = item.resourceType || (String(mimeType).startsWith("image/") ? "image" : "raw");
-    const url =
-      deliveryUrlForAttachment({
-        publicId: item.publicId,
-        resourceType,
-        originalName,
-        mimeType,
-        fallbackUrl: item.url,
-      }) || item.url;
+    const resourceType =
+      item.resourceType || (String(mimeType).startsWith("image/") ? "image" : "raw");
+    const storedUrl = String(item.url || "");
+    const needsRebuild = !storedUrl || storedUrl.includes("fl_attachment");
+    const url = needsRebuild
+      ? deliveryUrlForAttachment({
+          publicId: item.publicId,
+          resourceType,
+          fallbackUrl: storedUrl,
+        }) || storedUrl
+      : storedUrl;
 
     return {
       ...item,
@@ -276,6 +279,33 @@ const pushActivity = (task, actorId, message, action = "updated") => {
 };
 
 const actorName = (user) => String(user?.name || "Someone").trim() || "Someone";
+
+const readReplyTo = (raw) => {
+  let value = raw;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+    try {
+      value = JSON.parse(trimmed);
+    } catch {
+      return undefined;
+    }
+  }
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+  const preview = String(value.preview || "").trim().slice(0, 160);
+  if (!preview) {
+    return undefined;
+  }
+  return {
+    messageId: String(value.messageId || "").slice(0, 40),
+    authorName: String(value.authorName || "Someone").trim().slice(0, 80) || "Someone",
+    preview,
+  };
+};
 
 const clientBaseUrl = () =>
   (process.env.CLIENT_URL || "http://localhost:5173").replace(/\/$/, "");
@@ -831,19 +861,63 @@ const createTaskChatMessage = asyncHandler(async (req, res) => {
   }
 
   const body = String(req.body.body || req.body.text || "").trim();
-  if (!body) {
-    fail(res, 400, "Message cannot be empty");
+  if (!body && !req.file) {
+    fail(res, 400, "Write a message or attach a file");
   }
 
-  task.chat.push({ author: req.user._id, body });
+  let attachment;
+  if (req.file?.buffer?.length) {
+    if (!hasCloudinaryConfig) {
+      fail(res, 503, "File upload is temporarily unavailable. Try again later.");
+    }
+    const mimeType = String(req.file.mimetype || "").toLowerCase();
+    const isImage = mimeType.startsWith("image/");
+    const resourceType = isImage ? "image" : "raw";
+    const originalName = String(req.file.originalname || "file").slice(0, 180);
+    const ext = extensionForUpload(originalName, mimeType);
+    const publicStem = `chat_${task._id}_${req.user._id}_${Date.now()}`;
+    const publicId = ext ? `${publicStem}.${ext}` : publicStem;
+    let upload;
+    try {
+      upload = await uploadBuffer(req.file.buffer, {
+        folder: "akb/task-chat",
+        resource_type: resourceType,
+        public_id: publicId,
+      });
+    } catch (uploadError) {
+      fail(res, uploadError.statusCode || 502, uploadError.message || "Could not upload the file");
+    }
+    attachment = {
+      url: upload.secure_url || upload.url,
+      publicId: upload.public_id || "",
+      originalName,
+      mimeType: mimeType.slice(0, 120),
+      size: Math.min(req.file.size || 0, 2 * 1024 * 1024),
+      resourceType,
+    };
+  }
+
+  const replyTo = readReplyTo(req.body.replyTo);
+  task.chat.push({
+    author: req.user._id,
+    body,
+    ...(attachment ? { attachment } : {}),
+    ...(replyTo ? { replyTo } : {}),
+  });
   if (task.chat.length > 200) {
     task.chat = task.chat.slice(-200);
   }
   await task.save();
 
   const recipientIds = uniqueIds([task.owner, task.createdBy, ...(task.assignees || [])]);
+  const fileLabel = attachment
+    ? attachment.resourceType === "image"
+      ? "Sent a photo"
+      : `Sent ${attachment.originalName || "a document"}`
+    : "";
+  const previewSource = body || fileLabel;
   const preview =
-    body.length > 72 ? `${body.slice(0, 72).trim()}…` : body;
+    previewSource.length > 72 ? `${previewSource.slice(0, 72).trim()}…` : previewSource;
   await notifyUsers({
     recipientIds,
     actor: req.user,
@@ -865,6 +939,65 @@ const createTaskChatMessage = asyncHandler(async (req, res) => {
   res.status(201).json({
     message: "Message sent",
     chatMessage: latest,
+    task: serializeTask(populated),
+  });
+});
+
+const deleteTaskChatMessage = asyncHandler(async (req, res) => {
+  const taskId = req.params.id;
+  const messageId = req.params.messageId;
+
+  if (!mongoose.Types.ObjectId.isValid(taskId) || !mongoose.Types.ObjectId.isValid(messageId)) {
+    fail(res, 404, "Message not found");
+  }
+
+  const task = await Task.findById(taskId);
+  if (!task) {
+    fail(res, 404, "Task not found");
+  }
+
+  if (!isOnTask(task, req.user._id)) {
+    fail(res, 403, "Only people on this task can use this chat");
+  }
+
+  const message = task.chat.id(messageId);
+  if (!message) {
+    fail(res, 404, "Message not found");
+  }
+
+  const authorId = String(message.author?._id || message.author || "");
+  if (authorId !== String(req.user._id)) {
+    fail(res, 403, "You can only delete your own messages");
+  }
+
+  if (message.deletedAt) {
+    fail(res, 400, "This message is already deleted");
+  }
+
+  const hadMedia = Boolean(message.attachment?.url);
+  const publicId = message.attachment?.publicId || "";
+  const resourceType = message.attachment?.resourceType || "image";
+  message.deletedAt = new Date();
+  message.deletedKind = hadMedia ? "media" : "text";
+  message.body = hadMedia ? "Media deleted" : "This has been deleted";
+  message.attachment = undefined;
+  message.replyTo = undefined;
+  await task.save();
+
+  if (publicId) {
+    try {
+      await deleteAsset(publicId, resourceType);
+    } catch (cloudinaryError) {
+      console.error("Task chat cloudinary delete failed:", cloudinaryError.message);
+    }
+  }
+
+  const recipientIds = uniqueIds([task.owner, task.createdBy, ...(task.assignees || [])]);
+  const populated = await loadTask(task._id);
+  publishTask(populated, recipientIds);
+
+  res.json({
+    message: "Message deleted",
     task: serializeTask(populated),
   });
 });
@@ -930,13 +1063,14 @@ const addTaskCompletionAttachment = asyncHandler(async (req, res) => {
   }
 
   const attachment = {
-    url: deliveryUrlForAttachment({
-      publicId: upload.public_id,
-      resourceType,
-      originalName,
-      mimeType,
-      fallbackUrl: upload.secure_url || upload.url,
-    }),
+    url:
+      upload.secure_url ||
+      upload.url ||
+      deliveryUrlForAttachment({
+        publicId: upload.public_id,
+        resourceType,
+        fallbackUrl: "",
+      }),
     publicId: upload.public_id || "",
     originalName,
     mimeType: mimeType.slice(0, 120),
@@ -968,6 +1102,57 @@ const addTaskCompletionAttachment = asyncHandler(async (req, res) => {
   });
 });
 
+const deleteTaskCompletionAttachment = asyncHandler(async (req, res) => {
+  const taskId = req.params.id;
+  const attachmentId = req.params.attachmentId;
+
+  if (
+    !mongoose.Types.ObjectId.isValid(taskId) ||
+    !mongoose.Types.ObjectId.isValid(attachmentId)
+  ) {
+    fail(res, 404, "Attachment not found");
+  }
+
+  const task = await Task.findById(taskId);
+  if (!task) {
+    fail(res, 404, "Task not found");
+  }
+
+  if (!isOnTask(task, req.user._id)) {
+    fail(res, 403, "Only people on this task can remove files");
+  }
+
+  const attachment = task.completionAttachments?.id(attachmentId);
+  if (!attachment) {
+    fail(res, 404, "Attachment not found");
+  }
+
+  const removedName = attachment.originalName || "attachment";
+  const publicId = attachment.publicId;
+  const resourceType = attachment.resourceType || "image";
+
+  task.completionAttachments.pull(attachmentId);
+  pushActivity(task, req.user._id, `Removed file “${removedName}”`);
+  await task.save();
+
+  if (publicId) {
+    try {
+      await deleteAsset(publicId, resourceType);
+    } catch (cloudinaryError) {
+      console.error("Task attachment cloudinary delete failed:", cloudinaryError.message);
+    }
+  }
+
+  const involvedNow = uniqueIds([task.createdBy, task.owner, ...(task.assignees || [])]);
+  const populated = await loadTask(task._id);
+  publishTask(populated, involvedNow);
+
+  res.json({
+    message: "File removed",
+    task: serializeTask(populated),
+  });
+});
+
 const deleteTodo = asyncHandler(async (req, res) => {
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     fail(res, 404, "To-do not found");
@@ -987,8 +1172,10 @@ const deleteTodo = asyncHandler(async (req, res) => {
 
 module.exports = {
   addTaskCompletionAttachment,
+  deleteTaskCompletionAttachment,
   createTask,
   createTaskChatMessage,
+  deleteTaskChatMessage,
   createTodo,
   deleteTask,
   deleteTodo,

@@ -694,6 +694,11 @@ export const uploadTaskCompletionFile = async (taskId, file) => {
   return response.data;
 };
 
+export const deleteTaskCompletionAttachment = async (taskId, attachmentId) => {
+  const response = await api.delete(`/tasks/${taskId}/completion-attachments/${attachmentId}`);
+  return response.data;
+};
+
 export const deleteTask = async (id) => {
   const response = await api.delete(`/tasks/${id}`);
   return response.data;
@@ -704,8 +709,25 @@ export const listTaskChat = async (taskId) => {
   return response.data;
 };
 
-export const sendTaskChatMessage = async (taskId, body) => {
-  const response = await api.post(`/tasks/${taskId}/chat`, { body });
+export const sendTaskChatMessage = async (taskId, body, file, replyTo) => {
+  if (file) {
+    const formData = new FormData();
+    formData.append("body", body || "");
+    formData.append("file", file);
+    if (replyTo) {
+      formData.append("replyTo", JSON.stringify(replyTo));
+    }
+    const response = await api.post(`/tasks/${taskId}/chat`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  }
+  const response = await api.post(`/tasks/${taskId}/chat`, { body, replyTo });
+  return response.data;
+};
+
+export const deleteTaskChatMessage = async (taskId, messageId) => {
+  const response = await api.delete(`/tasks/${taskId}/chat/${messageId}`);
   return response.data;
 };
 
@@ -724,10 +746,18 @@ export const listStaffChatMessages = async (conversationId) => {
   return response.data;
 };
 
-export const sendStaffChatMessage = async (conversationId, body) => {
+export const sendStaffChatMessage = async (conversationId, body, replyTo) => {
   const response = await api.post(`/staff-chat/conversations/${conversationId}/messages`, {
     body,
+    replyTo,
   });
+  return response.data;
+};
+
+export const deleteStaffChatMessage = async (conversationId, messageId) => {
+  const response = await api.delete(
+    `/staff-chat/conversations/${conversationId}/messages/${messageId}`
+  );
   return response.data;
 };
 

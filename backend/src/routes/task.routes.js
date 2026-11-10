@@ -2,8 +2,10 @@ const express = require("express");
 
 const {
   addTaskCompletionAttachment,
+  deleteTaskCompletionAttachment,
   createTask,
   createTaskChatMessage,
+  deleteTaskChatMessage,
   createTodo,
   deleteTask,
   deleteTodo,
@@ -30,12 +32,14 @@ router.delete("/todos/:id", deleteTodo);
 router.get("/", listTasks);
 router.post("/", createTask);
 router.get("/:id/chat", listTaskChat);
-router.post("/:id/chat", createTaskChatMessage);
+router.post("/:id/chat", uploadTaskCompletion.single("file"), createTaskChatMessage);
+router.delete("/:id/chat/:messageId", deleteTaskChatMessage);
 router.post(
   "/:id/completion-attachments",
   uploadTaskCompletion.single("file"),
   addTaskCompletionAttachment
 );
+router.delete("/:id/completion-attachments/:attachmentId", deleteTaskCompletionAttachment);
 router.patch("/:id", updateTask);
 router.delete("/:id", deleteTask);
 

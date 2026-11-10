@@ -1,7 +1,17 @@
 import { useEffect, useRef } from "react";
-import { LoaderCircle, MessagesSquare, Search, Send } from "lucide-react";
+import { MessagesSquare, Search } from "lucide-react";
 
 import { avatarSrcFor } from "../utils/avatars";
+import {
+  ChatAttachmentView,
+  ChatComposer,
+  ChatMessageMenu,
+  ChatReplyQuote,
+  chatCopyText,
+  deletedChatLabel,
+  isDeletedChatMessage,
+} from "../taskboard/components/ChatAttachment.jsx";
+import { isImageCompletionFile } from "../taskboard/constants.js";
 
 const personId = (person) => String(person?._id || person?.id || "");
 
@@ -49,8 +59,17 @@ const ConversationPanel = ({
   sending,
   error,
   canSend,
+  pendingFile = null,
+  onPendingFile,
+  fileError = "",
+  allowFiles = false,
   participants = [],
   onOpenTask,
+  reply = null,
+  onCancelReply,
+  onReply,
+  onDeleteMessage,
+  deletingId = "",
 }) => {
   const endRef = useRef(null);
 
@@ -126,6 +145,8 @@ const ConversationPanel = ({
         ) : (
           messages.map((entry) => {
             const mine = personId(entry.author) === myId;
+            const deleted = isDeletedChatMessage(entry);
+            const image = !deleted && isImageCompletionFile(entry.attachment);
             return (
               <li
                 key={entry._id || `${entry.createdAt}-${entry.body}`}
@@ -133,18 +154,44 @@ const ConversationPanel = ({
               >
                 {!mine && <ChatAvatar person={entry.author} />}
                 <div
-                  className={`max-w-[min(100%,20rem)] rounded-2xl px-3.5 py-2.5 shadow-sm ${
+                  className={`relative max-w-[min(100%,20rem)] rounded-2xl py-2.5 pl-3.5 shadow-sm ${
+                    deleted || image ? "pr-3.5" : "pr-6"
+                  } ${
                     mine
                       ? "rounded-br-md bg-violet-600 text-white"
                       : "rounded-bl-md border border-slate-200/90 bg-white text-slate-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
                   }`}
                 >
-                  {!mine && (
-                    <p className="mb-0.5 text-xs font-semibold text-violet-700 dark:text-violet-300">
-                      {entry.author?.name || "Teammate"}
+                  {deleted ? (
+                    <p
+                      className={`text-sm italic ${
+                        mine ? "text-violet-100" : "text-slate-400 dark:text-slate-500"
+                      }`}
+                    >
+                      {deletedChatLabel(entry)}
                     </p>
+                  ) : (
+                    <>
+                      <ChatMessageMenu
+                        mine={mine}
+                        image={image}
+                        copyText={chatCopyText(entry)}
+                        busy={deletingId === entry._id}
+                        onReply={() => onReply?.(entry)}
+                        onDelete={() => onDeleteMessage?.(entry)}
+                      />
+                      {!mine && (
+                        <p className="mb-0.5 text-xs font-semibold text-violet-700 dark:text-violet-300">
+                          {entry.author?.name || "Teammate"}
+                        </p>
+                      )}
+                      <ChatReplyQuote reply={entry.replyTo} mine={mine} />
+                      <ChatAttachmentView attachment={entry.attachment} mine={mine} />
+                      {entry.body ? (
+                        <p className="whitespace-pre-wrap text-sm leading-5">{entry.body}</p>
+                      ) : null}
+                    </>
                   )}
-                  <p className="whitespace-pre-wrap text-sm leading-5">{entry.body}</p>
                   <p
                     className={`mt-1 text-[10px] ${
                       mine ? "text-violet-200" : "text-slate-400 dark:text-slate-500"
@@ -164,43 +211,20 @@ const ConversationPanel = ({
         <p className="px-5 text-sm text-rose-600 dark:text-rose-300">{error}</p>
       ) : null}
 
-      <form
+      <ChatComposer
+        inputId="hub-chat-input"
+        value={draft}
+        onChange={onDraftChange}
         onSubmit={onSend}
-        className="border-t border-slate-100 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-900"
-      >
-          <div className="flex items-end gap-2">
-            <label className="sr-only" htmlFor="hub-chat-input">
-              Write a message
-            </label>
-            <textarea
-              id="hub-chat-input"
-              rows={2}
-              value={draft}
-              onChange={(event) => onDraftChange(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault();
-                  onSend(event);
-                }
-              }}
-              disabled={sending}
-              placeholder={isGroup ? "Write to the team…" : "Write a message…"}
-              className="max-h-28 min-h-[2.75rem] flex-1 resize-none rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-violet-300 focus:bg-white focus:ring-2 focus:ring-violet-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-violet-400 dark:focus:bg-slate-950 dark:focus:ring-violet-500/20"
-            />
-            <button
-              type="submit"
-              disabled={sending || !draft.trim()}
-              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-violet-600 text-white shadow-[0_8px_20px_rgba(124,58,237,0.28)] transition hover:bg-violet-700 disabled:opacity-50"
-              aria-label="Send message"
-            >
-              {sending ? (
-                <LoaderCircle className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-            </button>
-          </div>
-        </form>
+        sending={sending}
+        placeholder={isGroup ? "Write to the team…" : "Write a message…"}
+        file={allowFiles ? pendingFile : null}
+        onFile={onPendingFile || (() => {})}
+        allowFiles={allowFiles}
+        fileError={fileError}
+        reply={reply}
+        onCancelReply={onCancelReply}
+      />
       </>
       )}
     </section>
@@ -217,8 +241,17 @@ const TaskboardChatHub = ({
   sending,
   error,
   canSend,
+  pendingFile = null,
+  onPendingFile,
+  fileError = "",
+  allowFiles = false,
   participants = [],
   onOpenTask,
+  reply = null,
+  onCancelReply,
+  onReply,
+  onDeleteMessage,
+  deletingId = "",
   chatFilter,
   onChatFilterChange,
   chatSearch,
@@ -353,8 +386,17 @@ const TaskboardChatHub = ({
       sending={sending}
       error={error}
       canSend={canSend}
+      pendingFile={pendingFile}
+      onPendingFile={onPendingFile}
+      fileError={fileError}
+      allowFiles={allowFiles}
       participants={participants}
       onOpenTask={onOpenTask}
+      reply={reply}
+      onCancelReply={onCancelReply}
+      onReply={onReply}
+      onDeleteMessage={onDeleteMessage}
+      deletingId={deletingId}
     />
   </div>
 );

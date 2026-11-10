@@ -75,52 +75,35 @@ const extensionForUpload = (originalName, mimeType) => {
   return extensionForMime(mimeType);
 };
 
-const sanitizeAttachmentFilename = (name) =>
-  String(name || "download")
-    .replace(/[/\\?%*:|"<>]/g, "_")
-    .trim()
-    .slice(0, 180) || "download";
+const plainDeliveryUrl = (url) => {
+  const value = String(url || "");
+  if (!value || !value.includes("fl_attachment")) {
+    return value;
+  }
+  return value.replace(/\/fl_attachment:[^/]+\//, "/").replace(/\/fl_attachment\//, "/");
+};
 
 const deliveryUrlForAttachment = ({
   publicId,
   resourceType = "image",
-  originalName = "",
-  mimeType = "",
   fallbackUrl = "",
 }) => {
+  const stored = plainDeliveryUrl(fallbackUrl);
   if (!hasCloudinaryConfig || !publicId) {
-    return fallbackUrl || "";
+    return stored || "";
   }
 
-  const type = resourceType === "raw" ? "raw" : "image";
-  const options = {
-    resource_type: type,
-    secure: true,
-    type: "upload",
-  };
-
-  if (type === "raw") {
-    const mime = String(mimeType || "").toLowerCase();
-    const ext = extensionForUpload(originalName, mimeType);
-    const isPdf =
-      mime === "application/pdf" ||
-      String(originalName || "")
-        .toLowerCase()
-        .endsWith(".pdf") ||
-      ext === "pdf";
-
-    if (!isPdf) {
-      const filename = sanitizeAttachmentFilename(originalName);
-      const hasExt = path.extname(filename);
-      const downloadName = hasExt || !ext ? filename : `${filename}.${ext}`;
-      options.flags = `attachment:${downloadName}`;
-    }
-  }
-
+  // Raw files cannot take image flags such as fl_attachment — Cloudinary answers 400.
+  // Deliver the uploaded asset as-is. The public id already includes the file extension.
   try {
-    return cloudinary.url(publicId, options);
+    return cloudinary.url(publicId, {
+      resource_type: resourceType === "raw" ? "raw" : "image",
+      secure: true,
+      type: "upload",
+      force_version: false,
+    });
   } catch {
-    return fallbackUrl || "";
+    return stored || "";
   }
 };
 

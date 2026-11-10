@@ -1,5 +1,29 @@
 const mongoose = require("mongoose");
 
+const replySchema = new mongoose.Schema(
+  {
+    messageId: {
+      type: String,
+      trim: true,
+      maxlength: 40,
+      default: "",
+    },
+    authorName: {
+      type: String,
+      trim: true,
+      maxlength: 80,
+      default: "",
+    },
+    preview: {
+      type: String,
+      trim: true,
+      maxlength: 160,
+      default: "",
+    },
+  },
+  { _id: false }
+);
+
 const messageSchema = new mongoose.Schema(
   {
     author: {
@@ -10,8 +34,22 @@ const messageSchema = new mongoose.Schema(
     body: {
       type: String,
       trim: true,
-      required: true,
       maxlength: 2000,
+      default: "",
+      required: function requiredBody() {
+        return !this.deletedAt;
+      },
+    },
+    replyTo: {
+      type: replySchema,
+      default: undefined,
+    },
+    deletedAt: {
+      type: Date,
+    },
+    deletedKind: {
+      type: String,
+      enum: ["text", "media"],
     },
   },
   { timestamps: { createdAt: true, updatedAt: false } }

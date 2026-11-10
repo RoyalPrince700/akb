@@ -24,6 +24,69 @@ const activitySchema = new mongoose.Schema(
   { timestamps: { createdAt: true, updatedAt: false } }
 );
 
+const chatAttachmentSchema = new mongoose.Schema(
+  {
+    url: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    publicId: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    originalName: {
+      type: String,
+      trim: true,
+      maxlength: 180,
+      default: "",
+    },
+    mimeType: {
+      type: String,
+      trim: true,
+      maxlength: 120,
+      default: "",
+    },
+    size: {
+      type: Number,
+      min: 0,
+      max: 2 * 1024 * 1024,
+      default: 0,
+    },
+    resourceType: {
+      type: String,
+      enum: ["image", "raw"],
+      default: "image",
+    },
+  },
+  { _id: false }
+);
+
+const chatReplySchema = new mongoose.Schema(
+  {
+    messageId: {
+      type: String,
+      trim: true,
+      maxlength: 40,
+      default: "",
+    },
+    authorName: {
+      type: String,
+      trim: true,
+      maxlength: 80,
+      default: "",
+    },
+    preview: {
+      type: String,
+      trim: true,
+      maxlength: 160,
+      default: "",
+    },
+  },
+  { _id: false }
+);
+
 const chatMessageSchema = new mongoose.Schema(
   {
     author: {
@@ -34,8 +97,23 @@ const chatMessageSchema = new mongoose.Schema(
     body: {
       type: String,
       trim: true,
-      required: true,
       maxlength: 2000,
+      default: "",
+    },
+    attachment: {
+      type: chatAttachmentSchema,
+      default: undefined,
+    },
+    replyTo: {
+      type: chatReplySchema,
+      default: undefined,
+    },
+    deletedAt: {
+      type: Date,
+    },
+    deletedKind: {
+      type: String,
+      enum: ["text", "media"],
     },
   },
   { timestamps: { createdAt: true, updatedAt: false } }
