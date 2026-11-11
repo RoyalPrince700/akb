@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const TYPES = ["assigned", "status", "updated"];
+const TYPES = ["assigned", "status", "updated", "chat"];
 
 const notificationSchema = new mongoose.Schema(
   {

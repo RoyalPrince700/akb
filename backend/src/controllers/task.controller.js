@@ -922,7 +922,7 @@ const createTaskChatMessage = asyncHandler(async (req, res) => {
     recipientIds,
     actor: req.user,
     task,
-    type: "updated",
+    type: "chat",
     message: `${actorName(req.user)} on "${task.title}": ${preview}`,
   });
 

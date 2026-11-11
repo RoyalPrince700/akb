@@ -11,3 +11,11 @@ export const publishUnreadCount = (unreadCount) => {
 export const requestOpenNotifications = () => {
   window.dispatchEvent(new CustomEvent(NOTIFICATIONS_OPEN_EVENT));
 };
+
+export const isChatNotification = (item) => {
+  if (item?.type === "chat") {
+    return true;
+  }
+  const message = String(item?.message || "");
+  return message.includes(' on "') && message.includes('": ');
+};

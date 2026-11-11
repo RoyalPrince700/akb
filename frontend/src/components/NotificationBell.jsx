@@ -16,6 +16,7 @@ import {
   NOTIFICATIONS_EVENT,
   NOTIFICATIONS_OPEN_EVENT,
   NOTIFICATIONS_RETURN_KEY,
+  isChatNotification,
   publishUnreadCount,
 } from "../utils/notifications";
 
@@ -23,13 +24,17 @@ const TYPE_LABELS = {
   assigned: "Assigned",
   status: "Status",
   updated: "Updated",
+  chat: "Chat",
 };
 
 const typeClass = {
   assigned: "bg-violet-100 text-violet-700",
   status: "bg-sky-100 text-sky-700",
   updated: "bg-slate-100 text-slate-600",
+  chat: "bg-violet-100 text-violet-700",
 };
+
+const notificationKind = (item) => (isChatNotification(item) ? "chat" : item?.type);
 
 const formatWhen = (value) => {
   const date = new Date(value);
@@ -271,7 +276,8 @@ const NotificationBell = () => {
         }
         setOpen(false);
         setSelected(null);
-        navigate(`/taskboard?task=${item.task}`);
+        const chat = isChatNotification(item) ? "&chat=1" : "";
+        navigate(`/taskboard?task=${item.task}${chat}`);
         return;
       }
       setSelected(opened);
@@ -392,10 +398,10 @@ const NotificationBell = () => {
                     <div className="min-w-0">
                       <span
                         className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                          typeClass[selected.type] || typeClass.updated
+                          typeClass[notificationKind(selected)] || typeClass.updated
                         }`}
                       >
-                        {TYPE_LABELS[selected.type] || "Update"}
+                        {TYPE_LABELS[notificationKind(selected)] || "Update"}
                       </span>
                       <p className="mt-1 text-xs text-slate-400">{formatWhen(selected.createdAt)}</p>
                     </div>
@@ -448,10 +454,10 @@ const NotificationBell = () => {
                             <span className="flex items-center gap-2">
                               <span
                                 className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                                  typeClass[item.type] || typeClass.updated
+                                  typeClass[notificationKind(item)] || typeClass.updated
                                 }`}
                               >
-                                {TYPE_LABELS[item.type] || "Update"}
+                                {TYPE_LABELS[notificationKind(item)] || "Update"}
                               </span>
                               <span className="shrink-0 text-xs text-slate-400">
                                 {formatWhen(item.createdAt)}

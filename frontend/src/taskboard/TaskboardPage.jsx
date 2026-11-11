@@ -296,8 +296,15 @@ export default function TaskboardPage() {
     }
     const task = tasks.find((item) => item._id === taskId);
     if (task && involves(task, myId)) {
+      const openChat = searchParams.get("chat") === "1";
       setFormError("");
+      setChatError("");
+      setChatDraft("");
+      setChatFile(null);
+      setChatFileError("");
+      setChatReply(null);
       setActivityOpen(false);
+      setTaskDrawerTab(openChat ? "chat" : "details");
       setActiveId(task._id);
       setDraft(taskToDraft(task));
       setChatMessages(task.chat || []);
@@ -309,6 +316,7 @@ export default function TaskboardPage() {
     }
     const next = new URLSearchParams(searchParams);
     next.delete("task");
+    next.delete("chat");
     setSearchParams(next, { replace: true });
   }, [loading, myId, searchParams, setSearchParams, tasks]);
 
