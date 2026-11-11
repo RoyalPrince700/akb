@@ -243,18 +243,31 @@ export const ChatMessageMenu = ({ mine = false, image = false, copyText = "", bu
   );
 };
 
-const imageDownloadUrl = (url, name) => {
-  if (!url?.includes("/image/upload/")) {
-    return url;
+export const downloadRemoteFile = async (url, filename) => {
+  const name =
+    String(filename || "download")
+      .replace(/[/\\?%*:|"<>]/g, "_")
+      .slice(0, 180)
+      .trim() || "download";
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error("Could not download the file");
   }
-  const safe = String(name || "photo")
-    .replace(/[/\\?%*:|"<>]/g, "_")
-    .slice(0, 80);
-  return url.replace("/image/upload/", `/image/upload/fl_attachment:${encodeURIComponent(safe)}/`);
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
 };
 
 export const ExpandableImage = ({ src, name, className, frameClassName = "" }) => {
   const [open, setOpen] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadFailed, setDownloadFailed] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -291,14 +304,30 @@ export const ExpandableImage = ({ src, name, className, frameClassName = "" }) =
               alt={name || "Photo"}
               className="max-h-[78vh] max-w-[min(92vw,40rem)] rounded-2xl object-contain shadow-2xl"
             />
-            <a
-              href={imageDownloadUrl(src, name)}
-              className="absolute top-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-950/70 text-white transition hover:bg-slate-950"
+            <button
+              type="button"
+              disabled={downloading}
+              onClick={async () => {
+                setDownloadFailed(false);
+                setDownloading(true);
+                try {
+                  await downloadRemoteFile(src, name);
+                } catch {
+                  setDownloadFailed(true);
+                } finally {
+                  setDownloading(false);
+                }
+              }}
+              className="absolute top-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-slate-950/70 text-white transition hover:bg-slate-950 disabled:opacity-60"
               aria-label="Download image"
-              title="Download"
+              title={downloadFailed ? "Couldn't download this image" : "Download"}
             >
-              <Download className="h-4 w-4" />
-            </a>
+              {downloading ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+            </button>
           </div>
         </div>
       ) : null}
@@ -307,6 +336,9 @@ export const ExpandableImage = ({ src, name, className, frameClassName = "" }) =
 };
 
 export const ChatAttachmentView = ({ attachment, mine = false }) => {
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState("");
+
   if (!attachment?.url) {
     return null;
   }
@@ -324,27 +356,43 @@ export const ChatAttachmentView = ({ attachment, mine = false }) => {
     );
   }
 
+  const saveFile = async () => {
+    setDownloadError("");
+    setDownloading(true);
+    try {
+      await downloadRemoteFile(attachment.url, attachment.originalName);
+    } catch {
+      setDownloadError("Couldn't download this file.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
-    <a
-      href={attachment.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      download={pdf ? undefined : attachment.originalName || true}
-      className={`mb-1.5 flex items-center gap-2 rounded-xl px-2.5 py-2 text-left ${
+    <button
+      type="button"
+      onClick={saveFile}
+      disabled={downloading}
+      title="Download"
+      className={`mb-1.5 flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left disabled:opacity-70 ${
         mine ? "bg-white/15 text-white" : "bg-slate-100 text-slate-800"
       }`}
     >
-      <FileText className="h-4 w-4 shrink-0" />
+      {downloading ? (
+        <LoaderCircle className="h-4 w-4 shrink-0 animate-spin" />
+      ) : (
+        <FileText className="h-4 w-4 shrink-0" />
+      )}
       <span className="min-w-0">
         <span className="block truncate text-sm font-medium">
           {attachment.originalName || "Document"}
         </span>
         <span className={`block text-[10px] ${mine ? "text-violet-100" : "text-slate-500"}`}>
-          {formatFileSize(attachment.size)}
-          {pdf ? " · PDF" : ""}
+          {downloadError || `${formatFileSize(attachment.size)}${pdf ? " · PDF" : ""}`}
         </span>
       </span>
-    </a>
+      <Download className="ml-auto h-3.5 w-3.5 shrink-0 opacity-70" />
+    </button>
   );
 };
 

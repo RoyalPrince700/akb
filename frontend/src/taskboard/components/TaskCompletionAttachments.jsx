@@ -1,12 +1,12 @@
-import { ExternalLink, FileText, LoaderCircle, Paperclip, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { Download, FileText, LoaderCircle, Paperclip, Trash2 } from "lucide-react";
 import {
   TASK_COMPLETION_ACCEPT,
   TASK_COMPLETION_MAX_FILES,
   formatFileSize,
   isImageCompletionFile,
-  isPdfCompletionFile,
 } from "../constants.js";
-import { ExpandableImage } from "./ChatAttachment.jsx";
+import { downloadRemoteFile, ExpandableImage } from "./ChatAttachment.jsx";
 
 export default function TaskCompletionAttachments({
   task,
@@ -19,6 +19,21 @@ export default function TaskCompletionAttachments({
 }) {
   const items = task?.completionAttachments || [];
   const atLimit = items.length >= TASK_COMPLETION_MAX_FILES;
+  const [downloadingId, setDownloadingId] = useState("");
+  const [downloadError, setDownloadError] = useState("");
+
+  const saveFile = async (item) => {
+    setDownloadError("");
+    const id = String(item._id || item.url || "");
+    setDownloadingId(id);
+    try {
+      await downloadRemoteFile(item.url, item.originalName);
+    } catch {
+      setDownloadError("Couldn't download this file. Try again.");
+    } finally {
+      setDownloadingId("");
+    }
+  };
 
   return (
     <div className="mb-5 rounded-2xl border border-violet-100 bg-violet-50/40 p-4">
@@ -48,28 +63,43 @@ export default function TaskCompletionAttachments({
                 </span>
               )}
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-slate-900">
-                  {item.originalName || "Attachment"}
-                </p>
+                {isImageCompletionFile(item) ? (
+                  <p className="truncate text-sm font-medium text-slate-900">
+                    {item.originalName || "Attachment"}
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => saveFile(item)}
+                    disabled={downloadingId === String(item._id || item.url || "")}
+                    className="block max-w-full truncate text-left text-sm font-medium text-slate-900 hover:text-violet-700 disabled:opacity-60"
+                    title="Download"
+                  >
+                    {item.originalName || "Attachment"}
+                  </button>
+                )}
                 <p className="text-xs text-slate-400">
                   {formatFileSize(item.size)}
                   {item.uploadedBy?.name ? ` · ${item.uploadedBy.name}` : ""}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-0.5">
-                {isImageCompletionFile(item) ? null : (
-                <a
-                  href={item.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  download={isPdfCompletionFile(item) ? undefined : item.originalName || true}
-                  onClick={(event) => event.stopPropagation()}
-                  className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-semibold text-violet-700 transition hover:bg-violet-50"
+                <button
+                  type="button"
+                  disabled={downloadingId === String(item._id || item.url || "")}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    saveFile(item);
+                  }}
+                  className="inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-semibold text-violet-700 transition hover:bg-violet-50 disabled:opacity-60"
                 >
-                  {isPdfCompletionFile(item) ? "Open" : "Download"}
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-                )}
+                  {downloadingId === String(item._id || item.url || "") ? (
+                    <LoaderCircle className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Download className="h-3 w-3" />
+                  )}
+                  Download
+                </button>
                 {canUpload ? (
                   <button
                     type="button"
@@ -93,9 +123,11 @@ export default function TaskCompletionAttachments({
             </li>
           ))}
         </ul>
-      ) : (
+      ) : null}
+      {downloadError ? <p className="mt-2 text-xs text-rose-600">{downloadError}</p> : null}
+      {items.length === 0 ? (
         <p className="mt-3 text-sm text-slate-500">No files attached yet.</p>
-      )}
+      ) : null}
       {canUpload && !atLimit ? (
         <label className="mt-3 block" htmlFor="task-detail-completion-file">
           <input
