@@ -1662,10 +1662,10 @@ export default function TaskboardPage() {
         isDark ? "taskboard--dark" : "bg-[#f4f1fb]"
       }`}
     >
-      <Navbar />
+      <Navbar layout="taskboard" />
       <div className="mx-auto flex w-full max-w-[1600px] items-start">
         <aside
-          className={`sticky top-20 hidden h-[calc(100vh-5rem)] shrink-0 overflow-hidden border-r transition-[width] duration-200 lg:block ${
+          className={`sticky top-20 mt-5 hidden h-[calc(100vh-6.25rem)] shrink-0 overflow-hidden border-r transition-[width] duration-200 lg:block ${
             isDark ? "border-slate-700/80" : "border-slate-200/80"
           } ${sidebarCollapsed ? "w-[4.5rem]" : "w-64"}`}
         >

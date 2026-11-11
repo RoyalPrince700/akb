@@ -120,7 +120,7 @@ const authLinkClass =
     }`;
   };
 
-const NavLinks = ({ children, mobile = false, onNavigate }) => {
+const NavLinks = ({ children, mobile = false, onNavigate, part = "all" }) => {
   const { isAuthenticated, loading, user } = useAuth();
   const firstName = getFirstName(user?.name);
   const linkClass = mobile ? mobileNavLinkClass : navLinkClass;
@@ -274,17 +274,12 @@ const NavLinks = ({ children, mobile = false, onNavigate }) => {
     )
   );
 
-  if (!mobile) {
-    return (
-      <>
-        <div className="flex items-center gap-6">{mainLinks}</div>
-        {accountLinks && (
-          <div className="ml-6 flex items-center gap-3 border-l border-slate-200 pl-6">
-            {accountLinks}
-          </div>
-        )}
-      </>
-    );
+  if (!mobile && part === "links") {
+    return <div className="flex items-center gap-6">{mainLinks}</div>;
+  }
+
+  if (!mobile && part === "account") {
+    return accountLinks ? <div className="flex items-center gap-3">{accountLinks}</div> : null;
   }
 
   return (
@@ -299,15 +294,22 @@ const NavLinks = ({ children, mobile = false, onNavigate }) => {
   );
 };
 
-const Navbar = ({ children }) => {
+const Navbar = ({ children, layout = "default" }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const closeMobile = () => setMobileOpen(false);
+  const taskboard = layout === "taskboard";
 
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/80 backdrop-blur-md">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4 sm:px-8 lg:px-10">
-          <Link to="/" className="inline-flex shrink-0 items-center">
+        <nav
+          className={`mx-auto flex w-full items-center justify-between gap-4 py-4 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center ${
+            taskboard
+              ? "max-w-[1600px] px-4 sm:px-6 lg:pr-8 lg:pl-0"
+              : "max-w-7xl px-6 sm:px-8 lg:px-10"
+          }`}
+        >
+          <Link to="/" className="inline-flex shrink-0 items-center justify-self-start">
             <img
               src={accessibleLogo}
               alt="Accessible Publishers Ltd — Accessible Knowledge Base"
@@ -315,20 +317,25 @@ const Navbar = ({ children }) => {
             />
           </Link>
 
-          <div className="flex items-center gap-2 lg:hidden">
-            <NotificationBell />
-            <button
-              type="button"
-              onClick={() => setMobileOpen(true)}
-              className="rounded-full border border-slate-300 bg-white p-2 text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
-              aria-label="Open menu"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
+          <div className="hidden justify-self-center lg:flex">
+            <NavLinks part="links">{children}</NavLinks>
           </div>
 
-          <div className="hidden flex-1 items-center justify-end gap-6 lg:flex">
-            <NavLinks>{children}</NavLinks>
+          <div className="flex items-center justify-self-end gap-2">
+            <div className="flex items-center gap-2 lg:hidden">
+              <NotificationBell />
+              <button
+                type="button"
+                onClick={() => setMobileOpen(true)}
+                className="rounded-full border border-slate-300 bg-white p-2 text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+                aria-label="Open menu"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="hidden lg:flex">
+              <NavLinks part="account" />
+            </div>
           </div>
         </nav>
       </header>
